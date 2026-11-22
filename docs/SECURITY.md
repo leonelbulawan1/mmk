@@ -1,5 +1,7 @@
 # Security model
 
+> **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
+
 | Requirement | Implementation |
 |---|---|
 | Secure password hashing | scrypt (n=2^14, r=8, p=1, 16-byte salt), constant-time compare (`security_hashing.py`). Passwords need at least 8 characters, including letters and digits |

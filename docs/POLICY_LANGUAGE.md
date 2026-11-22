@@ -1,5 +1,7 @@
 # MMK Legacy Policy Language (ALP)
 
+> **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
+
 A policy is a list of statements, each ending with `;`. Comments start with `#`.
 **Anything not allowed is denied, and `deny` always overrides `allow`.**
 **Nothing is shared while the owner is alive:** the whole policy takes effect only after the death trigger. `after death` is therefore optional (it is implied); `after DATE` means "after the owner's passing, and not before DATE".

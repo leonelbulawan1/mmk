@@ -1,5 +1,7 @@
 # Deploying MMK for free
 
+> **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
+
 This setup costs nothing. No step needs a credit card except possibly Render: if Render asks for one, it is only for identity checks and the free plan is not charged.
 
 ```

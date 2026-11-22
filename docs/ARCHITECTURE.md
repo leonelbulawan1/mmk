@@ -1,5 +1,7 @@
 # Architecture
 
+> **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
+
 ```
 React (Vite, Tailwind, Router)
         │  JSON over HTTPS, Bearer JWT
