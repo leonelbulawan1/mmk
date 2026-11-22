@@ -17,7 +17,7 @@ export default function EntryDetail() {
   const [view, setView] = useState('current')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
-  const [msg, setMsg] = useState({ kind: '', text: location.state?.justCreated ? 'Entry sealed into your vault.' : '' })
+  const [msg, setMsg] = useState({ kind: '', text: location.state?.justCreated ? 'Saved.' : '' })
   const [busy, setBusy] = useState(false)
   const sealed = !!user.death_triggered_at
 

@@ -7,9 +7,9 @@ import { Alert, Card, Field, LegalDisclaimer, PageHeader, useAsync } from '../co
 import NavIcon from '../components/NavIcon'
 
 const MODES = [
-  { key: 'verbatim', label: 'Verbatim', short: 'Kept exactly as you write it. No corrections.' },
-  { key: 'light_fix', label: 'Light Fix', short: 'Small typos, spacing and capitals are fixed. The original is kept.' },
-  { key: 'review', label: 'Review', short: 'Suggested fixes are shown after saving. Nothing changes until you accept.' },
+  { key: 'verbatim', label: 'Verbatim', short: 'Saved exactly as you type it.' },
+  { key: 'light_fix', label: 'Light Fix', short: 'Fixes small typos. Your original is kept.' },
+  { key: 'review', label: 'Review', short: 'Shows suggested fixes after you save. You choose what to keep.' },
 ]
 const SAMPLE = 'today i recieved a letter from Lina , it was teh nicest surprise.'
 
@@ -30,15 +30,15 @@ function ModePreview({ mode, text }) {
   if (!preview) return null
   return (
     <div className="rounded-xl bg-cream-100 p-3 text-sm">
-      <p className="mb-1.5 text-xs font-medium text-ink-400">{text.trim() ? 'With your text' : 'With a sample'}:</p>
+      <p className="mb-1.5 text-xs font-medium text-ink-400">{text.trim() ? 'Your text' : 'Example'}:</p>
       {preview.mode === 'verbatim' && <p className="line-clamp-4">{preview.original}</p>}
       {preview.mode === 'light_fix' && (preview.revision_text
         ? <><p className="line-clamp-4">{preview.revision_text}</p>
-          <p className="pt-1.5 text-xs text-ink-400">{preview.changes.length} fix{preview.changes.length === 1 ? '' : 'es'}, saved as a revision.</p></>
+          <p className="pt-1.5 text-xs text-ink-400">{preview.changes.length} fix{preview.changes.length === 1 ? '' : 'es'}</p></>
         : <p className="text-ink-400">Nothing to fix.</p>)}
       {preview.mode === 'review' && (preview.suggestions.length
         ? <><div className="line-clamp-6"><DiffView ops={preview.suggestions} /></div>
-          <p className="pt-1.5 text-xs text-ink-400">You will be asked to accept these after saving.</p></>
+          <p className="pt-1.5 text-xs text-ink-400">You can accept these after saving.</p></>
         : <p className="text-ink-400">No suggestions.</p>)}
     </div>
   )
@@ -146,8 +146,7 @@ export default function CreateEntry() {
 
   return (
     <>
-      <PageHeader eyebrow="a new page" title={isLetter ? 'Write a letter' : 'Write an entry'}
-        subtitle="Every word is sealed into your vault exactly as written." />
+      <PageHeader title={isLetter ? 'New letter' : 'New entry'} />
       <form onSubmit={submit} className="mx-auto max-w-4xl">
         <div className="card overflow-hidden p-0">
           {/* Window bar: what you are writing, and the draft status */}
@@ -162,7 +161,7 @@ export default function CreateEntry() {
             </div>
             <span className="text-xs text-ink-400" aria-live="polite">
               {restored ? <>Draft restored · <button type="button" onClick={discardDraft} className="font-medium text-bark-500 hover:underline">Discard</button></>
-                : draftSaved ? 'Draft saved on this device' : ''}
+                : draftSaved ? 'Draft saved' : ''}
             </span>
           </div>
 
@@ -172,7 +171,7 @@ export default function CreateEntry() {
           {isLetter && (
             <Row label="To" htmlFor="to">
               {active.length === 0 ? (
-                <span className="text-sm text-bark-600">Add a beneficiary first. <Link className="underline" to="/beneficiaries">Manage beneficiaries</Link></span>
+                <span className="text-sm text-bark-600">No beneficiaries yet. <Link className="underline" to="/beneficiaries">Add one</Link></span>
               ) : (
                 <select id="to" required value={form.recipient} onChange={set('recipient')} className={`${bare} cursor-pointer appearance-none`}>
                   <option value="">Choose a beneficiary…</option>
@@ -180,32 +179,31 @@ export default function CreateEntry() {
                 </select>
               )}
               {release?.released && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-sage-100 px-2.5 py-0.5 text-xs font-medium text-sage-600" title="Your legacy policy releases letters to this person">
-                  ✓ Can receive letters{release.version ? ` · policy v${release.version}` : ''}
+                <span className="inline-flex items-center gap-1 rounded-full bg-sage-100 px-2.5 py-0.5 text-xs font-medium text-sage-600" title="Allowed in your legacy policy">
+                  ✓ Can receive letters
                 </span>
               )}
             </Row>
           )}
           {isLetter && release && !release.released && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gold-500/30 bg-[#FBF0D9] px-5 py-3 text-sm text-bark-600 sm:px-6">
-              <span className="min-w-0 flex-1">Your legacy policy doesn't release letters to {recipientName} yet, so {recipientName} would never receive this letter.</span>
+              <span className="min-w-0 flex-1">{recipientName} can't receive letters yet. Add them to your legacy policy.</span>
               <button type="button" onClick={addRelease} disabled={addingRelease} className="btn-secondary py-1.5 text-sm">
-                {addingRelease ? 'Adding…' : 'Add to my policy'}
+                {addingRelease ? 'Adding…' : 'Add to policy'}
               </button>
             </div>
           )}
           <Row label="Subject" htmlFor="subject">
-            <input id="subject" className={`${bare} text-lg font-semibold`} placeholder={isLetter ? 'For example: To my daughter' : 'A title, if you like'}
+            <input id="subject" className={`${bare} text-lg font-semibold`} placeholder={isLetter ? 'Title' : 'Title (optional)'}
               value={form.title} onChange={set('title')} maxLength={200} />
           </Row>
-          <Row label="Date" htmlFor="date" error={futureDate ? 'This date is in the future. Choose today or an earlier day.' : ''}>
+          <Row label="Date" htmlFor="date" error={futureDate ? 'Date can’t be in the future.' : ''}>
             <input id="date" type="date" required max={today()} value={form.entry_date} onChange={set('entry_date')} className={`${bare} flex-none text-sm`} />
-            <span className="text-xs text-ink-400">{isLetter ? 'the day you wrote it' : 'the day this memory happened'}</span>
           </Row>
           {isLetter && (
-            <Row label="Opens" error={noRelease ? 'Choose at least one: after your death, or a date.' : ''}>
+            <Row label="Opens" error={noRelease ? 'Choose when the letter opens.' : ''}>
               <label className="flex items-center gap-2 text-sm text-ink-600"><input type="checkbox" className="checkbox" checked={form.release_on_death} onChange={set('release_on_death')} /> After my death</label>
-              <span className="text-xs text-ink-400">and/or on</span>
+              <span className="text-xs text-ink-400">or on</span>
               <input type="date" min={today()} value={form.release_on} onChange={set('release_on')} aria-label="Opens on a date (optional)"
                 className="rounded-lg border border-cream-300 bg-white/80 px-2 py-1 text-sm text-ink-700 focus:border-gold-500 focus:outline-none" />
             </Row>
@@ -213,7 +211,7 @@ export default function CreateEntry() {
 
           {/* Body */}
           <textarea required className="paper-lines block min-h-[380px] w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 placeholder:text-ink-400/50 focus:outline-none sm:px-6"
-            placeholder={isLetter ? 'Dear…' : 'Today I…'} value={form.text} onChange={set('text')} aria-label={isLetter ? 'Letter text' : 'Entry text'} />
+            placeholder={isLetter ? 'Dear…' : 'Start writing…'} value={form.text} onChange={set('text')} aria-label={isLetter ? 'Letter text' : 'Entry text'} />
 
           {isLetter && <div className="px-5 pb-4 sm:px-6"><LegalDisclaimer compact /></div>}
 
@@ -238,11 +236,11 @@ export default function CreateEntry() {
               <div className="flex items-center gap-4">
                 <span className="text-xs text-ink-400">{words} words</span>
                 <button className="btn-primary px-5 py-2.5" disabled={!canSave}>
-                  <NavIcon name="write" size={16} />{busy ? 'Sealing…' : isLetter ? 'Seal letter' : 'Seal entry'}
+                  <NavIcon name="write" size={16} />{busy ? 'Saving…' : 'Save'}
                 </button>
               </div>
             </div>
-            <p className="mt-2 text-xs text-ink-400">{current.short} Sealed pages can never be edited or deleted, only revised.</p>
+            <p className="mt-2 text-xs text-ink-400">{current.short} Saved entries can’t be edited or deleted, only revised.</p>
             {showPreview && <div className="mt-3"><ModePreview mode={mode} text={form.text} /></div>}
           </div>
         </div>

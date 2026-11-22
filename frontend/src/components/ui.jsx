@@ -133,7 +133,7 @@ export function LegalDisclaimer({ compact = false, className = '' }) {
       <p>
         <b className="font-semibold text-ink-600">Not a legal will.</b>{' '}
         {compact
-          ? 'Letters and the legacy policy are personal messages and wishes. They do not transfer property and are not legal advice.'
+          ? 'This letter is a personal message. It has no legal effect.'
           : 'Letters and the legacy policy in MMK are personal messages and wishes. They are not a will and have no legal effect on property or inheritance. Philippine law has formal requirements for wills; for those, consult a lawyer. MMK does not give legal advice.'}
       </p>
     </div>
