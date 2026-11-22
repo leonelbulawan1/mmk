@@ -12,6 +12,8 @@ be retried from Settings once email is set up.
 """
 from __future__ import annotations
 
+import html
+import re
 import smtplib
 import sys
 from email.message import EmailMessage
@@ -25,8 +27,38 @@ from . import audit, policy_service, vault_service
 
 
 def smtp_configured() -> bool:
-    """True when email can be sent, by SMTP or by the Brevo API."""
-    return bool(settings.smtp_host or settings.brevo_api_key) and sys.platform != "emscripten"
+    """True when email can be sent: by the Gmail relay, the Brevo API or SMTP."""
+    return (bool(settings.gmail_relay_url or settings.smtp_host or settings.brevo_api_key)
+            and sys.platform != "emscripten")
+
+
+_URL = re.compile(r"(https?://[^\s<]+)")
+
+
+def _html(text: str) -> str:
+    """The same message as simple HTML (clickable links). Inboxes trust mail with both parts more."""
+    safe = html.escape(text)
+    safe = _URL.sub(lambda m: f'<a href="{m.group(1)}">{m.group(1)}</a>', safe)
+    return ('<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1f2a44">'
+            + safe.replace("\n", "<br>") + "</div>")
+
+
+def _send_gmail_relay(notice: EmailNotice) -> str | None:
+    """Send through the owner's Gmail (Google Apps Script web app). Returns an id or raises."""
+    import httpx
+    from email.utils import parseaddr
+
+    name, _ = parseaddr(settings.smtp_from)
+    resp = httpx.post(settings.gmail_relay_url, follow_redirects=True, timeout=30,
+                      json={"secret": settings.gmail_relay_secret, "to": notice.to_email, "subject": notice.subject,
+                            "body": notice.body, "html": _html(notice.body), "name": name or "MMK"})
+    try:
+        data = resp.json()
+    except ValueError:
+        raise OSError(f"Gmail relay {resp.status_code}: unexpected answer (is the web app deployed for 'Anyone'?)")
+    if not data.get("ok"):
+        raise OSError(f"Gmail relay: {data.get('error') or 'refused'}")
+    return None
 
 
 def _send_brevo(notice: EmailNotice) -> None:
@@ -39,7 +71,7 @@ def _send_brevo(notice: EmailNotice) -> None:
         headers={"api-key": settings.brevo_api_key, "accept": "application/json"},
         json={"sender": {"name": name or "MMK", "email": address},
               "to": [{"email": notice.to_email}],
-              "subject": notice.subject, "textContent": notice.body},
+              "subject": notice.subject, "textContent": notice.body, "htmlContent": _html(notice.body)},
         timeout=20,
     )
     if resp.status_code >= 300:
@@ -109,6 +141,14 @@ def _send(notice: EmailNotice) -> None:
         notice.status = "not_configured"
         notice.error = "Email sending is not set up (set BREVO_API_KEY or SMTP_HOST)."
         return
+    if settings.gmail_relay_url:
+        try:
+            _send_gmail_relay(notice)
+            notice.status, notice.error, notice.sent_at = "sent", "", now_iso()
+        except Exception as exc:
+            notice.status, notice.error = "failed", str(exc)[:300]
+            print(f"[email] could not send {notice.kind} to {notice.to_email}: {notice.error}", file=sys.stderr, flush=True)
+        return
     if settings.brevo_api_key:
         try:
             notice.provider_id = _send_brevo(notice)
@@ -151,7 +191,9 @@ def email_problem(notice: EmailNotice) -> str:
         return "The sender address is not verified in Brevo. The MMK admin must verify it."
     if "not yet activated" in err or "not activated" in err or "suspended" in err or "permission_denied" in err:
         return "The email service account is not active yet. The MMK admin must check the Brevo account."
-    if "limit" in err or "quota" in err or "429" in err or "credits" in err:
+    if "gmail relay" in err and ("secret" in err or "unexpected answer" in err):
+        return "The Gmail sender is not set up correctly. The MMK admin must check GMAIL_RELAY_URL and GMAIL_RELAY_SECRET."
+    if "limit" in err or "quota" in err or "too many times" in err or "429" in err or "credits" in err:
         return "Today's email limit has been reached. Try again later."
     if "timed out" in err or "timeout" in err or "connect" in err:
         return "The email service could not be reached. Try again in a minute."

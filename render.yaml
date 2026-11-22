@@ -15,6 +15,10 @@ services:
         sync: false
       - key: BREVO_API_KEY         # Brevo → SMTP & API → API keys
         sync: false
+      - key: GMAIL_RELAY_URL       # optional, preferred: send from your own Gmail (docs/deploy/GMAIL_RELAY.md)
+        sync: false
+      - key: GMAIL_RELAY_SECRET
+        sync: false
       - key: SMTP_FROM             # e.g. MMK <you@gmail.com> (the sender you verified in Brevo)
         sync: false
       - key: APP_URL               # the website address, e.g. https://mmk-web.onrender.com

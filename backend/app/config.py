@@ -59,6 +59,10 @@ class Settings:
     # Alternative to SMTP: send through Brevo's HTTPS API. Use this on hosts that block SMTP ports
     # (most free tiers). The sender is taken from SMTP_FROM and must be verified in Brevo.
     brevo_api_key: str = os.getenv("BREVO_API_KEY", "")
+    # Send through the owner's own Gmail with a Google Apps Script web app (see docs/deploy/GMAIL_RELAY.md).
+    # Mail then really comes from gmail.com, so Gmail and school inboxes accept it instead of filtering it.
+    gmail_relay_url: str = os.getenv("GMAIL_RELAY_URL", "")
+    gmail_relay_secret: str = os.getenv("GMAIL_RELAY_SECRET", "")
     # Development only: when email cannot be sent, show the email verification code on screen.
     # Never enable this on a public server - it would let anyone register any address.
     dev_show_verification_code: bool = os.getenv("DEV_SHOW_VERIFICATION_CODE", "false").lower() in ("1", "true", "yes")

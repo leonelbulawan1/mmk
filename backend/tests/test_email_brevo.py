@@ -66,3 +66,37 @@ def test_not_configured_without_key_or_smtp(monkeypatch):
     n = _notice()
     notify._send(n)
     assert n.status == "not_configured" and "BREVO_API_KEY" in n.error
+
+
+class _JResp(_Resp):
+    def json(self):
+        import json
+        return json.loads(self.text)
+
+
+def test_gmail_relay_is_preferred_and_sends_text_and_html(monkeypatch):
+    saved = {k: getattr(settings, k) for k in ("gmail_relay_url", "gmail_relay_secret")}
+    sent = {}
+
+    def fake_post(url, **kw):
+        sent.update(url=url, **kw)
+        return _JResp(200, '{"ok": true}')
+
+    try:
+        _set("gmail_relay_url", "https://script.google.com/macros/s/abc/exec")
+        _set("gmail_relay_secret", "s3cret")
+        _set("brevo_api_key", "test-key")
+        monkeypatch.setattr(httpx, "post", fake_post)
+        n = _notice()
+        n.body = "Open https://mmk-web.onrender.com/activate?code=1 to start."
+        notify._send(n)
+        assert n.status == "sent" and sent["url"].endswith("/exec") and sent["follow_redirects"] is True
+        assert sent["json"]["secret"] == "s3cret" and sent["json"]["to"] == "ana@example.com"
+        assert '<a href="https://mmk-web.onrender.com/activate?code=1">' in sent["json"]["html"]
+        monkeypatch.setattr(httpx, "post", lambda url, **kw: _JResp(200, '{"ok": false, "error": "wrong secret"}'))
+        n = _notice()
+        notify._send(n)
+        assert n.status == "failed" and "GMAIL_RELAY_SECRET" in notify.email_problem(n)
+    finally:
+        for k, v in saved.items():
+            _set(k, v)

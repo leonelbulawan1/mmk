@@ -7,7 +7,7 @@ import { Alert, Card, Empty, Field, PageHeader, Spinner, Tag, useAsync } from '.
 // In the browser edition links cannot open a specific page, so only the code is shown there.
 const WEB = import.meta.env.VITE_WEB_RUNTIME === '1'
 
-const blank = { display_name: '', email: '', handle: '', relationship: '' }
+const blank = { display_name: '', email: '', handle: '' }
 
 // Pydantic's own wording for a malformed address is long; say it plainly.
 const plainEmailError = (msg) => /not a valid email address/i.test(msg || '') ? 'Enter a valid email address, like maria.santos@gmail.com.' : msg
@@ -96,7 +96,11 @@ export default function Beneficiaries() {
         {invite && (invite.emailed ? (
           <Alert kind="success" onClose={() => setInvite(null)}>
             Invitation sent to <b>{invite.email}</b>. {invite.name} can activate their account from the link in the email.
-            <span className="mt-1 block text-xs">Not in their inbox? Ask them to check Spam, or send it again.</span>
+            <span className="mt-1 block text-xs">Not in their inbox? Ask them to check Spam, or send them the link yourself (it works once).</span>
+            {invite.link && !WEB && (
+              <button type="button" className="btn-secondary mt-2 px-2.5 py-1 text-xs"
+                onClick={() => navigator.clipboard?.writeText(invite.link).catch(() => {})}>Copy invite link</button>
+            )}
           </Alert>
         ) : (
           <Alert kind="warn" onClose={() => setInvite(null)}>
@@ -126,7 +130,7 @@ export default function Beneficiaries() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="text-2xl font-semibold">{b.display_name}</h3>
-                      <p className="text-sm text-ink-400">{b.relationship || 'Beneficiary'} · {b.email}</p>
+                      <p className="break-all text-sm text-ink-400">{b.email}</p>
                     </div>
                     <Tag tone="ink">{b.handle}</Tag>
                   </div>
@@ -163,7 +167,6 @@ export default function Beneficiaries() {
                 {emailError && <p className="mt-1 text-xs text-rose-600">{emailError}</p>}</Field>
               <Field label="Policy handle" hint="Used in your policy, e.g. allow maria …  (lowercase)">
                 <input className="input font-mono" required pattern="[a-z][a-z0-9_]{1,31}" value={form.handle} onChange={set('handle')} /></Field>
-              <Field label="Relationship"><input className="input" placeholder="Daughter, friend…" value={form.relationship} onChange={set('relationship')} /></Field>
               <button className="btn-primary w-full" disabled={busy}>{busy ? 'Adding…' : 'Add and create invite'}</button>
             </form>
           </Card>
