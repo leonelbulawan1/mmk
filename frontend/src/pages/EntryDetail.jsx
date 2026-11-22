@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
+import WhoCanRead from '../components/WhoCanRead'
 import DiffView from '../components/DiffView'
 import { Alert, Card, Hash, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
 
@@ -100,6 +101,7 @@ export default function EntryDetail() {
             <div><p className="text-ink-400">People</p><div className="mt-1 flex flex-wrap gap-1.5">{e.names.length ? e.names.map((n) => <Tag key={n}>{n}</Tag>) : '—'}</div></div>
             <div><p className="text-ink-400">Summary (what “summary” access shows)</p><p className="mt-1 italic">{e.summary}</p></div>
           </Card>
+          <WhoCanRead entryId={e.id} sealed={sealed} />
           <Card className="space-y-2 text-sm">
             <h2 className="text-xl font-semibold">Integrity</h2>
             <p><span className="text-ink-400">Sequence</span> #{e.seq}</p>

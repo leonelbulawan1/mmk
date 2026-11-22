@@ -136,6 +136,27 @@ def matrix(on: date | None = None, after_death: bool = True, owner: User = Depen
     }
 
 
+@router.get("/entries/{entry_id}/access")
+def entry_access(entry_id: int, owner: User = Depends(require_owner), db: Session = Depends(get_db)):
+    """Who may read this entry after the owner's passing, and why (Prolog decisions for one entry)."""
+    vault = vault_service.load_vault(db, owner)
+    if vault.get(entry_id) is None:
+        raise HTTPException(404, "Entry not found")
+    try:
+        result = policy_service.engine_for(db, owner, assume_death=True).matrix(today())
+    except PrologError as exc:
+        raise HTTPException(503, f"Access engine unavailable: {exc}")
+    protocol = policy_service.current_protocol(db, owner)
+    rule_lines = {i: r.line for i, r in enumerate(protocol.rules, start=1)}
+    people = []
+    for b in vault_service.beneficiary_rows(db, owner):
+        d = result.get(b.handle, {}).get(entry_id)
+        level, reason = (d.level, d.reason) if d else ("none", "not_beneficiary")
+        people.append({"handle": b.handle, "display_name": b.display_name, "relationship": b.relationship,
+                       "level": level, "reason": reason, "line": _line(reason, rule_lines)})
+    return {"entry_id": entry_id, "date": today().isoformat(), "policy_version": protocol.version, "people": people}
+
+
 def _line(reason: str, lines: dict[int, int]) -> int | None:
     if "(" in reason:
         try:

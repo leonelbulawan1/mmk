@@ -181,3 +181,23 @@ def test_letter_release_check_and_add(client):
     pol = client.get("/api/policy", headers=h).json()
     assert "release letters to ana after death;" in pol["source"] and "release letters to kids" in pol["source"]
     assert client.post("/api/policy/letter-release/ana", headers=h).json().get("version") is None  # already there: no new version
+
+
+def test_entry_access_lists_each_beneficiary(client):
+    h = {"Authorization": f"Bearer {register_owner(client, 'who@example.com')['token']}"}
+    for name, handle in (("Ana Cruz", "ana"), ("Ben Cruz", "ben"), ("Cy Cruz", "cy")):
+        assert client.post("/api/beneficiaries", json={"display_name": name, "handle": handle,
+                           "email": f"{handle}.who@example.com"}, headers=h).status_code in (200, 201)
+    src = 'allow ana verbatim access to entries;\nallow ben summary access to entries;\ndeny ben access to entries about "health";\n'
+    assert client.put("/api/policy", json={"source": src}, headers=h).status_code == 200
+    e = client.post("/api/entries", json={"title": "Check-up", "text": "The doctor checked my blood pressure and my health.",
+                                          "entry_date": "2024-03-01", "mode": "verbatim"}, headers=h).json()["entry"]
+    r = client.get(f"/api/entries/{e['id']}/access", headers=h)
+    assert r.status_code == 200, r.text
+    people = {p["handle"]: p for p in r.json()["people"]}
+    assert people["ana"]["level"] == "verbatim" and people["ana"]["reason"].startswith("granted_by")
+    assert people["ana"]["display_name"] == "Ana Cruz" and people["ana"]["line"] == 1
+    assert people["cy"]["level"] == "none" and people["cy"]["reason"] == "default_deny"
+    assert "health" in e["topics"]
+    assert people["ben"]["level"] == "none" and people["ben"]["reason"].startswith("denied_by")
+    assert client.get("/api/entries/99999/access", headers=h).status_code == 404

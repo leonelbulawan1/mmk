@@ -13,6 +13,7 @@ export default function Entries() {
   const [state, setState] = useState({ loading: true, data: [], error: '' })
   const topic = params.get('topic') || ''
   const kind = params.get('kind') || ''
+  const reviewOnly = params.get('review') === '1'
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -26,8 +27,10 @@ export default function Entries() {
 
   const update = (k, v) => { const p = new URLSearchParams(params); v ? p.set(k, v) : p.delete(k); setParams(p) }
 
+  const needReview = state.data.filter((e) => e.pending_review).length
+  const shown = reviewOnly ? state.data.filter((e) => e.pending_review) : state.data
   // group entries by year for a journal feel
-  const byYear = state.data.reduce((acc, e) => { (acc[e.entry_date.slice(0, 4)] ||= []).push(e); return acc }, {})
+  const byYear = shown.reduce((acc, e) => { (acc[e.entry_date.slice(0, 4)] ||= []).push(e); return acc }, {})
 
   return (
     <>
@@ -44,9 +47,22 @@ export default function Entries() {
       {topic && <p className="mb-4 text-sm">Theme: <Tag tone="bark">{topic}</Tag> <button className="ml-2 text-xs underline" onClick={() => update('topic', '')}>clear</button></p>}
 
       <Alert>{state.error}</Alert>
-      {state.loading ? <Spinner /> : state.data.length === 0 ? (
+      {!state.loading && (needReview > 0 || reviewOnly) && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold-500/30 bg-[#FBF0D9] px-4 py-3 text-sm text-bark-600">
+          <span className="flex items-center gap-2">
+            <span aria-hidden className="h-2 w-2 rounded-full bg-gold-500" />
+            {reviewOnly
+              ? <>Showing {shown.length} {shown.length === 1 ? 'entry' : 'entries'} with suggested fixes to review.</>
+              : <>{needReview} {needReview === 1 ? 'entry has' : 'entries have'} suggested fixes waiting for your review.</>}
+          </span>
+          <button type="button" onClick={() => update('review', reviewOnly ? '' : '1')} className="font-medium underline-offset-2 hover:underline">
+            {reviewOnly ? 'Show all entries' : 'Show them'}
+          </button>
+        </div>
+      )}
+      {state.loading ? <Spinner /> : shown.length === 0 ? (
         <Empty title="Nothing here yet" action={!user.death_triggered_at && <Link to="/write" className="btn-primary">Write an entry</Link>}>
-          {params.get('q') || topic || kind ? 'No entries match these filters.' : 'Your first page is waiting.'}
+          {params.get('q') || topic || kind || reviewOnly ? 'No entries match these filters.' : 'Your first page is waiting.'}
         </Empty>
       ) : (
         Object.keys(byYear).sort().reverse().map((year) => (
@@ -62,11 +78,15 @@ export default function Entries() {
                         {e.kind === 'letter' && '✉ '}{e.title || 'Untitled'}
                       </h3>
                     </div>
-                    {e.pending_review && <Tag tone="bark">review</Tag>}
+                    {e.pending_review && (
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gold-500/40 bg-[#FBF0D9] px-2.5 py-0.5 text-xs font-medium text-bark-600">
+                        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />Needs review
+                      </span>
+                    )}
                   </div>
                   <p className="mt-2 line-clamp-2 text-lg text-ink-500">{e.snippet}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <Tag>{MODE_LABEL[e.writing_mode]}</Tag>
+                    {!e.pending_review && <Tag>{MODE_LABEL[e.writing_mode]}</Tag>}
                     {e.revisions > 0 && <Tag>{e.revisions} revision{e.revisions > 1 ? 's' : ''}</Tag>}
                     {e.kind === 'letter' && <Tag tone="ink">to {e.recipient_name || e.recipient}</Tag>}
                     {e.topics.slice(0, 3).map((t) => <Tag key={t} tone="bark">{t}</Tag>)}

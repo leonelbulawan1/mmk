@@ -75,7 +75,7 @@ export default function Dashboard() {
               </div>
             ) : <p className="mt-2 text-sm text-ink-400">Themes appear as you write.</p>}
             {data.pending_reviews > 0 && (
-              <p className="mt-4 text-sm text-bark-600">{data.pending_reviews} entr{data.pending_reviews === 1 ? 'y has' : 'ies have'} suggestions waiting for review.</p>
+              <Link to="/entries?review=1" className="mt-4 block text-sm text-bark-600 hover:underline">{data.pending_reviews} entr{data.pending_reviews === 1 ? 'y has' : 'ies have'} suggestions waiting for review →</Link>
             )}
           </Card>
         </div>
