@@ -44,6 +44,20 @@ function ModePreview({ mode, text }) {
   )
 }
 
+// One labelled row of the composer header, like the To / Subject lines of an email.
+function Row({ label, htmlFor, children, error }) {
+  return (
+  <div className="border-b border-cream-300 px-5 py-2.5 sm:px-6">
+    <div className="flex min-h-[2.25rem] flex-wrap items-center gap-x-3 gap-y-1">
+      <label htmlFor={htmlFor} className="w-16 shrink-0 text-sm text-ink-400">{label}</label>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">{children}</div>
+    </div>
+    {error && <p className="mt-1 text-xs text-rose-600 sm:pl-[4.75rem]" role="alert">{error}</p>}
+  </div>
+  )
+}
+const bare = 'min-w-0 flex-1 border-0 bg-transparent p-0 text-ink-700 placeholder:text-ink-400/60 focus:outline-none focus:ring-0'
+
 export default function CreateEntry() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -129,95 +143,108 @@ export default function CreateEntry() {
   const setKind = (kind) => setForm({ ...form, kind })
   const words = form.text.trim() ? form.text.trim().split(/\s+/).length : 0
 
+
   return (
     <>
-      <PageHeader eyebrow="a new page" title={form.kind === 'letter' ? 'Write a letter' : 'Write an entry'}
+      <PageHeader eyebrow="a new page" title={isLetter ? 'Write a letter' : 'Write an entry'}
         subtitle="Every word is sealed into your vault exactly as written." />
-      <form onSubmit={submit} className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <div role="radiogroup" aria-label="What are you writing?" className="mb-4 inline-flex rounded-xl bg-cream-200 p-1">
-            {[['text', 'Diary entry', 'entries'], ['letter', 'Letter', 'letters']].map(([k, label, icon]) => (
-              <button key={k} type="button" role="radio" aria-checked={form.kind === k} onClick={() => setKind(k)}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${form.kind === k ? 'bg-white text-ink-700 shadow-paper' : 'text-ink-500 hover:text-ink-700'}`}>
-                <NavIcon name={icon} size={16} />{label}
-              </button>
-            ))}
-          </div>
-          <Alert>{error}</Alert>
-          <input className="mt-2 w-full border-0 bg-transparent text-3xl font-semibold placeholder:text-ink-400/40 focus:outline-none"
-            placeholder="A title, if you like" value={form.title} onChange={set('title')} aria-label="Title" maxLength={200} />
-          <textarea required className="paper-lines mt-4 min-h-[420px] w-full resize-y border-0 bg-transparent text-lg text-ink-600 placeholder:text-ink-400/40 focus:outline-none"
-            placeholder={form.kind === 'letter' ? 'Dear…' : 'Today I…'} value={form.text} onChange={set('text')} aria-label="Entry text" />
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-400">
-            <span aria-live="polite">
-              {restored ? <>Draft restored · <button type="button" onClick={discardDraft} className="font-medium text-bark-500 hover:underline">Discard draft</button></>
-                : draftSaved ? 'Draft saved on this device' : ''}
-            </span>
-            <span>{words} words</span>
-          </div>
-          {isLetter && <LegalDisclaimer compact className="mt-5" />}
-          <div className="mt-5 flex flex-col-reverse gap-3 border-t border-cream-300 pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-ink-400">Saved entries can never be edited or deleted, only revised.</p>
-            <button className="btn-primary px-6 py-3" disabled={!canSave}>{busy ? 'Sealing…' : isLetter ? 'Save and seal letter' : 'Save and seal entry'}</button>
-          </div>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="space-y-3">
-            <p id="mode-label" className="label mb-0">Writing mode</p>
-            <div role="radiogroup" aria-labelledby="mode-label" className="grid grid-cols-3 gap-1 rounded-xl bg-cream-200 p-1">
-              {MODES.map((m) => (
-                <button key={m.key} type="button" role="radio" aria-checked={mode === m.key} onClick={() => setMode(m.key)}
-                  className={`rounded-lg px-2 py-2 text-sm font-medium transition ${mode === m.key ? 'bg-white text-ink-700 shadow-paper' : 'text-ink-500 hover:text-ink-700'}`}>
-                  {m.label}
+      <form onSubmit={submit} className="mx-auto max-w-4xl">
+        <div className="card overflow-hidden p-0">
+          {/* Window bar: what you are writing, and the draft status */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cream-300 bg-cream-100/70 px-4 py-2.5 sm:px-5">
+            <div role="radiogroup" aria-label="What are you writing?" className="inline-flex rounded-xl bg-cream-200 p-1">
+              {[['text', 'Diary entry', 'entries'], ['letter', 'Letter', 'letters']].map(([k, label, icon]) => (
+                <button key={k} type="button" role="radio" aria-checked={form.kind === k} onClick={() => setKind(k)}
+                  className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${form.kind === k ? 'bg-white text-ink-700 shadow-paper' : 'text-ink-500 hover:text-ink-700'}`}>
+                  <NavIcon name={icon} size={16} />{label}
                 </button>
               ))}
             </div>
-            <p className="text-sm text-ink-400">{current.short}</p>
-            <button type="button" onClick={() => setShowPreview(!showPreview)} aria-expanded={showPreview}
-              className="text-sm font-medium text-bark-500 hover:underline">
-              {showPreview ? 'Hide preview' : 'What’s the difference? Preview'}
-            </button>
-            {showPreview && <ModePreview mode={mode} text={form.text} />}
-          </Card>
+            <span className="text-xs text-ink-400" aria-live="polite">
+              {restored ? <>Draft restored · <button type="button" onClick={discardDraft} className="font-medium text-bark-500 hover:underline">Discard</button></>
+                : draftSaved ? 'Draft saved on this device' : ''}
+            </span>
+          </div>
 
-          <Card className="space-y-4">
-            <Field label={isLetter ? 'Date written' : 'Date of this memory'} error={futureDate ? 'This date is in the future. Choose today or an earlier day.' : ''}>
-              <input className="input" type="date" required max={today()} value={form.entry_date} onChange={set('entry_date')} /></Field>
-            {form.kind === 'letter' && (
-              <>
-                {active.length === 0 ? (
-                  <Alert kind="warn">Add a beneficiary first. <Link className="underline" to="/beneficiaries">Manage beneficiaries</Link></Alert>
-                ) : (
-                  <Field label="Recipient">
-                    <select className="input" required value={form.recipient} onChange={set('recipient')}>
-                      <option value="">Choose…</option>
-                      {active.map((b) => <option key={b.id} value={b.handle}>{b.display_name}{b.relationship ? ` · ${b.relationship}` : ''}</option>)}
-                    </select>
-                  </Field>
-                )}
-                <fieldset className="space-y-3">
-                  <legend className="label">When may {recipientName || 'they'} open it?</legend>
-                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="checkbox" checked={form.release_on_death} onChange={set('release_on_death')} /> After my death</label>
-                  <Field label="On a date (optional)" hint="For example, a birthday. The letter opens on that day, but never while you are alive.">
-                    <input className="input" type="date" min={today()} value={form.release_on} onChange={set('release_on')} /></Field>
-                  {noRelease && <p className="text-xs text-rose-600" role="alert">Choose at least one: after your death, or a date.</p>}
-                </fieldset>
-                {release && !release.released && (
-                  <Alert kind="warn">
-                    Your legacy policy doesn't release letters to {recipientName} yet, so {recipientName} would never receive this letter. Adding it releases their letters after your death.
-                    <button type="button" onClick={addRelease} disabled={addingRelease} className="btn-secondary mt-2 w-full py-2 text-sm">
-                      {addingRelease ? 'Adding…' : 'Add to my policy'}
+          {error && <div className="px-5 pt-4 sm:px-6"><Alert>{error}</Alert></div>}
+
+          {/* Header rows, like an email: To / Subject / Date / Opens */}
+          {isLetter && (
+            <Row label="To" htmlFor="to">
+              {active.length === 0 ? (
+                <span className="text-sm text-bark-600">Add a beneficiary first. <Link className="underline" to="/beneficiaries">Manage beneficiaries</Link></span>
+              ) : (
+                <select id="to" required value={form.recipient} onChange={set('recipient')} className={`${bare} cursor-pointer appearance-none`}>
+                  <option value="">Choose a beneficiary…</option>
+                  {active.map((b) => <option key={b.id} value={b.handle}>{b.display_name}{b.relationship ? ` · ${b.relationship}` : ''}</option>)}
+                </select>
+              )}
+              {release?.released && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-sage-100 px-2.5 py-0.5 text-xs font-medium text-sage-600" title="Your legacy policy releases letters to this person">
+                  ✓ Can receive letters{release.version ? ` · policy v${release.version}` : ''}
+                </span>
+              )}
+            </Row>
+          )}
+          {isLetter && release && !release.released && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gold-500/30 bg-[#FBF0D9] px-5 py-3 text-sm text-bark-600 sm:px-6">
+              <span className="min-w-0 flex-1">Your legacy policy doesn't release letters to {recipientName} yet, so {recipientName} would never receive this letter.</span>
+              <button type="button" onClick={addRelease} disabled={addingRelease} className="btn-secondary py-1.5 text-sm">
+                {addingRelease ? 'Adding…' : 'Add to my policy'}
+              </button>
+            </div>
+          )}
+          <Row label="Subject" htmlFor="subject">
+            <input id="subject" className={`${bare} text-lg font-semibold`} placeholder={isLetter ? 'For example: To my daughter' : 'A title, if you like'}
+              value={form.title} onChange={set('title')} maxLength={200} />
+          </Row>
+          <Row label="Date" htmlFor="date" error={futureDate ? 'This date is in the future. Choose today or an earlier day.' : ''}>
+            <input id="date" type="date" required max={today()} value={form.entry_date} onChange={set('entry_date')} className={`${bare} flex-none text-sm`} />
+            <span className="text-xs text-ink-400">{isLetter ? 'the day you wrote it' : 'the day this memory happened'}</span>
+          </Row>
+          {isLetter && (
+            <Row label="Opens" error={noRelease ? 'Choose at least one: after your death, or a date.' : ''}>
+              <label className="flex items-center gap-2 text-sm text-ink-600"><input type="checkbox" className="checkbox" checked={form.release_on_death} onChange={set('release_on_death')} /> After my death</label>
+              <span className="text-xs text-ink-400">and/or on</span>
+              <input type="date" min={today()} value={form.release_on} onChange={set('release_on')} aria-label="Opens on a date (optional)"
+                className="rounded-lg border border-cream-300 bg-white/80 px-2 py-1 text-sm text-ink-700 focus:border-gold-500 focus:outline-none" />
+            </Row>
+          )}
+
+          {/* Body */}
+          <textarea required className="paper-lines block min-h-[380px] w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 placeholder:text-ink-400/50 focus:outline-none sm:px-6"
+            placeholder={isLetter ? 'Dear…' : 'Today I…'} value={form.text} onChange={set('text')} aria-label={isLetter ? 'Letter text' : 'Entry text'} />
+
+          {isLetter && <div className="px-5 pb-4 sm:px-6"><LegalDisclaimer compact /></div>}
+
+          {/* Toolbar, like an email's bottom bar: writing mode on the left, send on the right */}
+          <div className="border-t border-cream-300 bg-cream-100/70 px-4 py-3 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span id="mode-label" className="sr-only">Writing mode</span>
+                <div role="radiogroup" aria-labelledby="mode-label" className="inline-flex rounded-xl bg-cream-200 p-1">
+                  {MODES.map((m) => (
+                    <button key={m.key} type="button" role="radio" aria-checked={mode === m.key} onClick={() => setMode(m.key)} title={m.short}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${mode === m.key ? 'bg-white text-ink-700 shadow-paper' : 'text-ink-500 hover:text-ink-700'}`}>
+                      {m.label}
                     </button>
-                  </Alert>
-                )}
-                {release?.released && (
-                  <p className="flex gap-1.5 text-xs text-sage-600"><span aria-hidden>✓</span>
-                    <span>Your policy releases letters to {recipientName}{release.version ? ` (added as policy v${release.version})` : ''}.</span></p>
-                )}
-              </>
-            )}
-          </Card>
+                  ))}
+                </div>
+                <button type="button" onClick={() => setShowPreview(!showPreview)} aria-expanded={showPreview}
+                  className="rounded-lg px-2 py-1.5 text-sm font-medium text-bark-500 hover:bg-cream-200">
+                  {showPreview ? 'Hide preview' : 'Preview'}
+                </button>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-ink-400">{words} words</span>
+                <button className="btn-primary px-5 py-2.5" disabled={!canSave}>
+                  <NavIcon name="write" size={16} />{busy ? 'Sealing…' : isLetter ? 'Seal letter' : 'Seal entry'}
+                </button>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-ink-400">{current.short} Sealed pages can never be edited or deleted, only revised.</p>
+            {showPreview && <div className="mt-3"><ModePreview mode={mode} text={form.text} /></div>}
+          </div>
         </div>
       </form>
     </>
