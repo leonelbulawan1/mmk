@@ -1,4 +1,4 @@
-<h2 align="center">Group Members</h2>
+<h2 align="center">Team Members</h2>
 
 <div align="center">
 <table>
