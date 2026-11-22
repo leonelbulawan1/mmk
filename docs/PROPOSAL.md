@@ -127,7 +127,7 @@ Priority: **M** = Must, **S** = Should, **C** = Could. Every *Must* is covered b
 | FR-A1 | An owner can register with name, email and password; the account is usable only after entering a 6-digit code sent to that email | M |
 | FR-A2 | Users sign in with email and password; "Keep me signed in" keeps the session for 30 days, otherwise it ends with the browser tab | M |
 | FR-A3 | A user can reset a forgotten password with a 6-digit code sent by email; resetting signs out every device | M |
-| FR-A4 | The owner registers beneficiaries (name, email, handle, relationship); each receives a one-time activation link | M |
+| FR-A4 | The owner registers beneficiaries (name, email, handle, relationship); each is emailed an invitation with a one-time activation link and code; if email cannot be sent, the owner is shown the link and code to pass on | M |
 | FR-A5 | Owner-only pages are refused to beneficiaries, and beneficiary pages to owners | M |
 
 ### 8.2 Diary model and entry processing (C1, C2)
@@ -213,6 +213,7 @@ Priority: **M** = Must, **S** = Should, **C** = Could. Every *Must* is covered b
 |---|---|---|
 | FR-L1 | A beneficiary sees a Letters page with the letters released to them | M |
 | FR-L2 | Every letter screen and the notice email carry the not-a-legal-will disclaimer | M |
+| FR-L3 | When a letter opens after the death trigger (its date arrives), its recipient is emailed once: the title and a sign-in link, never the letter's text | M |
 
 ## 9. Non-functional requirements
 
@@ -324,14 +325,14 @@ This disclaimer is shown on the Legacy policy page, in the letter composer, on t
 
 | Requirements | Verified by |
 |---|---|
-| FR-A1–A5 | `test_email_verification.py`, `test_password_recovery.py`, `test_api_security.py` |
+| FR-A1–A5 | `test_email_verification.py`, `test_password_recovery.py`, `test_api_security.py`, `test_invitations_and_letter_emails.py` |
 | FR-D1–D7 | `test_processing.py`, `test_hashchain.py`, `test_api_security.py` |
 | FR-W1–W4 | `test_writing_modes.py` |
 | FR-R1–R10 | `test_prolog_rules.py`, `test_access_table.py` (22 rows), `test_api_security.py` |
 | FR-P1–P8 | `test_policy_language.py`, `test_api_security.py::test_letter_release_check_and_add` |
 | FR-AI1–AI12 | `test_ai.py`, `test_handout_scenarios.py` |
 | FR-T1–T5 | `test_executor.py`, `test_death_notices.py` |
-| FR-L1–L2 | `test_death_notices.py`, demo walkthrough |
+| FR-L1–L3 | `test_death_notices.py`, `test_invitations_and_letter_emails.py`, demo walkthrough |
 | NFR-S, NFR-P, NFR-R | `test_typed_exceptions.py`, `test_hashchain.py`, `test_ai.py` (leak guard, adversarial model) |
 | NFR-H | `test_ai.py::test_system_prompt_requires_grounding_and_citations`, `test_handout_scenarios.py` |
 | NFR-U | Demo walkthrough on desktop and phone (UI/UX Designer) |

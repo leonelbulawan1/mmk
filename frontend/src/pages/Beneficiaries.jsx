@@ -28,7 +28,7 @@ export default function Beneficiaries() {
     try {
       const { _handleTouched, ...body } = form
       const res = await api('/api/beneficiaries', { method: 'POST', body })
-      setInvite({ name: res.beneficiary.display_name, email: res.beneficiary.email, code: res.invite_code, link: res.invite_link })
+      setInvite({ name: res.beneficiary.display_name, email: res.beneficiary.email, code: res.invite_code, link: res.invite_link, emailed: res.invitation?.status === 'sent' })
       setForm(blank); list.reload()
     } catch (err) { setError(err.message) } finally { setBusy(false) }
   }
@@ -36,7 +36,7 @@ export default function Beneficiaries() {
   const reissue = async (b) => {
     try {
       const res = await api(`/api/beneficiaries/${b.id}/invite`, { method: 'POST' })
-      setInvite({ name: b.display_name, email: b.email, code: res.invite_code, link: res.invite_link })
+      setInvite({ name: b.display_name, email: b.email, code: res.invite_code, link: res.invite_link, emailed: res.invitation?.status === 'sent' })
     } catch (err) { setError(err.message) }
   }
   const toggle = async (b) => {
@@ -50,21 +50,26 @@ export default function Beneficiaries() {
         subtitle="Register the people who may remember you through your diary. They see nothing while you are alive; after your passing, only what your legacy policy allows." />
       <div className="mb-4 space-y-3">
         <Alert onClose={() => setError('')}>{error}</Alert>
-        {invite && (
+        {invite && (invite.emailed ? (
           <Alert kind="success" onClose={() => setInvite(null)}>
-            Invite for <b>{invite.name}</b> ({invite.email}): <code className="mx-1 rounded bg-white/70 px-2 py-0.5 font-mono text-base">{invite.code}</code>
-            Share it privately. It works once and is shown only now.{' '}
-            They activate it from the home page: <b>I received an invitation</b>.
+            Invitation sent to <b>{invite.email}</b>. {invite.name} can activate their account from the link in the email.
+            <span className="mt-1 block text-xs">Not in their inbox? Ask them to check Spam, or send it again.</span>
+          </Alert>
+        ) : (
+          <Alert kind="warn" onClose={() => setInvite(null)}>
+            We couldn't email the invitation to <b>{invite.email}</b>. Send {invite.name} this code yourself:
+            <code className="mx-1 rounded bg-white/70 px-2 py-0.5 font-mono text-base">{invite.code}</code>
+            It works once and is shown only now. They enter it at <b>/activate</b>.
             {invite.link && !WEB && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span>Or send them this one-click link:</span>
+                <span>Or send this link:</span>
                 <code className="max-w-full truncate rounded bg-white/70 px-2 py-0.5 text-xs">{invite.link}</code>
                 <button type="button" className="btn-secondary px-2.5 py-1 text-xs"
                   onClick={() => navigator.clipboard?.writeText(invite.link).catch(() => {})}>Copy link</button>
               </div>
             )}
           </Alert>
-        )}
+        ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -91,7 +96,7 @@ export default function Beneficiaries() {
                   <div className="mt-4 flex flex-wrap gap-2">
                   {!sealed && (
                     <>
-                      {!b.activated && <button className="btn-secondary px-3 py-1.5 text-xs" onClick={() => reissue(b)}>New invite code</button>}
+                      {!b.activated && <button className="btn-secondary px-3 py-1.5 text-xs" onClick={() => reissue(b)}>Send invite again</button>}
                       <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => toggle(b)}>{b.active ? 'Deactivate' : 'Reactivate'}</button>
                       <Link className="btn-ghost px-3 py-1.5 text-xs" to={`/assistant?as=${b.handle}`}>Preview as {b.display_name.split(' ')[0]}</Link>
                     </>

@@ -155,6 +155,7 @@ def notify_beneficiaries_after_death(db: Session, owner: User) -> list[EmailNoti
                      {"to": ben.handle, "letters": letters, "entries": entries}, commit=False)
         notices.append(notice)
     db.commit()
+    mark_letters_in_death_notice(db, owner)
     return notices
 
 
@@ -206,3 +207,125 @@ def list_notices(db: Session, owner: User) -> list[dict]:
     return [{"id": n.id, "to_email": n.to_email, "to_name": names.get(n.beneficiary_id, ""), "subject": n.subject,
              "body": n.body, "status": n.status, "error": n.error, "attempts": n.attempts,
              "created_at": n.created_at, "sent_at": n.sent_at} for n in rows]
+
+
+# ---- invitations ----------------------------------------------------------------------------
+def _compose_invitation(owner: User, ben: User, code: str) -> tuple[str, str]:
+    first = ben.display_name.split()[0] if ben.display_name else "there"
+    url = settings.app_url.rstrip("/")
+    lines = [
+        f"Hi {first},",
+        "",
+        f"{owner.display_name} added you on MMK, a private diary, as one of the people who may remember them.",
+        "",
+        "Open this link and choose a password to activate your account:",
+        "",
+        f"    {activation_link(ben.email, code)}",
+        "",
+        f"If the link does not open, go to {url}/activate and enter this one-time code:",
+        "",
+        f"    {code}",
+        "",
+        f"Nothing in {owner.display_name.split()[0]}'s diary is shared with you while they are alive.",
+        "",
+        "MMK",
+    ]
+    return f"{owner.display_name} invited you to MMK", "\n".join(lines)
+
+
+def send_invitation(db: Session, owner: User, ben: User, code: str) -> EmailNotice:
+    """Email the activation link and one-time code to a new beneficiary (or a fresh one when re-sent)."""
+    subject, body = _compose_invitation(owner, ben, code)
+    notice = EmailNotice(owner_id=owner.id, beneficiary_id=ben.id, to_email=ben.email, subject=subject, body=body,
+                         kind="invitation", status="queued", error="", attempts=0)
+    db.add(notice)
+    _send(notice)
+    db.flush()
+    audit.record(db, owner.id, owner, f"invite.{notice.status}", {"to": ben.handle}, commit=False)
+    db.commit()
+    return notice
+
+
+# ---- letters, once they are released ---------------------------------------------------------
+def _compose_letter_released(owner: User, ben: User, title: str, invite_code: str | None) -> tuple[str, str]:
+    first = ben.display_name.split()[0] if ben.display_name else "there"
+    url = settings.app_url.rstrip("/")
+    lines = [f"Dear {first},", "",
+             f"A letter {owner.display_name} wrote for you, \"{title}\", is now open for you on MMK.", ""]
+    if invite_code:
+        lines += ["Activate your account to read it:", "", f"    {activation_link(ben.email, invite_code)}", "",
+                  f"Or go to {url}/activate and enter this one-time code:", "", f"    {invite_code}"]
+    else:
+        lines += ["Sign in to read it:", "", f"    {url}/login"]
+    lines += ["", "For privacy, the letter itself is not included in this email.", "",
+              "Letters on MMK are personal messages, not a legal will.", "", "With care,", "MMK"]
+    return f"A letter from {owner.display_name} is waiting for you", "\n".join(lines)
+
+
+def _released_letters(db: Session, owner: User, engine, ben: User, vault) -> list:
+    decisions = engine.decide_all(ben.handle, today())
+    return [e for e in vault.entries if e.kind == "letter" and e.recipient_handle == ben.handle
+            and decisions.get(int(e.id)) and decisions[int(e.id)].level == "verbatim"]
+
+
+def _letters_already_told(db: Session, owner: User) -> set[tuple[int, int]]:
+    rows = db.scalars(select(EmailNotice).where(EmailNotice.owner_id == owner.id,
+                                                EmailNotice.kind.in_(("letter_released", "letter_in_death_notice")))).all()
+    return {(r.beneficiary_id, r.entry_id) for r in rows if r.entry_id is not None}
+
+
+def mark_letters_in_death_notice(db: Session, owner: User) -> None:
+    """Letters already counted in the death notice do not get a second email."""
+    engine = policy_service.engine_for(db, owner)
+    vault = vault_service.load_vault(db, owner)
+    told = _letters_already_told(db, owner)
+    for ben in vault_service.beneficiary_rows(db, owner):
+        for e in _released_letters(db, owner, engine, ben, vault):
+            if (ben.id, int(e.id)) not in told:
+                db.add(EmailNotice(owner_id=owner.id, beneficiary_id=ben.id, to_email=ben.email, entry_id=int(e.id),
+                                   subject="(included in the death notice)", body="", kind="letter_in_death_notice",
+                                   status="covered", error="", attempts=0))
+    db.commit()
+
+
+_LAST_LETTER_SWEEP = [0.0]
+
+
+def notify_released_letters(db: Session, min_interval_seconds: int = 600) -> int:
+    """Email each recipient once when one of their letters opens (its date arrives after the death trigger).
+    Runs at most every few minutes; decisions come from Prolog. Returns how many emails were queued."""
+    import time
+    now = time.monotonic()
+    if min_interval_seconds and now - _LAST_LETTER_SWEEP[0] < min_interval_seconds:
+        return 0
+    _LAST_LETTER_SWEEP[0] = now
+    from ..routers.auth import hash_invite, new_code
+
+    sent = 0
+    owners = db.scalars(select(User).where(User.role == "owner", User.death_triggered_at.is_not(None))).all()
+    for owner in owners:
+        vault = vault_service.load_vault(db, owner)
+        if not any(e.kind == "letter" for e in vault.entries):
+            continue
+        engine = policy_service.engine_for(db, owner)
+        told = _letters_already_told(db, owner)
+        for ben in vault_service.beneficiary_rows(db, owner):
+            for e in _released_letters(db, owner, engine, ben, vault):
+                if (ben.id, int(e.id)) in told:
+                    continue
+                invite = None
+                if ben.password_hash is None:
+                    invite = new_code()
+                    ben.invite_code_hash = hash_invite(invite)
+                subject, body = _compose_letter_released(owner, ben, e.title or "Untitled letter", invite)
+                notice = EmailNotice(owner_id=owner.id, beneficiary_id=ben.id, to_email=ben.email, subject=subject,
+                                     body=body, kind="letter_released", status="queued", error="", attempts=0,
+                                     entry_id=int(e.id))
+                db.add(notice)
+                _send(notice)
+                db.flush()
+                audit.record(db, owner.id, None, f"notify.letter.{notice.status}", {"to": ben.handle,
+                             "entry": int(e.id)}, commit=False)
+                sent += 1
+        db.commit()
+    return sent

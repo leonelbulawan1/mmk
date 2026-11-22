@@ -135,6 +135,7 @@ class EmailNotice(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     sent_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    entry_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # the letter a letter_released notice is about
 
 
 class DeathReport(Base):

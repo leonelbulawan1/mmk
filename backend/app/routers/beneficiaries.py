@@ -71,7 +71,20 @@ def create(body: BeneficiaryIn, owner: User = Depends(require_living_owner), db:
     db.flush()
     audit.record(db, owner.id, owner, "beneficiary.create", {"handle": handle}, commit=False)
     db.commit()
-    return {"beneficiary": out(b), "invite_code": code, "invite_link": _link(b, code)}
+    return {"beneficiary": out(b), "invite_code": code, "invite_link": _link(b, code),
+            "invitation": _email_invitation(db, owner, b, code)}
+
+
+def _email_invitation(db: Session, owner: User, b: User, code: str) -> dict:
+    """Send the invitation by email; the owner still gets the link and code if sending is not possible."""
+    from ..services import notify
+
+    try:
+        notice = notify.send_invitation(db, owner, b, code)
+        return {"status": notice.status, "to": b.email, "error": notice.error}
+    except Exception as exc:  # the beneficiary is created either way
+        db.rollback()
+        return {"status": "failed", "to": b.email, "error": str(exc)[:200]}
 
 
 def _link(b: User, code: str) -> str:
@@ -89,7 +102,8 @@ def reissue_invite(bid: int, owner: User = Depends(require_living_owner), db: Se
     b.invite_code_hash = hash_invite(code)
     audit.record(db, owner.id, owner, "beneficiary.invite", {"handle": b.handle}, commit=False)
     db.commit()
-    return {"beneficiary": out(b), "invite_code": code, "invite_link": _link(b, code)}
+    return {"beneficiary": out(b), "invite_code": code, "invite_link": _link(b, code),
+            "invitation": _email_invitation(db, owner, b, code)}
 
 
 @router.patch("/{bid}")

@@ -2,7 +2,7 @@
 
 > **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
 
-Run with `cd backend && python -m pytest`. There are 191 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
+Run with `cd backend && python -m pytest`. There are 195 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
 
 | Required area | File | What is covered |
 |---|---|---|
@@ -24,3 +24,4 @@ Run with `cd backend && python -m pytest`. There are 191 tests. Each test uses a
 | Handout "Try It Yourself" table (Maria, after the death trigger) | `test_handout_scenarios.py` | "Did he ever write about me?" gives the count only; family question gives summaries with dates; the letter is refused before 2040-05-01 and shown verbatim after; business question and a person with no protocol get the same neutral reply; hidden text never reaches the model; other people never receive Maria's letter; an ambiguous name shares nothing (`AmbiguousName`) |
 | Typed exceptions and safe actions | `test_typed_exceptions.py` | AccessDenied looks exactly like a missing entry; a forged entry or policy row (database guards removed) makes letters, overview and the assistant refuse with 503 and log `integrity.failed`, while the owner can still verify; a policy syntax error keeps the previous version; exception hierarchy |
 | Access test table (asker, entry, expected result) | `test_access_table.py` | All 22 rows of `docs/ACCESS_TEST_TABLE.md`, generated from the same Prolog rules by `python -m scripts.access_table` |
+| Invitation and letter emails | `test_invitations_and_letter_emails.py` | Adding a beneficiary emails the activation link and code; resending issues a new code; without email the owner still gets the link; a letter opening on a later date emails its recipient once, without its text; letters already counted in the death notice are not emailed twice |

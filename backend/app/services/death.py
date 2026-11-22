@@ -107,6 +107,11 @@ def process_due(db: Session) -> int:
         if owner and not owner.death_triggered_at:
             activate(db, owner, db.get(User, rep.reported_by), via="executor_report")
             count += 1
+    try:  # letters whose own date has now come: tell their recipient (throttled inside)
+        notify.notify_released_letters(db)
+    except Exception as exc:  # never block a request because of an email problem
+        db.rollback()
+        audit.record(db, None, None, "notify.error", {"error": str(exc)[:200]})
     return count
 
 

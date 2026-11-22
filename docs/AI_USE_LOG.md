@@ -21,7 +21,7 @@ The handout allows AI coding assistants with accountability: record what we aske
 
 ## What the AI's own checks covered (not a substitute for ours)
 
-While generating code, Claude ran the automated test suite (191 tests, on SQLite and PostgreSQL) and browser walkthroughs with screenshots. These show the code runs; they do not replace a team member reading, understanding and verifying each part.
+While generating code, Claude ran the automated test suite (195 tests, on SQLite and PostgreSQL) and browser walkthroughs with screenshots. These show the code runs; they do not replace a team member reading, understanding and verifying each part.
 
 ## Suggested verification split
 
