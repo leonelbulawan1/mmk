@@ -34,10 +34,90 @@ All people in the demo data and tests are fictional.
 | Parser tests (valid and invalid policies) | [backend/tests/test_policy_language.py](backend/tests/test_policy_language.py) |
 | Short design report: paradigm per component, and what we would change | [docs/DESIGN_REPORT.md](docs/DESIGN_REPORT.md) |
 | AI-use log with verifiers | [docs/AI_USE_LOG.md](docs/AI_USE_LOG.md) |
-| Linear workspace and weekly updates | [docs/TEAM.md](docs/TEAM.md) (link) |
+| Kaneo project and weekly updates | [KANEO PROJECT LINK] · [reports/weekly/](reports/weekly) |
 | Extra features and their paradigms | [docs/EXTRA_FEATURES.md](docs/EXTRA_FEATURES.md) |
 | Names of all five members | [docs/TEAM.md](docs/TEAM.md), and the header of every document |
 | Presentation slides and live demo | [SLIDES LINK] · live: https://mmk-web.onrender.com |
+
+## Team
+
+| # | Complete name | Role |
+|---|---|---|
+| 1 | [MEMBER 1 FULL NAME] | Front End |
+| 2 | [MEMBER 2 FULL NAME] | Back End |
+| 3 | [MEMBER 3 FULL NAME] | Q/A |
+| 4 | [MEMBER 4 FULL NAME] | UI/UX Designer |
+| 5 | [MEMBER 5 FULL NAME] | Documentator |
+
+Repository: https://github.com/leonelbulawan1/mmk · Kaneo project: [KANEO PROJECT LINK]
+
+## Repository layout
+
+```
+mmk/
+├── backend/                  source code: API (Python, FastAPI)
+│   ├── app/                  application code
+│   │   ├── prolog/           Prolog rules (access_rules.pl) and the Python bridge
+│   │   ├── policy_lang/      grammar (grammar.ebnf), lexer, parser, interpreter, sample policies
+│   │   ├── ai/               AI assistant: tools, providers, leak guard
+│   │   ├── routers/          REST endpoints
+│   │   └── services/         vault, policy, email, death verification
+│   └── tests/                automated tests (pytest)
+├── frontend/                 source code: website (React, Vite, Tailwind)
+│   └── src/
+├── docs/                     documentation: proposal, UML, design, security, testing
+├── reports/                  weekly updates and links to project reports
+├── .github/                  pull request template
+├── render.yaml, DEPLOY.md    deployment
+└── README.md
+```
+
+| Required folder | Location |
+|---|---|
+| Source code | `backend/app/`, `frontend/src/` |
+| Prolog rules | `backend/app/prolog/` |
+| Grammar | `backend/app/policy_lang/` (`grammar.ebnf`) |
+| Tests | `backend/tests/` |
+| Docs | `docs/` |
+| Reports | `reports/` |
+
+The Prolog rules and the grammar stay inside `backend/app/` because the server loads them from there at run time (`/api/policy/grammar` serves the EBNF file) and the Docker image is built from `backend/`.
+
+## Branching and commit convention
+
+**Branches.** `main` is always deployable: Render deploys every push to it. Nobody commits to `main` directly.
+
+1. Update: `git switch main && git pull`
+2. Branch: `git switch -c <type>/<short-description>`, lowercase with hyphens, for example `feat/letter-schedule`, `fix/login-limit`, `docs/uml-sequence`, `test/prolog-deny-rules`.
+3. Commit small steps (convention below) and push: `git push -u origin <branch>`.
+4. Open a pull request into `main` using the template; link the Kaneo card.
+5. One other member reviews. Merge only when the tests and the build pass. Use **Squash and merge** so `main` gets one commit per change, then delete the branch.
+
+**Commit messages** ([Conventional Commits](https://www.conventionalcommits.org/)):
+
+```
+type(scope): short summary in the imperative
+
+Why the change was needed and what it does.
+
+Refs: KANEO-<card number>
+```
+
+| Type | Use for |
+|---|---|
+| `feat` | a new feature |
+| `fix` | a bug fix |
+| `docs` | documentation and reports only |
+| `test` | adding or fixing tests |
+| `refactor` | code change that does not change behaviour |
+| `style` | formatting only |
+| `chore` | build, dependencies, configuration |
+
+Scopes: `frontend`, `backend`, `prolog`, `grammar`, `ai`, `db`, `docs`, `reports`, `deploy`.
+Examples: `feat(prolog): deny rules override allow rules`, `fix(frontend): keep cursor after auto-correct`, `docs(reports): week 3 update`.
+Run `git config commit.template .gitmessage` once to get this format in your editor.
+
+**Never commit** `.env` files, passwords, API keys, database URLs or real personal data. All people in examples and tests are fictional.
 
 ## 1. Quick start
 

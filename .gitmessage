@@ -1,0 +1,9 @@
+# type(scope): short summary in the imperative, max 72 characters
+#
+# Why the change was needed and what it does (wrap at 72).
+#
+# Refs: KANEO-<card number>
+#
+# types: feat fix docs test refactor style chore
+# scopes: frontend backend prolog grammar ai db docs reports deploy
+# Use this template:  git config commit.template .gitmessage
