@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    @apply bg-cream-100 text-ink-700 font-sans;
+    background-image: radial-gradient(rgba(122, 86, 56, 0.05) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  h1, h2, h3 { @apply font-sans tracking-tight text-ink-700; }
+  ::selection { background: #e9dcc4; }
+  /* One eye only: hide Microsoft Edge's built-in password reveal and clear buttons;
+     MMK's own eye toggle (PasswordInput) works the same in every browser. */
+  input::-ms-reveal, input::-ms-clear { display: none; }
+  :focus-visible { outline: 2px solid #b08d57; outline-offset: 2px; }
+}
+
+@layer components {
+  .card { @apply bg-cream-50 rounded-2xl border border-cream-300/70 shadow-paper; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-primary { @apply btn bg-ink-700 text-cream-50 hover:bg-ink-600 active:scale-[.98]; }
+  .btn-secondary { @apply btn bg-cream-200 text-ink-700 hover:bg-cream-300 border border-cream-300; }
+  .btn-ghost { @apply btn text-ink-600 hover:bg-cream-200; }
+  .btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-600/90; }
+  .input { @apply w-full rounded-xl border border-cream-300 bg-white/80 px-3.5 py-2.5 text-ink-700 placeholder:text-ink-400/60 focus:border-gold-500 focus:ring-2 focus:ring-gold-400/30 outline-none transition; }
+  /* Same border, background and focus ring as .input; checked state fills with the primary ink colour. */
+  .checkbox {
+    @apply h-4 w-4 shrink-0 cursor-pointer appearance-none rounded border border-cream-300 bg-white/80 outline-none transition
+      focus-visible:border-gold-500 focus-visible:ring-2 focus-visible:ring-gold-400/30
+      checked:border-ink-700 checked:bg-ink-700;
+    background-position: center; background-repeat: no-repeat; background-size: 75%;
+  }
+  .checkbox:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+  }
+  .label { @apply block text-sm font-medium text-ink-600 mb-1.5; }
+  .paper-lines {
+    background-image: linear-gradient(transparent 31px, rgba(176, 141, 87, 0.18) 32px);
+    background-size: 100% 32px;
+    line-height: 32px;
+  }
+  .fade-in { animation: fadeIn .35s ease both; }
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

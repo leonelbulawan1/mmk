@@ -1,0 +1,9 @@
+# Sample 2 - Privacy with explicit denials and date-based release
+# Health matters stay private from Jose, even though he can read everything else.
+allow jose verbatim access to entries from 2015-01-01;
+deny jose access to entries about "health";
+
+# Lina, a long-time friend, may only know that entries exist,
+# until 2030 when she may read summaries of entries mentioning her.
+allow lina existence access to entries;
+allow lina summary access to entries mentioning "lina" after 2030-01-01;

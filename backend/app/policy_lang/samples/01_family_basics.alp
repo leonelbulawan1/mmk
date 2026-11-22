@@ -1,0 +1,8 @@
+# Sample 1 - Family basics
+# Everyone in the family may learn that entries exist and read summaries.
+# Maria (daughter) may read family entries word for word.
+group family = maria, jose;
+
+allow family summary access to entries;
+allow maria verbatim access to entries about "family";
+release letters to maria after death;

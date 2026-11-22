@@ -1,0 +1,40 @@
+(* MMK Legacy Policy Language (ALP) - EBNF
+   ------------------------------------------
+   A policy program is a sequence of statements, each terminated by ';'.
+   Anything not explicitly allowed is denied.  "deny" always overrides "allow". *)
+
+program        = { statement } , EOF ;
+
+statement      = group_stmt
+               | allow_stmt
+               | deny_stmt
+               | release_stmt ;
+
+(* 1. Name a set of beneficiaries *)
+group_stmt     = "group" , IDENT , "=" , IDENT , { "," , IDENT } , ";" ;
+
+(* 2. Grant an access level, optionally released on a date or after death *)
+allow_stmt     = "allow" , subject , level , "access" , "to" , scope , [ condition ] , ";" ;
+
+(* 3. Explicit denial - overrides every allow that matches the same entry *)
+deny_stmt      = "deny" , subject , "access" , "to" , scope , ";" ;
+
+(* 4. Release the subject's letters (a letter also needs its own release date / death flag) *)
+release_stmt   = "release" , "letters" , "to" , subject , condition , ";" ;
+
+subject        = IDENT | "everyone" ;
+level          = "existence" | "summary" | "verbatim" ;
+scope          = "entries" , { filter } ;              (* filters are combined with AND *)
+filter         = "about" , STRING                       (* entry topic        *)
+               | "mentioning" , STRING                  (* person named       *)
+               | "from" , DATE                          (* entry date >= DATE *)
+               | "until" , DATE ;                       (* entry date <= DATE *)
+condition      = "after" , ( DATE | "death" ) ;
+
+(* ---- lexical grammar ---- *)
+IDENT          = lower , { lower | digit | "_" } ;     (* must not be a keyword *)
+STRING         = '"' , { ? any character except '"' and newline ? } , '"' ;
+DATE           = digit , digit , digit , digit , "-" , digit , digit , "-" , digit , digit ;
+comment        = "#" , { ? any character except newline ? } ;   (* ignored *)
+lower          = "a" | ... | "z" ;
+digit          = "0" | ... | "9" ;

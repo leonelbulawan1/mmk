@@ -1,0 +1,11 @@
+# Sample 3 - Legacy release after death
+# The diary opens only after the owner's passing; anything not allowed stays private.
+# After the death trigger the family may read everything, except that
+# entries about money are hidden from Jose and Lina; Maria still reads them.
+group family = maria, jose, lina;
+group others = jose, lina;
+
+allow family verbatim access to entries after death;
+deny others access to entries about "money";
+release letters to family after death;
+release letters to jose after 2035-06-01;

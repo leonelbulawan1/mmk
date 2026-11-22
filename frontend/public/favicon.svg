@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#27324F"/><stop offset="1" stop-color="#151C30"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#bg)"/>
+  <!-- pages (soft fill) -->
+  <path d="M15 19 C20 19 27 22 32 30 C37 22 44 19 49 19 L49 44 C43 44 37 45.5 32 49 C27 45.5 21 44 15 44 Z" fill="#FBF7EF" opacity=".10"/>
+  <!-- the M: outer page edges up, dipping to the spine, drawn as one stroke -->
+  <path d="M15 44 L15 19 C20 19 27 22 32 30 C37 22 44 19 49 19 L49 44" fill="none" stroke="#FBF7EF" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- book bottom edge -->
+  <path d="M15 44 C21 44 27 45.5 32 49 C37 45.5 43 44 49 44" fill="none" stroke="#FBF7EF" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+  <!-- spine -->
+  <path d="M32 30 L32 49" stroke="#FBF7EF" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+  <!-- gold bookmark ribbon -->
+  <path d="M29.6 38 L34.4 38 L34.4 55 L32 52.4 L29.6 55 Z" fill="#C9A86A"/>
+</svg>

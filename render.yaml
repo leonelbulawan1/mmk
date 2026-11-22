@@ -1,0 +1,52 @@
+# Render Blueprint: free hosting for MMK (Dashboard → New → Blueprint → pick this repository).
+# Values marked "sync: false" are asked for when you create the Blueprint. See DEPLOY.md.
+services:
+  # FastAPI + SWI-Prolog, built from backend/Dockerfile
+  - type: web
+    name: mmk-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/ping
+    envVars:
+      - key: DATABASE_URL          # Neon connection string, pasted as Neon shows it
+        sync: false
+      - key: BREVO_API_KEY         # Brevo → SMTP & API → API keys
+        sync: false
+      - key: SMTP_FROM             # e.g. MMK <you@gmail.com> (the sender you verified in Brevo)
+        sync: false
+      - key: APP_URL               # the website address, e.g. https://mmk-web.onrender.com
+        sync: false
+      - key: CORS_ORIGINS          # same as APP_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_TIMEZONE
+        value: Asia/Manila
+      - key: LLM_PROVIDER
+        value: offline
+      - key: DEV_SHOW_VERIFICATION_CODE
+        value: "false"
+
+  # The React website (static, free, does not sleep)
+  - type: web
+    name: mmk-web
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: ./frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+    envVars:
+      - key: VITE_API_BASE         # the API address, e.g. https://mmk-api.onrender.com
+        sync: false

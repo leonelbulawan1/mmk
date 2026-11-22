@@ -1,0 +1,165 @@
+from __future__ import annotations
+
+from collections import Counter
+from datetime import date
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field, model_validator
+from sqlalchemy.orm import Session
+
+from ..config import today
+from ..db import get_db
+from ..domain import Entry, LetterEntry, VaultSealedError
+from ..models import User
+from ..processing.pure import correct, diff, normalize
+from ..security import require_living_owner, require_owner
+from ..services import vault_service
+from ..writing_modes import all_modes, get_mode
+
+router = APIRouter(prefix="/api", tags=["entries"])
+
+
+class EntryIn(BaseModel):
+    title: str = Field(default="", max_length=200)
+    text: str = Field(min_length=1, max_length=50_000)
+    entry_date: date
+    mode: Literal["verbatim", "light_fix", "review"] = "verbatim"
+    kind: Literal["text", "letter"] = "text"
+    recipient: str | None = None
+    release_on: date | None = None
+    release_on_death: bool = False
+
+    @model_validator(mode="after")
+    def _letter(self):
+        if self.kind == "letter":
+            if not self.recipient:
+                raise ValueError("A letter needs a recipient")
+            if self.release_on is None and not self.release_on_death:
+                raise ValueError("A letter needs a release date or release after death")
+        if not normalize(self.text):
+            raise ValueError("Entry text is empty")
+        return self
+
+
+class PreviewIn(BaseModel):
+    text: str = Field(max_length=50_000)
+    mode: Literal["verbatim", "light_fix", "review"]
+
+
+class RevisionIn(BaseModel):
+    text: str = Field(min_length=1, max_length=50_000)
+    source: Literal["review", "edit"] = "review"
+
+
+def entry_summary(e: Entry) -> dict:
+    out = {
+        "id": e.id, "seq": e.seq, "kind": e.kind, "title": e.title, "entry_date": e.entry_date.isoformat(),
+        "created_at": e.created_at.isoformat(), "writing_mode": e.writing_mode,
+        "topics": sorted(e.extraction.topics), "names": sorted(e.extraction.names),
+        "snippet": e.current_text[:180], "revisions": len(e.revisions), "hash": e.hash,
+        "pending_review": e.writing_mode == "review" and not e.revisions and correct(e.original_text).changed,
+    }
+    if isinstance(e, LetterEntry):
+        out.update(recipient=e.recipient_handle, release_on=e.release_on.isoformat() if e.release_on else None,
+                   release_on_death=e.release_on_death)
+    return out
+
+
+def entry_detail(e: Entry) -> dict:
+    out = entry_summary(e)
+    texts = [e.original_text] + [r.text for r in e.revisions]
+    out.update(
+        original_text=e.original_text, current_text=e.current_text, summary=e.summary, prev_hash=e.prev_hash,
+        revision_history=[{"id": r.id, "seq": r.seq, "source": r.source, "created_at": r.created_at.isoformat(),
+                           "text": r.text, "hash": r.hash, "prev_hash": r.prev_hash,
+                           "diff": [op.to_dict() for op in diff(texts[i], r.text)]}
+                          for i, r in enumerate(e.revisions)],
+    )
+    if out["pending_review"]:
+        out["review"] = get_mode("review").process(e.original_text).to_dict()
+    return out
+
+
+@router.get("/writing-modes")
+def writing_modes():
+    return all_modes()
+
+
+@router.post("/entries/preview")
+def preview(body: PreviewIn, owner: User = Depends(require_owner)):
+    """Show what a writing mode would do, without saving anything."""
+    return get_mode(body.mode).process(normalize(body.text)).to_dict()
+
+
+@router.get("/entries")
+def list_entries(q: str = "", topic: str = "", kind: str = "", owner: User = Depends(require_owner),
+                 db: Session = Depends(get_db)):
+    entries = list(vault_service.load_vault(db, owner).entries)
+    if q:
+        ql = q.lower()
+        entries = [e for e in entries if ql in e.current_text.lower() or ql in e.title.lower()
+                   or ql in e.original_text.lower()]
+    if topic:
+        entries = [e for e in entries if topic.lower() in e.extraction.topics]
+    if kind in ("text", "letter"):
+        entries = [e for e in entries if e.kind == kind]
+    entries.sort(key=lambda e: (e.entry_date, e.seq), reverse=True)
+    return [entry_summary(e) for e in entries]
+
+
+@router.post("/entries", status_code=201)
+def create(body: EntryIn, owner: User = Depends(require_living_owner), db: Session = Depends(get_db)):
+    try:
+        entry, result = vault_service.create_entry(
+            db, owner, title=body.title, text=body.text, entry_date=body.entry_date, mode_key=body.mode,
+            kind=body.kind, recipient_handle=body.recipient, release_on=body.release_on,
+            release_on_death=body.release_on_death)
+    except (ValueError, VaultSealedError) as exc:
+        raise HTTPException(400, str(exc))
+    return {"entry": entry_detail(entry), "mode_result": result.to_dict()}
+
+
+@router.get("/entries/{entry_id}")
+def get_entry(entry_id: int, owner: User = Depends(require_owner), db: Session = Depends(get_db)):
+    e = vault_service.load_vault(db, owner).get(entry_id)
+    if e is None:
+        raise HTTPException(404, "Entry not found")
+    return entry_detail(e)
+
+
+@router.post("/entries/{entry_id}/revisions", status_code=201)
+def add_revision(entry_id: int, body: RevisionIn, owner: User = Depends(require_living_owner),
+                 db: Session = Depends(get_db)):
+    try:
+        vault_service.append_revision(db, owner, entry_id, body.text, body.source)
+    except KeyError:
+        raise HTTPException(404, "Entry not found")
+    except (ValueError, VaultSealedError) as exc:
+        raise HTTPException(400, str(exc))
+    return entry_detail(vault_service.load_vault(db, owner).get(entry_id))
+
+
+@router.get("/dashboard")
+def dashboard(owner: User = Depends(require_owner), db: Session = Depends(get_db)):
+    from ..services import policy_service
+
+    vault = vault_service.load_vault(db, owner)
+    entries = sorted(vault.entries, key=lambda e: (e.entry_date, e.seq), reverse=True)
+    topics = Counter(t for e in entries for t in e.extraction.topics)
+    report = vault.verify()
+    policy = policy_service.current_protocol(db, owner)
+    this_year = today().year
+    return {
+        "owner": owner.display_name,
+        "entry_count": sum(1 for e in entries if e.kind == "text"),
+        "letter_count": sum(1 for e in entries if e.kind == "letter"),
+        "entries_this_year": sum(1 for e in entries if e.entry_date.year == this_year),
+        "beneficiary_count": len(vault_service.beneficiary_rows(db, owner)),
+        "policy_version": policy.version, "policy_rules": len(policy.rules), "frozen": policy.frozen,
+        "integrity": {"ok": report.ok, "length": report.length, "head": report.head},
+        "pending_reviews": sum(1 for e in entries if entry_summary(e)["pending_review"]),
+        "topics": topics.most_common(8),
+        "recent": [entry_summary(e) for e in entries[:5]],
+        "death_triggered_at": owner.death_triggered_at,
+    }

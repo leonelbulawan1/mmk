@@ -1,0 +1,12 @@
+node_modules/
+frontend/dist/
+frontend/public/web/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.db
+.env
+.firebaserc
+.firebase/
+frontend/dist-web/
