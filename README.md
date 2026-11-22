@@ -1,7 +1,5 @@
 <h1><img src="docs/brand/mmk-mark.svg" width="48" align="center" alt="MMK logo"> MMK</h1>
 
-**MMK** is a private diary. An **owner** writes entries that are stored append-only and linked in a hash chain. The owner registers **beneficiaries** and writes a **legacy policy** in a small language. **Beneficiaries get no access at all while the owner is alive.** After the owner's passing (the death trigger, started by the owner or by their chosen executor), the policy decides who may learn what, at what level (existence, summary or full text), and when (immediately, or on a later date). Beneficiaries ask questions through an **AI assistant** that only ever receives entries the SWI-Prolog access rules have already approved, and it cites the date of every entry it uses.
-
 ## Team
 
 | # | Complete name | Role |
