@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import User, now_iso
+from ..services.email_check import InvalidEmail, check_address
 from ..security import create_token, current_user, hash_password, verify_password
 from ..services import audit, verification
 
@@ -100,7 +101,10 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
     """Create an owner account and email a verification code. The account cannot be used until
     the email is verified (see /verify-email)."""
     _strong(body.password)
-    email = body.email.lower()
+    try:
+        email = check_address(body.email)
+    except InvalidEmail as exc:
+        raise HTTPException(422, str(exc))
     user = db.scalars(select(User).where(User.email == email)).first()
     if user is not None and not (user.role == "owner" and user.email_verified_at is None):
         raise HTTPException(409, "An account with this email already exists")

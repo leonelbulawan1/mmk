@@ -20,7 +20,9 @@ export default function VerifyEmail() {
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
-  const [wait, setWait] = useState(state?.email ? RESEND_SECONDS : 0)
+  // Shown when the server could not send the code (the reason comes from the server).
+  const [problem, setProblem] = useState(state?.email_sent === false && !state?.demo_code ? state?.email_problem || 'Please try again.' : '')
+  const [wait, setWait] = useState(state?.email && !problem ? RESEND_SECONDS : 0)
   const asked = useRef(false)
 
   useEffect(() => { if (wait > 0) { const t = setTimeout(() => setWait(wait - 1), 1000); return () => clearTimeout(t) } }, [wait])
@@ -30,6 +32,8 @@ export default function VerifyEmail() {
     try {
       const r = await api('/api/auth/resend-verification', { method: 'POST', body: { email } })
       if (r.demo_code) setDemoCode(r.demo_code)
+      if (r.email_sent === false && !r.demo_code) { setProblem(r.email_problem || 'Please try again.'); setWait(0); return }
+      setProblem('')
       setInfo(auto ? 'We sent you a new code.' : 'A new code was sent. The previous one no longer works.')
       setWait(RESEND_SECONDS); setCode('')
     } catch (e) {
@@ -52,14 +56,16 @@ export default function VerifyEmail() {
 
   return (
     <AuthShell title="Verify your email"
-      subtitle={state?.email ? <>We sent a 6-digit code to <b className="font-medium text-ink-600">{state.email}</b>.</> : 'Enter the 6-digit code we emailed you.'}
+      subtitle={state?.email ? (problem ? <>Your account is saved, but the code to <b className="font-medium text-ink-600">{state.email}</b> was not sent.</>
+        : <>We sent a 6-digit code to <b className="font-medium text-ink-600">{state.email}</b>. Not in your inbox? Check Spam and Promotions.</>) : 'Enter the 6-digit code we emailed you.'}
       footer={<>Didn't get the code?{' '}
         {wait > 0 ? <span className="whitespace-nowrap">Resend in {wait}s</span>
           : <button type="button" disabled={!email} onClick={() => resend()} className="whitespace-nowrap font-medium text-bark-500 hover:underline disabled:opacity-50">Resend code</button>}
       </>}>
       <form onSubmit={submit} className="space-y-4">
         <ErrorSlot error={error}>
-          {info ? <Alert kind="success">{info}</Alert>
+          {problem ? <Alert kind="warn">We couldn't send the code. {problem} Then tap <b>Resend code</b>.</Alert>
+            : info ? <Alert kind="success">{info}</Alert>
             : demoCode ? <Alert kind="info">Demo: email can't be sent here, so your code is <b className="font-mono tracking-widest">{demoCode}</b>.</Alert> : null}
         </ErrorSlot>
         {!state?.email && (

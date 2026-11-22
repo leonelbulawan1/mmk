@@ -115,6 +115,7 @@ def _send(notice: EmailNotice) -> None:
             notice.status, notice.error, notice.sent_at = "sent", "", now_iso()
         except Exception as exc:  # network errors, API errors
             notice.status, notice.error = "failed", str(exc)[:300]
+            print(f"[email] could not send {notice.kind} to {notice.to_email}: {notice.error}", file=sys.stderr, flush=True)
         return
     msg = EmailMessage()
     msg["From"] = settings.smtp_from
@@ -131,6 +132,30 @@ def _send(notice: EmailNotice) -> None:
         notice.status, notice.error, notice.sent_at = "sent", "", now_iso()
     except (smtplib.SMTPException, OSError) as exc:
         notice.status, notice.error = "failed", str(exc)[:300]
+        print(f"[email] could not send {notice.kind} to {notice.to_email}: {notice.error}", file=sys.stderr, flush=True)
+
+
+def email_problem(notice: EmailNotice) -> str:
+    """A plain explanation of why an email was not sent, safe to show the person who asked for it."""
+    if notice.status == "sent":
+        return ""
+    if notice.status == "not_configured":
+        return "Email sending is not set up on this server yet."
+    err = (notice.error or "").lower()
+    if "unrecognised ip" in err or "unrecognized ip" in err or "authorised ip" in err or "authorized ip" in err:
+        return ("The email service blocked the server's address. The MMK admin must turn off "
+                "\"Authorised IPs\" blocking in Brevo (Security settings).")
+    if "401" in err or "key not found" in err or "unauthorized" in err:
+        return "The email service rejected the server's API key. The MMK admin must check BREVO_API_KEY."
+    if "sender" in err and ("valid" in err or "verif" in err):
+        return "The sender address is not verified in Brevo. The MMK admin must verify it."
+    if "not yet activated" in err or "not activated" in err or "suspended" in err or "permission_denied" in err:
+        return "The email service account is not active yet. The MMK admin must check the Brevo account."
+    if "limit" in err or "quota" in err or "429" in err or "credits" in err:
+        return "Today's email limit has been reached. Try again later."
+    if "timed out" in err or "timeout" in err or "connect" in err:
+        return "The email service could not be reached. Try again in a minute."
+    return "The email service did not accept the message. Try again in a minute."
 
 
 def notify_beneficiaries_after_death(db: Session, owner: User) -> list[EmailNotice]:

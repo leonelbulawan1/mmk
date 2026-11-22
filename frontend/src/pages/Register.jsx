@@ -21,7 +21,7 @@ export default function Register() {
     setBusy(true)
     try {
       const r = await register(form)
-      navigate('/verify-email', { state: { email: r.email, demo_code: r.demo_code } })
+      navigate('/verify-email', { state: { email: r.email, demo_code: r.demo_code, email_sent: r.email_sent, email_problem: r.email_problem } })
     } catch (err) { setError(err.message); setBusy(false) }
   }
 

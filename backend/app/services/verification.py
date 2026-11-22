@@ -88,10 +88,13 @@ def send_code(db: Session, user: User, purpose: Purpose = VERIFY) -> dict:
                          status="queued", error="", attempts=0)
     db.add(notice)
     notify._send(notice)
+    if notice.status == "failed":  # the email service refused it: let them try again straight away
+        _set(user, purpose, "sent_at", None)
     audit.record(db, user.owner_id or user.id, user, f"auth.{purpose.key}_code_sent", {"status": notice.status},
                  commit=False)
     db.commit()
-    out = {"email_sent": notice.status == "sent", "email_configured": notify.smtp_configured()}
+    out = {"email_sent": notice.status == "sent", "email_configured": notify.smtp_configured(),
+           "email_problem": notify.email_problem(notice)}
     if can_show_code():
         out["demo_code"] = code
     return out

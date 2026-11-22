@@ -112,3 +112,28 @@ def _bounce_flow(client, db, monkeypatch):
     assert client.get(f"/api/beneficiaries/{bid}/invitation", headers=h).json()["status"] == "delivered"
     sent = db.query(EmailNotice).filter(EmailNotice.kind == "invitation").order_by(EmailNotice.id).all()
     assert [n.to_email for n in sent] == ["maria.wrongname@gmail.com", "maria.santos@gmail.com"]
+
+
+def test_sign_up_checks_the_address_and_explains_a_failed_send(client, db, monkeypatch):
+    r = client.post("/api/auth/register", json={"display_name": "Ana Cruz", "email": "ana.cruz@gmial.com",
+                                                "password": "firstpass1"})
+    assert r.status_code == 422 and "Did you mean ana.cruz@gmail.com" in r.json()["detail"]
+
+    saved = {k: getattr(settings, k) for k in ("brevo_api_key", "smtp_host", "smtp_from")}
+    try:
+        object.__setattr__(settings, "brevo_api_key", "test-key")
+        object.__setattr__(settings, "smtp_host", "")
+        object.__setattr__(settings, "smtp_from", "MMK <mmk@example.com>")
+        monkeypatch.setattr(httpx, "post", lambda *a, **k: _Resp(
+            401, '{"code":"unauthorized","message":"We have detected you are using an unrecognised IP address 1.2.3.4"}'))
+        r = client.post("/api/auth/register", json={"display_name": "Ana Cruz", "email": "ana.cruz@gmail.com",
+                                                    "password": "firstpass1"})
+        assert r.status_code == 201
+        assert r.json()["email_sent"] is False and "Authorised IPs" in r.json()["email_problem"]
+        # Nothing reached the inbox, so asking again right away is allowed (no 60-second wait).
+        monkeypatch.setattr(httpx, "post", lambda *a, **k: _Resp(201, '{"messageId":"<v1@brevo>"}'))
+        again = client.post("/api/auth/resend-verification", json={"email": "ana.cruz@gmail.com"})
+        assert again.status_code == 200 and again.json()["email_sent"] is True and again.json()["email_problem"] == ""
+    finally:
+        for k, v in saved.items():
+            object.__setattr__(settings, k, v)
