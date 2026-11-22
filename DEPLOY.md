@@ -1,6 +1,6 @@
 # Deploying MMK for free
 
-> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel E. Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn U. Flores (UI/UX Designer)
 
 This setup costs nothing. No step needs a credit card except possibly Render: if Render asks for one, it is only for identity checks and the free plan is not charged.
 

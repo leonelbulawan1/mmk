@@ -1,6 +1,6 @@
 # Test catalogue
 
-> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel E. Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn U. Flores (UI/UX Designer)
 
 Run with `cd backend && python -m pytest`. There are 195 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
 

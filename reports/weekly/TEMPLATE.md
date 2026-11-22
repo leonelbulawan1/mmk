@@ -6,9 +6,9 @@
 | Member | What they finished | Commit / PR |
 |---|---|---|
 | Leonel C. Bulawan | | |
-| Gabriel Liray | | |
+| Gabriel E. Liray | | |
 | Kean Jayvee B. Gito | | |
-| Robylyn Flores | | |
+| Robylyn U. Flores | | |
 
 ## Plan for next week
 

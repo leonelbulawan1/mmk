@@ -1,6 +1,6 @@
 # Access test table
 
-> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel E. Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn U. Flores (UI/UX Designer)
 
 Each row is one question to the access rules: **may this asker see this entry, and at what level?** The table is computed by the real Prolog rules (`backend/app/prolog/access_rules.pl`), and every row is also an automated test (`backend/tests/test_access_table.py`), so the document and the system cannot drift apart.
 

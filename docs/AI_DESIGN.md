@@ -1,6 +1,6 @@
 # Design note: the three parts of MMK's AI
 
-> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel E. Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn U. Flores (UI/UX Designer)
 
 The handout asks for three separate parts: a **model** that can think, **tools** that let it act, and **instructions** that tell it what to do without us. In MMK they live in three different places in the code, so each can be changed and tested on its own.
 

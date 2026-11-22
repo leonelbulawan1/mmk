@@ -1,6 +1,6 @@
 # Design report: paradigm choices
 
-> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel E. Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn U. Flores (UI/UX Designer)
 
 MMK (Maalaala Mo Kaya) is our build of the Alaala personal AI diary. This report explains which paradigm each required component uses, why it fits, and what we would change.
 

@@ -4,7 +4,7 @@
 
 CS 413 Programming Languages · Final Project · Task 1.03
 
-> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel E. Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn U. Flores (UI/UX Designer)
 
 | | |
 |---|---|
@@ -346,9 +346,9 @@ The requirements become the baseline when every member has read this document an
 | Member | Role | Reviewed sections | Decision | Date |
 |---|---|---|---|---|
 | Leonel C. Bulawan | Project Manager | | ☐ Approved ☐ Changes requested | |
-| Gabriel Liray | Lead Developer | | ☐ Approved ☐ Changes requested | |
+| Gabriel E. Liray | Lead Developer | | ☐ Approved ☐ Changes requested | |
 | Kean Jayvee B. Gito | QA/Tester | | ☐ Approved ☐ Changes requested | |
-| Robylyn Flores | UI/UX Designer | | ☐ Approved ☐ Changes requested | |
+| Robylyn U. Flores | UI/UX Designer | | ☐ Approved ☐ Changes requested | |
 
 ## 17. Change log and future work
 

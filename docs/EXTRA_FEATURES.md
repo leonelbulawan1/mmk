@@ -1,6 +1,6 @@
 # Extra features
 
-> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel E. Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn U. Flores (UI/UX Designer)
 
 Features we added on top of the six required components. None of them replaces a required component, and every one follows the access protocol: no feature lets a person or the AI see an entry the owner did not permit.
 

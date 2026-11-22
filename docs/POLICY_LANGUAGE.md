@@ -1,6 +1,6 @@
 # MMK Legacy Policy Language (ALP)
 
-> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel E. Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn U. Flores (UI/UX Designer)
 
 A policy is a list of statements, each ending with `;`. Comments start with `#`.
 **Anything not allowed is denied, and `deny` always overrides `allow`.**
