@@ -2,7 +2,7 @@
 
 # MMK — a personal AI diary with a legacy policy
 
-> **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
 
 **MMK** is a private diary. An **owner** writes entries that are stored append-only and linked in a hash chain. The owner registers **beneficiaries** and writes a **legacy policy** in a small language. **Beneficiaries get no access at all while the owner is alive.** After the owner's passing (the death trigger, started by the owner or by their chosen executor), the policy decides who may learn what, at what level (existence, summary or full text), and when (immediately, or on a later date). Beneficiaries ask questions through an **AI assistant** that only ever receives entries the SWI-Prolog access rules have already approved, and it cites the date of every entry it uses.
 
@@ -36,18 +36,17 @@ All people in the demo data and tests are fictional.
 | AI-use log with verifiers | [docs/AI_USE_LOG.md](docs/AI_USE_LOG.md) |
 | Kaneo project and weekly updates | [KANEO PROJECT LINK] · [reports/weekly/](reports/weekly) |
 | Extra features and their paradigms | [docs/EXTRA_FEATURES.md](docs/EXTRA_FEATURES.md) |
-| Names of all five members | [docs/TEAM.md](docs/TEAM.md), and the header of every document |
+| Names of all members | [Team](#team) below, [docs/TEAM.md](docs/TEAM.md), and the header of every document |
 | Presentation slides and live demo | [SLIDES LINK] · live: https://mmk-web.onrender.com |
 
 ## Team
 
 | # | Complete name | Role |
 |---|---|---|
-| 1 | [MEMBER 1 FULL NAME] | Front End |
-| 2 | [MEMBER 2 FULL NAME] | Back End |
-| 3 | [MEMBER 3 FULL NAME] | Q/A |
-| 4 | [MEMBER 4 FULL NAME] | UI/UX Designer |
-| 5 | [MEMBER 5 FULL NAME] | Documentator |
+| 1 | Leonel C. Bulawan | Project Manager |
+| 2 | Gabriel Liray | Lead Developer |
+| 3 | Kean Jayvee B. Gito | QA/Tester |
+| 4 | Robylyn Flores | UI/UX Designer |
 
 Repository: https://github.com/leonelbulawan1/mmk · Kaneo project: [KANEO PROJECT LINK]
 

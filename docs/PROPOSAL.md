@@ -4,14 +4,14 @@
 
 CS 413 Programming Languages · Final Project · Task 1.03
 
-> **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
 
 | | |
 |---|---|
 | Task | 1.03 Prepare Project Proposal and Finalize System Requirements |
-| Owner | Documentator (lead), Back End, UI/UX Designer |
+| Owner | Project Manager (lead), Lead Developer, UI/UX Designer |
 | Version | 1.0 (final requirements baseline) |
-| Status | **For team review.** Becomes the baseline when all five members sign section 16 |
+| Status | **For team review.** Becomes the baseline when all members sign section 16 |
 | Kaneo task | [LINK TO KANEO TASK 1.03] |
 | Repository | this file: `docs/PROPOSAL.md` |
 
@@ -285,7 +285,7 @@ Priority: **M** = Must, **S** = Should, **C** = Could. Every *Must* is covered b
 3. The trustee is someone the owner trusts to report the passing honestly; the waiting period and the owner's cancel button protect against mistakes.
 4. Email can be delivered (an email service is configured); without it, notices are stored for retry.
 5. Names in entries are written as names (e.g. "Maria") so that `mentioning` filters work.
-6. The team has five members, one per role, and all can explain the whole system.
+6. The team has four members (Project Manager, Lead Developer, QA/Tester, UI/UX Designer), and all can explain the whole system.
 
 **Constraints**
 1. Paradigms are fixed by the course (section 7).
@@ -345,11 +345,10 @@ The requirements become the baseline when every member has read this document an
 
 | Member | Role | Reviewed sections | Decision | Date |
 |---|---|---|---|---|
-| [MEMBER 1 FULL NAME] | Front End | | ☐ Approved ☐ Changes requested | |
-| [MEMBER 2 FULL NAME] | Back End | | ☐ Approved ☐ Changes requested | |
-| [MEMBER 3 FULL NAME] | Q/A | | ☐ Approved ☐ Changes requested | |
-| [MEMBER 4 FULL NAME] | UI/UX Designer | | ☐ Approved ☐ Changes requested | |
-| [MEMBER 5 FULL NAME] | Documentator | | ☐ Approved ☐ Changes requested | |
+| Leonel C. Bulawan | Project Manager | | ☐ Approved ☐ Changes requested | |
+| Gabriel Liray | Lead Developer | | ☐ Approved ☐ Changes requested | |
+| Kean Jayvee B. Gito | QA/Tester | | ☐ Approved ☐ Changes requested | |
+| Robylyn Flores | UI/UX Designer | | ☐ Approved ☐ Changes requested | |
 
 ## 17. Change log and future work
 

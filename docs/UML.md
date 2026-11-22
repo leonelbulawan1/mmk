@@ -1,6 +1,6 @@
 # UML Diagrams (Task 1.05)
 
-> **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
 
 Three UML diagrams of MMK, drawn from the final requirements in [PROPOSAL.md](PROPOSAL.md) (version 1.0) and checked against the code in `backend/app/`. GitHub renders the Mermaid blocks below as diagrams. The same diagrams, with a fully drawn Use Case Diagram, are in the shared doc: [MMK – UML Diagrams (Task 1.05)](https://claude.ai/artifact/Fc8rMdQQSPN3hfUrKzfWQU).
 

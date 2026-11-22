@@ -1,6 +1,6 @@
 # Deploying MMK to Firebase + Cloud Run (paid option)
 
-> **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
 
 > This is the paid, all-Google option. The free option is in [DEPLOY.md](../../DEPLOY.md). To use this one, copy `docs/deploy/firebase.cloudrun.json` to `firebase.json` at the repository root first.
 

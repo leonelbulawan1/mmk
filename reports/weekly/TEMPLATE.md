@@ -5,11 +5,10 @@
 ## Done this week
 | Member | What they finished | Commit / PR |
 |---|---|---|
-| [MEMBER 1 FULL NAME] | | |
-| [MEMBER 2 FULL NAME] | | |
-| [MEMBER 3 FULL NAME] | | |
-| [MEMBER 4 FULL NAME] | | |
-| [MEMBER 5 FULL NAME] | | |
+| Leonel C. Bulawan | | |
+| Gabriel Liray | | |
+| Kean Jayvee B. Gito | | |
+| Robylyn Flores | | |
 
 ## Plan for next week
 

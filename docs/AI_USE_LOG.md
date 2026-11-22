@@ -1,6 +1,6 @@
 # AI-use log
 
-> **Team:** [MEMBER 1 FULL NAME] (Front End) · [MEMBER 2 FULL NAME] (Back End) · [MEMBER 3 FULL NAME] (Q/A) · [MEMBER 4 FULL NAME] (UI/UX Designer) · [MEMBER 5 FULL NAME] (Documentator)
+> **Team:** Leonel C. Bulawan (Project Manager) · Gabriel Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn Flores (UI/UX Designer)
 
 The handout allows AI coding assistants with accountability: record what we asked, what came back, what we changed or rejected, and **who verified it**. Every member must be able to explain and defend any AI-assisted code.
 
@@ -27,8 +27,7 @@ While generating code, Claude ran the automated test suite (195 tests, on SQLite
 
 | Member | Verify |
 |---|---|
-| Back End | `backend/app/domain/`, `processing/`, `writing_modes.py`, `prolog/access_rules.pl`, `policy_lang/`, `ai/` |
-| Q/A | All of `backend/tests/`, `docs/ACCESS_TEST_TABLE.md`; try to make the AI reveal hidden entries |
-| Front End | `frontend/src/pages/`, `frontend/src/components/`, `api.js`, `auth.jsx` |
-| UI/UX Designer | Every screen on desktop and phone; access-denied messages; the legal disclaimer |
-| Documentator | This log, `docs/DESIGN_REPORT.md`, `docs/AI_DESIGN.md`, `README.md`; that every row above has a verifier |
+| Gabriel Liray (Lead Developer) | `backend/app/domain/`, `processing/`, `writing_modes.py`, `prolog/access_rules.pl`, `policy_lang/`, `ai/`, `frontend/src/pages/`, `frontend/src/components/`, `api.js`, `auth.jsx` |
+| Kean Jayvee B. Gito (QA/Tester) | All of `backend/tests/`, `docs/ACCESS_TEST_TABLE.md`; try to make the AI reveal hidden entries |
+| Robylyn Flores (UI/UX Designer) | Every screen on desktop and phone; access-denied messages; the legal disclaimer |
+| Leonel C. Bulawan (Project Manager) | This log, `docs/DESIGN_REPORT.md`, `docs/AI_DESIGN.md`, `README.md`; that every row above has a verifier |
