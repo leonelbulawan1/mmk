@@ -146,9 +146,9 @@ alaala/
 | 3 | Login | `/login` | public |
 | 4 | Owner dashboard | `/dashboard` | owner |
 | 5 | Diary entries (search, kind and theme filters, grouped by year) | `/entries` | owner |
-| 6 | Create diary entry (entries and letters) | `/entries/new` | owner |
+| 6 | Write (diary entries and letters, with writing-mode selection and live preview) | `/write` | owner |
 | 7 | Entry details (current/original/revisions, review, hashes) | `/entries/:id` | owner |
-| 8 | Writing mode selection (with live preview) | `/write` | owner |
+| 8 | Writing mode selection with live preview: part of the Write page | `/write` | owner |
 | 9 | Beneficiary management (invites, deactivation) | `/beneficiaries` | owner |
 | 10 | Legacy policy editor (live validation, Prolog view, samples, history) | `/policy` | owner |
 | 11 | Access permissions (Prolog decision matrix, date simulation) | `/access` | owner |

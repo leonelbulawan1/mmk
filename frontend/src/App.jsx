@@ -9,7 +9,6 @@ import Activate from './pages/Activate'
 import VerifyEmail from './pages/VerifyEmail'
 import Dashboard from './pages/Dashboard'
 import Entries from './pages/Entries'
-import WritingModes from './pages/WritingModes'
 import CreateEntry from './pages/CreateEntry'
 import EntryDetail from './pages/EntryDetail'
 import Beneficiaries from './pages/Beneficiaries'
@@ -54,9 +53,9 @@ export default function App() {
       <Route element={<Guard role="owner"><Layout /></Guard>}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/entries" element={<Entries />} />
-        <Route path="/entries/new" element={<CreateEntry />} />
+        <Route path="/entries/new" element={<Navigate to="/write" replace />} />
         <Route path="/entries/:id" element={<EntryDetail />} />
-        <Route path="/write" element={<WritingModes />} />
+        <Route path="/write" element={<CreateEntry />} />
         <Route path="/beneficiaries" element={<Beneficiaries />} />
         <Route path="/policy" element={<PolicyEditor />} />
         <Route path="/access" element={<AccessPermissions />} />
