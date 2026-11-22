@@ -32,3 +32,15 @@ Notes:
 - Invite codes are random, stored as SHA-256 hashes, single-use and shown once.
 - The session token is kept in `sessionStorage` (cleared when the tab closes). For production, serve over HTTPS and set a long random `JWT_SECRET`.
 - Summary-level access reveals the first sentence of the entry plus its topics, computed when the entry was written. The entry detail page shows the owner exactly what that summary is.
+
+## Checking beneficiary email addresses
+
+* `services/email_check.py` checks an address before an invitation is sent: format (pydantic `EmailStr`), typo
+  suggestions for common domains, Gmail username rules (6–30 letters, digits and periods), and a DNS MX lookup for
+  other domains. If DNS cannot be reached the lookup is skipped, so a network problem never blocks a real address.
+* Whether a mailbox exists can only be learned by sending. MMK stores the Brevo `messageId` of each email and reads
+  its delivery events; a hard bounce, "invalid" or "blocked" marks the invitation `bounced`. The owner sees
+  "Email doesn't exist" and may change the address only while the account is not yet activated. Changing it
+  replaces the invite code, so the old code (sent to the wrong address) stops working.
+* Error messages say only what is wrong with the address the owner typed; they do not reveal whose account an
+  existing address belongs to.

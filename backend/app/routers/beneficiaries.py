@@ -12,6 +12,7 @@ from ..models import User
 from ..policy_lang.lexer import KEYWORDS
 from ..security import require_living_owner, require_owner
 from ..services import audit
+from ..services.email_check import InvalidEmail, check_address
 from .auth import hash_invite, new_code
 
 router = APIRouter(prefix="/api/beneficiaries", tags=["beneficiaries"])
@@ -29,12 +30,34 @@ class BeneficiaryIn(BaseModel):
 class BeneficiaryPatch(BaseModel):
     relationship: str | None = Field(default=None, max_length=80)
     active: bool | None = None
+    email: EmailStr | None = None  # only before the account is activated (e.g. the invitation bounced)
 
 
-def out(b: User) -> dict:
+def _valid_email(db: Session, email: str, exclude_id: int | None = None) -> str:
+    """Clean and check an address; 422 if it cannot receive mail, 409 if someone already uses it."""
+    try:
+        email = check_address(email)
+    except InvalidEmail as exc:
+        raise HTTPException(422, str(exc))
+    other = db.scalars(select(User).where(User.email == email)).first()
+    if other is not None and other.id != exclude_id:
+        raise HTTPException(409, "This email is already registered on MMK. Use a different email address.")
+    return email
+
+
+def _invitation_out(db: Session, b: User) -> dict | None:
+    from ..services import notify
+
+    if b.password_hash is not None:
+        return None
+    n = notify.refresh_delivery(db, notify.latest_invitation(db, b))
+    return {"status": n.status, "to": n.to_email, "error": n.error} if n else None
+
+
+def out(b: User, invitation: dict | None = None) -> dict:
     return {"id": b.id, "display_name": b.display_name, "email": b.email, "handle": b.handle,
             "relationship": b.relationship, "active": b.active, "activated": b.password_hash is not None,
-            "created_at": b.created_at}
+            "created_at": b.created_at, "invitation": invitation}
 
 
 def _invite() -> str:
@@ -52,7 +75,13 @@ def _get(db: Session, owner: User, bid: int) -> User:
 def list_beneficiaries(owner: User = Depends(require_owner), db: Session = Depends(get_db)):
     rows = db.scalars(select(User).where(User.owner_id == owner.id, User.role == "beneficiary")
                       .order_by(User.display_name)).all()
-    return [out(b) for b in rows]
+    return [out(b, _invitation_out(db, b)) for b in rows]
+
+
+@router.get("/{bid}/invitation")
+def invitation_status(bid: int, owner: User = Depends(require_owner), db: Session = Depends(get_db)):
+    """Was the latest invitation delivered, or did it bounce (no such mailbox)?"""
+    return _invitation_out(db, _get(db, owner, bid))
 
 
 @router.post("", status_code=201)
@@ -60,12 +89,11 @@ def create(body: BeneficiaryIn, owner: User = Depends(require_living_owner), db:
     handle = body.handle.strip().lower()
     if not HANDLE_RE.match(handle) or handle in KEYWORDS:
         raise HTTPException(422, "Handle must be 2-32 lowercase letters, digits or _ and not a policy keyword")
-    if db.scalars(select(User).where(User.email == body.email.lower())).first():
-        raise HTTPException(409, "That email is already registered")
+    email = _valid_email(db, body.email)
     if db.scalars(select(User).where(User.owner_id == owner.id, User.handle == handle)).first():
         raise HTTPException(409, "That handle is already used")
     code = _invite()
-    b = User(role="beneficiary", email=body.email.lower(), display_name=body.display_name.strip(), owner_id=owner.id,
+    b = User(role="beneficiary", email=email, display_name=body.display_name.strip(), owner_id=owner.id,
              handle=handle, relationship=body.relationship.strip(), invite_code_hash=hash_invite(code))
     db.add(b)
     db.flush()
@@ -109,11 +137,22 @@ def reissue_invite(bid: int, owner: User = Depends(require_living_owner), db: Se
 @router.patch("/{bid}")
 def update(bid: int, body: BeneficiaryPatch, owner: User = Depends(require_living_owner), db: Session = Depends(get_db)):
     b = _get(db, owner, bid)
+    new_code_sent = None
+    if body.email is not None and body.email.lower() != b.email:
+        if b.password_hash is not None:
+            raise HTTPException(400, "The email can be changed only before the account is activated")
+        b.email = _valid_email(db, body.email, exclude_id=b.id)
+        new_code_sent = _invite()
+        b.invite_code_hash = hash_invite(new_code_sent)
     if body.relationship is not None:
         b.relationship = body.relationship.strip()
     if body.active is not None:
         b.active = body.active
     audit.record(db, owner.id, owner, "beneficiary.update",
-                 {"handle": b.handle, "active": b.active, "relationship": b.relationship}, commit=False)
+                 {"handle": b.handle, "active": b.active, "relationship": b.relationship,
+                  "email_changed": new_code_sent is not None}, commit=False)
     db.commit()
+    if new_code_sent:  # a corrected address gets a fresh invitation
+        inv = _email_invitation(db, owner, b, new_code_sent)
+        return {**out(b, inv), "invite_code": new_code_sent, "invite_link": _link(b, new_code_sent), "invitation": inv}
     return out(b)

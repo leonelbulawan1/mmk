@@ -25,3 +25,14 @@ Run with `cd backend && python -m pytest`. There are 195 tests. Each test uses a
 | Typed exceptions and safe actions | `test_typed_exceptions.py` | AccessDenied looks exactly like a missing entry; a forged entry or policy row (database guards removed) makes letters, overview and the assistant refuse with 503 and log `integrity.failed`, while the owner can still verify; a policy syntax error keeps the previous version; exception hierarchy |
 | Access test table (asker, entry, expected result) | `test_access_table.py` | All 22 rows of `docs/ACCESS_TEST_TABLE.md`, generated from the same Prolog rules by `python -m scripts.access_table` |
 | Invitation and letter emails | `test_invitations_and_letter_emails.py` | Adding a beneficiary emails the activation link and code; resending issues a new code; without email the owner still gets the link; a letter opening on a later date emails its recipient once, without its text; letters already counted in the death notice are not emailed twice |
+
+## Email address checks (`tests/test_email_check.py`)
+
+| Case | Expected |
+|---|---|
+| `maria@gmial.com`, `jose@yaho.com` | 422 "Check the email address. Did you mean …?" |
+| `abc@gmail.com`, `maria..santos@gmail.com` | 422 "This is not a valid Gmail address…" |
+| domain with no mail server (DNS faked) | 422 "The email domain … does not exist" |
+| DNS unavailable | address accepted (fails open) |
+| address already on MMK (any letter case) | 409 "This email is already registered on MMK." |
+| Brevo reports `hardBounces` | invitation shows `bounced`; owner corrects email → new code, new email, `delivered` |

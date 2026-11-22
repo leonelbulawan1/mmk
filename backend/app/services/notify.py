@@ -44,6 +44,11 @@ def _send_brevo(notice: EmailNotice) -> None:
     )
     if resp.status_code >= 300:
         raise OSError(f"Brevo API {resp.status_code}: {resp.text[:200]}")
+    try:
+        import json as _json
+        return (_json.loads(resp.text or "{}") or {}).get("messageId")
+    except (ValueError, AttributeError):
+        return None
 
 
 def activation_link(email: str, code: str) -> str:
@@ -106,7 +111,7 @@ def _send(notice: EmailNotice) -> None:
         return
     if settings.brevo_api_key:
         try:
-            _send_brevo(notice)
+            notice.provider_id = _send_brevo(notice)
             notice.status, notice.error, notice.sent_at = "sent", "", now_iso()
         except Exception as exc:  # network errors, API errors
             notice.status, notice.error = "failed", str(exc)[:300]
@@ -329,3 +334,34 @@ def notify_released_letters(db: Session, min_interval_seconds: int = 600) -> int
                 sent += 1
         db.commit()
     return sent
+
+
+# ---- delivery: did an invitation bounce? -----------------------------------------------------
+_LAST_DELIVERY_CHECK: dict[int, float] = {}
+
+
+def refresh_delivery(db: Session, notice: EmailNotice | None, min_interval_seconds: int = 15) -> EmailNotice | None:
+    """Ask the email service whether a sent message was delivered or bounced (e.g. no such Gmail user)."""
+    import time
+    from .email_check import delivery_status
+
+    if notice is None or notice.status != "sent" or not notice.provider_id or not settings.brevo_api_key:
+        return notice
+    now = time.monotonic()
+    if now - _LAST_DELIVERY_CHECK.get(notice.id, 0.0) < min_interval_seconds:
+        return notice
+    _LAST_DELIVERY_CHECK[notice.id] = now
+    try:
+        status, reason = delivery_status(settings.brevo_api_key, notice.provider_id)
+    except Exception:
+        return notice
+    if status:
+        notice.status = status
+        notice.error = reason if status == "bounced" else ""
+        db.commit()
+    return notice
+
+
+def latest_invitation(db: Session, ben: User) -> EmailNotice | None:
+    return db.scalars(select(EmailNotice).where(EmailNotice.beneficiary_id == ben.id, EmailNotice.kind == "invitation")
+                      .order_by(EmailNotice.id.desc())).first()

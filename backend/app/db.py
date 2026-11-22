@@ -90,6 +90,7 @@ LATER_COLUMNS = (
     ("users", "reset_attempts", "INTEGER DEFAULT 0", None),
     ("users", "token_version", "INTEGER DEFAULT 0", None),
     ("email_notices", "entry_id", "INTEGER", None),
+    ("email_notices", "provider_id", "VARCHAR(200)", None),
 )
 
 

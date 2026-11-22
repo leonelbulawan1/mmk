@@ -44,6 +44,7 @@ def test_brevo_used_when_key_set(monkeypatch):
     n = _notice()
     notify._send(n)
     assert n.status == "sent" and n.sent_at
+    assert n.provider_id == "x"
     assert sent["url"].endswith("/v3/smtp/email")
     assert sent["headers"]["api-key"] == "test-key"
     assert sent["json"]["sender"] == {"name": "MMK", "email": "mmk@example.com"}

@@ -136,6 +136,7 @@ class EmailNotice(Base):
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     sent_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     entry_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # the letter a letter_released notice is about
+    provider_id: Mapped[str | None] = mapped_column(String(200), nullable=True)  # the email service's message id
 
 
 class DeathReport(Base):

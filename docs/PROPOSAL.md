@@ -127,7 +127,8 @@ Priority: **M** = Must, **S** = Should, **C** = Could. Every *Must* is covered b
 | FR-A1 | An owner can register with name, email and password; the account is usable only after entering a 6-digit code sent to that email | M |
 | FR-A2 | Users sign in with email and password; "Keep me signed in" keeps the session for 30 days, otherwise it ends with the browser tab | M |
 | FR-A3 | A user can reset a forgotten password with a 6-digit code sent by email; resetting signs out every device | M |
-| FR-A4 | The owner registers beneficiaries (name, email, handle, relationship); each is emailed an invitation with a one-time activation link and code; if email cannot be sent, the owner is shown the link and code to pass on | M |
+| FR-A4 | The owner registers beneficiaries (name, email, handle, relationship) with any email provider (Gmail, Yahoo, Outlook, school or work); each is emailed an invitation with a one-time activation link and code; if email cannot be sent, the owner is shown the link and code to pass on | M |
+| FR-A4a | Before sending, the address is checked: a misspelt common domain gets a suggestion ("Did you mean …@gmail.com?"), an impossible Gmail username or a domain with no mail server is refused as invalid, and an address already on MMK is refused as already registered. After sending, a bounced invitation (no such mailbox) is shown as "Email doesn't exist" and the owner can correct the address, which sends a new invitation | M |
 | FR-A5 | Owner-only pages are refused to beneficiaries, and beneficiary pages to owners | M |
 
 ### 8.2 Diary model and entry processing (C1, C2)
