@@ -2,23 +2,24 @@ import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { PendingReportBanner } from './Executor'
+import NavIcon from './NavIcon'
 
 const OWNER_NAV = [
-  ['/dashboard', 'Dashboard', '◐'],
-  ['/entries', 'Diary entries', '❧'],
-  ['/write', 'Write', '✎'],
-  ['/beneficiaries', 'Beneficiaries', '♡'],
-  ['/policy', 'Legacy policy', '§'],
-  ['/access', 'Access permissions', '⚿'],
-  ['/assistant', 'AI assistant', '✦'],
-  ['/vault', 'Vault integrity', '⛓'],
-  ['/settings', 'Settings', '⚙'],
+  ['/dashboard', 'Dashboard', 'dashboard'],
+  ['/entries', 'Diary entries', 'entries'],
+  ['/write', 'Write', 'write'],
+  ['/beneficiaries', 'Beneficiaries', 'people'],
+  ['/policy', 'Legacy policy', 'policy'],
+  ['/access', 'Access permissions', 'access'],
+  ['/assistant', 'AI assistant', 'assistant'],
+  ['/vault', 'Vault integrity', 'vault'],
+  ['/settings', 'Settings', 'settings'],
 ]
 const BENEFICIARY_NAV = [
-  ['/home', 'Home', '◐'],
-  ['/assistant', 'Ask MMK', '✦'],
-  ['/letters', 'Letters', '✉'],
-  ['/settings', 'Settings', '⚙'],
+  ['/home', 'Home', 'home'],
+  ['/assistant', 'Ask MMK', 'assistant'],
+  ['/letters', 'Letters', 'letters'],
+  ['/settings', 'Settings', 'settings'],
 ]
 
 export function Logo({ className = '' }) {
@@ -44,7 +45,7 @@ export default function Layout() {
       {nav.map(([to, label, icon]) => (
         <NavLink key={to} to={to} onClick={() => setOpen(false)}
           className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${isActive ? 'bg-ink-700 text-cream-50 shadow-paper' : 'text-ink-600 hover:bg-cream-200'}`}>
-          <span aria-hidden className="w-5 text-center">{icon}</span>{label}
+          <NavIcon name={icon} />{label}
         </NavLink>
       ))}
     </nav>
@@ -67,7 +68,7 @@ export default function Layout() {
 
       <div className="flex items-center justify-between border-b border-cream-300 bg-cream-50/90 px-4 py-3 backdrop-blur lg:hidden">
         <Logo />
-        <button className="btn-ghost px-3" aria-expanded={open} aria-label="Menu" onClick={() => setOpen((o) => !o)}>☰</button>
+        <button className="btn-ghost px-3" aria-expanded={open} aria-label={open ? 'Close menu' : 'Menu'} onClick={() => setOpen((o) => !o)}><NavIcon name={open ? 'close' : 'menu'} size={22} /></button>
       </div>
       {open && (
         <div className="space-y-6 border-b border-cream-300 bg-cream-50 p-4 lg:hidden fade-in">{links}{footer}</div>

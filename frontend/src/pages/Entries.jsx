@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, Empty, LetterBadge, PageHeader, Spinner, Tag } from '../components/ui'
+import NavIcon from '../components/NavIcon'
 
 export default function Entries() {
   const { user } = useAuth()
@@ -39,7 +40,7 @@ export default function Entries() {
   return (
     <>
       <PageHeader eyebrow="your pages" title="Diary entries" subtitle="Every entry is kept exactly as first written. Corrections are added as revisions."
-        actions={!user.death_triggered_at && <Link to="/write" className="btn-primary">✎ New entry</Link>} />
+        actions={!user.death_triggered_at && <Link to="/write" className="btn-primary"><NavIcon name="write" size={16} />New entry</Link>} />
 
       <form role="search" className="card mb-4 flex flex-col gap-3 p-4 sm:flex-row" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
         <div className="relative flex-1">

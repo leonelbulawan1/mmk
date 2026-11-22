@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { Alert, Card, Empty, Hash, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
+import NavIcon from '../components/NavIcon'
 
 function Stat({ label, value, to }) {
   return (
@@ -22,7 +23,7 @@ export default function Dashboard() {
     <>
       <PageHeader eyebrow={greeting + ','} title={data.owner}
         subtitle={data.death_triggered_at ? 'Your vault is sealed. Your legacy policy is now in effect.' : 'What would you like to remember today?'}
-        actions={!data.death_triggered_at && <Link to="/write" className="btn-primary">✎ New entry</Link>} />
+        actions={!data.death_triggered_at && <Link to="/write" className="btn-primary"><NavIcon name="write" size={16} />New entry</Link>} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Diary entries" value={data.entry_count} to="/entries" />

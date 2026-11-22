@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { ExecutorPanel } from '../components/Executor'
 import { Alert, Card, PageHeader, Spinner, useAsync } from '../components/ui'
+import NavIcon from '../components/NavIcon'
 
 export default function BeneficiaryHome() {
   const o = useAsync(() => api('/api/beneficiary/overview'))
@@ -35,7 +36,7 @@ export default function BeneficiaryHome() {
         <Card>
           <p className="text-5xl font-semibold">{d.shared_entries}</p>
           <p className="text-sm text-ink-400">entr{d.shared_entries === 1 ? 'y' : 'ies'} shared with you</p>
-          <Link to="/assistant" className="btn-primary mt-6">✦ Ask about {first}</Link>
+          <Link to="/assistant" className="btn-primary mt-6"><NavIcon name="assistant" size={16} />Ask about {first}</Link>
         </Card>
         <Card>
           <p className="text-5xl font-semibold">{d.released_letters}</p>
