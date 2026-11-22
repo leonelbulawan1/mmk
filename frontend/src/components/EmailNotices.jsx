@@ -3,9 +3,15 @@ import { api, fmtDate } from '../api'
 import { Alert, Tag, useAsync } from './ui'
 
 const STATUS = {
-  sent: ['Sent', 'bg-sage-100 text-sage-600'],
+  sent: ['Accepted for delivery', 'bg-sage-100 text-sage-600'],
+  delivered: ['Delivered', 'bg-sage-100 text-sage-600'],
   queued: ['Queued', 'bg-cream-200 text-ink-500'],
+  sending: ['Sending', 'bg-cream-200 text-ink-500'],
+  retrying: ['Will retry', 'bg-[#FBF0D9] text-bark-600'],
   failed: ['Failed', 'bg-rose-100 text-rose-600'],
+  bounced: ['Address does not exist', 'bg-rose-100 text-rose-600'],
+  unknown: ['Check before resending', 'bg-[#FBF0D9] text-bark-600'],
+  sandboxed: ['Not sent (test mode)', 'bg-cream-200 text-ink-500'],
   not_configured: ['Not sent', 'bg-[#FBF0D9] text-bark-600'],
 }
 
@@ -45,18 +51,19 @@ export default function EmailNotices() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-medium">{x.to_name || x.to_email}</p>
-                    <p className="truncate text-xs text-ink-400">{x.to_email} · {x.status === 'sent' ? `sent ${fmtDate(x.sent_at)}` : `${x.attempts} attempt${x.attempts === 1 ? '' : 's'}`}</p>
+                    <p className="truncate text-xs text-ink-400">{x.to_email} · {['sent', 'delivered'].includes(x.status) ? `sent ${fmtDate(x.sent_at)}`
+                      : `${x.attempts} attempt${x.attempts === 1 ? '' : 's'}${x.status === 'retrying' && x.next_attempt_at ? ` · next try ${new Date(x.next_attempt_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}`}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>{label}</span>
                     <button className="btn-ghost px-3 py-1 text-xs" onClick={() => setOpen(open === x.id ? null : x.id)}>{open === x.id ? 'Hide' : 'View email'}</button>
-                    {x.status !== 'sent' && (
+                    {!['sent', 'delivered', 'sending'].includes(x.status) && (
                       <button className="btn-secondary px-3 py-1 text-xs" disabled={!configured || busy === x.id} onClick={() => retry(x.id)}
-                        title={configured ? 'Send again' : 'Set up SMTP on the server first'}>{busy === x.id ? 'Sending…' : 'Retry'}</button>
+                        title={configured ? 'Send again' : 'Set up email on the server first'}>{busy === x.id ? 'Sending…' : x.status === 'unknown' ? 'Send anyway' : 'Retry now'}</button>
                     )}
                   </div>
                 </div>
-                {x.error && x.status === 'failed' && <p className="mt-2 text-xs text-rose-600">{x.error}</p>}
+                {x.error && ['failed', 'retrying', 'unknown', 'bounced', 'sandboxed'].includes(x.status) && <p className="mt-2 text-xs text-rose-600">{x.error}</p>}
                 {open === x.id && (
                   <div className="mt-3 rounded-xl bg-cream-100 p-4 text-sm">
                     <p className="text-xs text-ink-400">Subject</p>

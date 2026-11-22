@@ -18,11 +18,13 @@ from .routers import assistant, auth, beneficiaries, entries, executor, policy, 
 async def _due_reports_loop() -> None:
     """Activate executor reports whose waiting period has ended, even if nobody is signed in."""
     from .db import SessionLocal
-    from .services import death
+    from .services import death, notify
 
     while True:
         with suppress(Exception), SessionLocal() as db:
             death.process_due(db)
+        with suppress(Exception), SessionLocal() as db:
+            notify.process_outbox(db)  # retry emails whose next attempt is due
         await asyncio.sleep(60)
 
 
@@ -96,6 +98,9 @@ def health():
     try:
         with SessionLocal() as db:
             activated = death.process_due(db)
+        with SessionLocal() as db:
+            from .services import notify
+            notify.process_outbox(db)
     except Exception:  # never fail the health check because of this
         pass
     return {"status": "ok", "prolog": swipl_available(), "llm_provider": settings.llm_provider,

@@ -129,7 +129,7 @@ def test_smtp_failure_does_not_undo_the_trigger(client, db, vault, monkeypatch):
     finally:
         object.__setattr__(settings, "smtp_host", "")
     assert body["death_triggered_at"]
-    assert {n["status"] for n in body["notices"]} == {"failed"}
+    assert {n["status"] for n in body["notices"]} == {"retrying"}  # a temporary problem: retried later
     assert "mail server down" in body["notices"][0]["error"]
 
 

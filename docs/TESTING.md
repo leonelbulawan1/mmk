@@ -46,3 +46,15 @@ Run with `cd backend && python -m pytest`. There are 195 tests. Each test uses a
 | Letter "After my death" | unchanged: waits for the death trigger and the policy |
 | Opening date in the past / both date and death / future entry date | 422 with a plain message |
 | Older date-only letters (no "deliver on date" flag) | handout rule unchanged (`owner_alive`) |
+
+## Email outbox (`tests/test_outbox.py`, run on SQLite and PostgreSQL)
+
+| Case | Expected |
+|---|---|
+| Temporary failure (HTTP 503) | `retrying`, next try in 1 minute; when due, the runner sends it → `sent` |
+| Repeated temporary failures | waits 1, 5, 30, 120 minutes, then `failed` after 5 attempts |
+| Permanent refusal (HTTP 400) | `failed` at once, no retry |
+| Send interrupted (stuck in `sending`) | `unknown`, not resent automatically |
+| Another runner already claimed the email | not sent twice |
+| Same letter queued twice | refused by the unique `idempotency_key` |
+| `EMAIL_MODE=sandbox` | only `EMAIL_ALLOWLIST` addresses are emailed; others `sandboxed` |

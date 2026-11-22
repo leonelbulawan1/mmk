@@ -63,6 +63,10 @@ class Settings:
     # Mail then really comes from gmail.com, so Gmail and school inboxes accept it instead of filtering it.
     gmail_relay_url: str = os.getenv("GMAIL_RELAY_URL", "")
     gmail_relay_secret: str = os.getenv("GMAIL_RELAY_SECRET", "")
+    # live: email anyone. sandbox: email only addresses on EMAIL_ALLOWLIST (comma list; "@school.edu" = whole domain),
+    # so test and demo servers never email real beneficiaries.
+    email_mode: str = os.getenv("EMAIL_MODE", "live").strip().lower()
+    email_allowlist: str = os.getenv("EMAIL_ALLOWLIST", "")
     # Development only: when email cannot be sent, show the email verification code on screen.
     # Never enable this on a public server - it would let anyone register any address.
     dev_show_verification_code: bool = os.getenv("DEV_SHOW_VERIFICATION_CODE", "false").lower() in ("1", "true", "yes")

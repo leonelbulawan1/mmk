@@ -131,13 +131,16 @@ class EmailNotice(Base):
     subject: Mapped[str] = mapped_column(String(200))
     body: Mapped[str] = mapped_column(Text)
     kind: Mapped[str] = mapped_column(String(30), default="death_notice")
-    status: Mapped[str] = mapped_column(String(20), default="queued")  # queued | sent | failed | not_configured
+    status: Mapped[str] = mapped_column(String(20), default="queued")  # see services/notify.py (outbox statuses)
     error: Mapped[str] = mapped_column(Text, default="")
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     sent_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     entry_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # the letter a letter_released notice is about
     provider_id: Mapped[str | None] = mapped_column(String(200), nullable=True)  # the email service's message id
+    next_attempt_at: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)  # when to retry
+    # Same key = same message: a letter is emailed to its recipient at most once, even if two sweeps overlap.
+    idempotency_key: Mapped[str | None] = mapped_column(String(120), nullable=True, unique=True)
 
 
 class DeathReport(Base):

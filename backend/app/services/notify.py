@@ -19,6 +19,7 @@ import sys
 from email.message import EmailMessage
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import settings, today
@@ -135,44 +136,122 @@ def _compose(owner: User, ben: User, letters: int, entries: int, invite_code: st
     return subject, "\n".join(lines)
 
 
-def _send(notice: EmailNotice) -> None:
-    notice.attempts = (notice.attempts or 0) + 1
-    if not smtp_configured():
-        notice.status = "not_configured"
-        notice.error = "Email sending is not set up (set BREVO_API_KEY or SMTP_HOST)."
-        return
+# ---- outbox: one attempt now, safe retries later -------------------------------------------
+# Statuses: queued -> sending -> sent ("accepted by the email service"; not proof it was read)
+#           retrying (temporary problem; next_attempt_at says when) -> sent | failed
+#           failed (permanent problem, or too many attempts) | not_configured | sandboxed (test mode: never sent)
+#           unknown (a send was interrupted mid-way; it may or may not have gone out: review before resending)
+#           delivered | bounced (reported back by Brevo)
+RETRY_DELAYS_MIN = (1, 5, 30, 120)   # after attempts 1, 2, 3, 4; the 5th failure is final
+MAX_ATTEMPTS = len(RETRY_DELAYS_MIN) + 1
+
+
+class PermanentEmailError(OSError):
+    """The email service refused the message for a reason a retry will not fix (bad key, bad address)."""
+
+
+def _deliver(notice: EmailNotice) -> None:
+    """Hand one message to the configured email service. Raises on any problem."""
     if settings.gmail_relay_url:
-        try:
-            _send_gmail_relay(notice)
-            notice.status, notice.error, notice.sent_at = "sent", "", now_iso()
-        except Exception as exc:
-            notice.status, notice.error = "failed", str(exc)[:300]
-            print(f"[email] could not send {notice.kind} to {notice.to_email}: {notice.error}", file=sys.stderr, flush=True)
+        _send_gmail_relay(notice)
         return
     if settings.brevo_api_key:
-        try:
-            notice.provider_id = _send_brevo(notice)
-            notice.status, notice.error, notice.sent_at = "sent", "", now_iso()
-        except Exception as exc:  # network errors, API errors
-            notice.status, notice.error = "failed", str(exc)[:300]
-            print(f"[email] could not send {notice.kind} to {notice.to_email}: {notice.error}", file=sys.stderr, flush=True)
+        notice.provider_id = _send_brevo(notice)
         return
     msg = EmailMessage()
     msg["From"] = settings.smtp_from
     msg["To"] = notice.to_email
     msg["Subject"] = notice.subject
     msg.set_content(notice.body)
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
+        if settings.smtp_starttls:
+            smtp.starttls()
+        if settings.smtp_user:
+            smtp.login(settings.smtp_user, settings.smtp_password)
+        smtp.send_message(msg)
+
+
+def _is_permanent(exc: Exception) -> bool:
+    text = str(exc).lower()
+    if isinstance(exc, (PermanentEmailError, smtplib.SMTPRecipientsRefused, smtplib.SMTPAuthenticationError)):
+        return True
+    m = re.search(r"\b(?:brevo api|gmail relay) (\d{3})", text)
+    if m:
+        code = int(m.group(1))
+        return 400 <= code < 500 and code not in (408, 429)
+    return "wrong secret" in text or "invalid" in text and "address" in text
+
+
+def _recipient_allowed(email: str) -> bool:
+    """Outside live mode, only addresses on EMAIL_ALLOWLIST are really emailed (testing never reaches real people)."""
+    if settings.email_mode == "live":
+        return True
+    allowed = [a.strip().lower() for a in settings.email_allowlist.split(",") if a.strip()]
+    email = email.lower()
+    return any(email == a or (a.startswith("@") and email.endswith(a)) for a in allowed)
+
+
+def _send(notice: EmailNotice) -> None:
+    """One attempt. Never raises; records the outcome on the notice and schedules a retry when it may help."""
+    from datetime import datetime, timedelta, timezone
+
+    notice.attempts = (notice.attempts or 0) + 1
+    if not smtp_configured():
+        notice.status = "not_configured"
+        notice.error = "Email sending is not set up (set GMAIL_RELAY_URL, BREVO_API_KEY or SMTP_HOST)."
+        return
+    if not _recipient_allowed(notice.to_email):
+        notice.status, notice.error = "sandboxed", f"Not sent: EMAIL_MODE={settings.email_mode} and the address is not on EMAIL_ALLOWLIST."
+        return
     try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
-            if settings.smtp_starttls:
-                smtp.starttls()
-            if settings.smtp_user:
-                smtp.login(settings.smtp_user, settings.smtp_password)
-            smtp.send_message(msg)
-        notice.status, notice.error, notice.sent_at = "sent", "", now_iso()
-    except (smtplib.SMTPException, OSError) as exc:
-        notice.status, notice.error = "failed", str(exc)[:300]
-        print(f"[email] could not send {notice.kind} to {notice.to_email}: {notice.error}", file=sys.stderr, flush=True)
+        _deliver(notice)
+        notice.status, notice.error, notice.sent_at, notice.next_attempt_at = "sent", "", now_iso(), None
+    except Exception as exc:  # network errors, API errors
+        notice.error = str(exc)[:300]
+        if _is_permanent(exc) or notice.attempts >= MAX_ATTEMPTS:
+            notice.status, notice.next_attempt_at = "failed", None
+        else:
+            wait = RETRY_DELAYS_MIN[min(notice.attempts, len(RETRY_DELAYS_MIN)) - 1]
+            notice.status = "retrying"
+            notice.next_attempt_at = (datetime.now(timezone.utc) + timedelta(minutes=wait)).isoformat()
+        print(f"[email] could not send {notice.kind} to {notice.to_email} (attempt {notice.attempts}, "
+              f"{notice.status}): {notice.error}", file=sys.stderr, flush=True)
+
+
+STUCK_AFTER_MIN = 10
+
+
+def process_outbox(db: Session, limit: int = 20) -> int:
+    """Retry emails whose next attempt is due. Safe to run from several places at once: a notice is claimed with
+    a conditional update (retrying -> sending), so only one runner sends it. Returns how many were attempted."""
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import update
+
+    now = datetime.now(timezone.utc)
+    # A notice left in "sending" (the server stopped mid-send) may already have gone out: never resend it blindly.
+    stale = (now - timedelta(minutes=STUCK_AFTER_MIN)).isoformat()
+    db.execute(update(EmailNotice).where(EmailNotice.status == "sending", EmailNotice.next_attempt_at < stale)
+               .values(status="unknown", error="The send was interrupted. It may or may not have been delivered; "
+                                                "check the email service's log before sending again."))
+    db.commit()
+    due = db.scalars(select(EmailNotice.id).where(EmailNotice.status == "retrying",
+                                                  EmailNotice.next_attempt_at <= now.isoformat())
+                     .order_by(EmailNotice.next_attempt_at).limit(limit)).all()
+    done = 0
+    for nid in due:
+        claimed = db.execute(update(EmailNotice).where(EmailNotice.id == nid, EmailNotice.status == "retrying")
+                             .values(status="sending", next_attempt_at=now.isoformat())).rowcount
+        db.commit()
+        if not claimed:  # another runner took it
+            continue
+        notice = db.get(EmailNotice, nid)
+        _send(notice)
+        audit.record(db, notice.owner_id, None, f"notify.retry_auto.{notice.status}",
+                     {"notice": notice.id, "attempt": notice.attempts}, commit=False)
+        db.commit()
+        done += 1
+    return done
 
 
 def email_problem(notice: EmailNotice) -> str:
@@ -181,6 +260,8 @@ def email_problem(notice: EmailNotice) -> str:
         return ""
     if notice.status == "not_configured":
         return "Email sending is not set up on this server yet."
+    if notice.status == "sandboxed":
+        return "This server is in test mode (EMAIL_MODE=sandbox), so it only emails addresses on its allow list."
     err = (notice.error or "").lower()
     if "unrecognised ip" in err or "unrecognized ip" in err or "authorised ip" in err or "authorized ip" in err:
         return ("The email service blocked the server's address. The MMK admin must turn off "
@@ -198,6 +279,7 @@ def email_problem(notice: EmailNotice) -> str:
     if "timed out" in err or "timeout" in err or "connect" in err:
         return "The email service could not be reached. Try again in a minute."
     return "The email service did not accept the message. Try again in a minute."
+
 
 
 def notify_beneficiaries_after_death(db: Session, owner: User) -> list[EmailNotice]:
@@ -265,7 +347,7 @@ def retry(db: Session, owner: User, notice_id: int) -> EmailNotice:
     notice = db.get(EmailNotice, notice_id)
     if notice is None or notice.owner_id != owner.id:
         raise KeyError(notice_id)
-    if notice.status != "sent":
+    if notice.status not in ("sent", "delivered", "sending"):
         _send(notice)
         audit.record(db, owner.id, owner, f"notify.retry.{notice.status}", {"notice": notice.id}, commit=False)
         db.commit()
@@ -277,7 +359,7 @@ def list_notices(db: Session, owner: User) -> list[dict]:
                       .order_by(EmailNotice.id)).all()
     names = {u.id: u.display_name for u in vault_service.beneficiary_rows(db, owner, active_only=False)}
     return [{"id": n.id, "to_email": n.to_email, "to_name": names.get(n.beneficiary_id, ""), "subject": n.subject,
-             "body": n.body, "status": n.status, "error": n.error, "attempts": n.attempts,
+             "body": n.body, "status": n.status, "error": n.error, "attempts": n.attempts, "next_attempt_at": n.next_attempt_at,
              "created_at": n.created_at, "sent_at": n.sent_at} for n in rows]
 
 
@@ -405,8 +487,13 @@ def notify_owner_letters(db: Session, owner: User) -> int:
             subject, body = _compose_letter_released(owner, ben, e.title or "Untitled letter", invite)
             notice = EmailNotice(owner_id=owner.id, beneficiary_id=ben.id, to_email=ben.email, subject=subject,
                                  body=body, kind="letter_released", status="queued", error="", attempts=0,
-                                 entry_id=int(e.id))
-            db.add(notice)
+                                 entry_id=int(e.id), idempotency_key=f"letter:{ben.id}:{int(e.id)}")
+            try:
+                with db.begin_nested():  # unique key: a second sweep running at the same time stops here
+                    db.add(notice)
+                    db.flush()
+            except IntegrityError:
+                continue
             _send(notice)
             db.flush()
             audit.record(db, owner.id, None, f"notify.letter.{notice.status}", {"to": ben.handle,

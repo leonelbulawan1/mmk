@@ -19,6 +19,8 @@ services:
         sync: false
       - key: GMAIL_RELAY_SECRET
         sync: false
+      - key: EMAIL_MODE            # live = email anyone; sandbox = only EMAIL_ALLOWLIST (use for test servers)
+        value: live
       - key: SMTP_FROM             # e.g. MMK <you@gmail.com> (the sender you verified in Brevo)
         sync: false
       - key: APP_URL               # the website address, e.g. https://mmk-web.onrender.com

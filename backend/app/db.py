@@ -92,6 +92,8 @@ LATER_COLUMNS = (
     ("email_notices", "entry_id", "INTEGER", None),
     ("email_notices", "provider_id", "VARCHAR(200)", None),
     ("entries", "deliver_while_alive", "BOOLEAN DEFAULT FALSE", None),
+    ("email_notices", "next_attempt_at", "VARCHAR(40)", None),
+    ("email_notices", "idempotency_key", "VARCHAR(120)", None),
 )
 
 
@@ -105,6 +107,10 @@ def _add_missing_columns(bind) -> None:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}"))
                 if backfill and "created_at" in {c["name"] for c in insp.get_columns(table)}:
                     conn.execute(text(backfill))
+        if "email_notices" in insp.get_table_names():  # older databases: add the outbox indexes
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_email_notices_idempotency "
+                              "ON email_notices (idempotency_key)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_email_notices_next_attempt ON email_notices (next_attempt_at)"))
 
 
 def init_db(bind=None) -> None:

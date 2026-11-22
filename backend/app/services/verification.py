@@ -88,7 +88,7 @@ def send_code(db: Session, user: User, purpose: Purpose = VERIFY) -> dict:
                          status="queued", error="", attempts=0)
     db.add(notice)
     notify._send(notice)
-    if notice.status == "failed":  # the email service refused it: let them try again straight away
+    if notice.status in ("failed", "retrying"):  # nothing reached the inbox yet: let them try again straight away
         _set(user, purpose, "sent_at", None)
     audit.record(db, user.owner_id or user.id, user, f"auth.{purpose.key}_code_sent", {"status": notice.status},
                  commit=False)
