@@ -6,39 +6,6 @@
 
 **MMK** is a private diary. An **owner** writes entries that are stored append-only and linked in a hash chain. The owner registers **beneficiaries** and writes a **legacy policy** in a small language. **Beneficiaries get no access at all while the owner is alive.** After the owner's passing (the death trigger, started by the owner or by their chosen executor), the policy decides who may learn what, at what level (existence, summary or full text), and when (immediately, or on a later date). Beneficiaries ask questions through an **AI assistant** that only ever receives entries the SWI-Prolog access rules have already approved, and it cites the date of every entry it uses.
 
-All people in the demo data and tests are fictional.
-
-| Layer | Technology |
-|---|---|
-| Frontend | React 19 + Vite, JavaScript, Tailwind CSS 3, React Router 7 |
-| Backend | Python 3.11+, FastAPI (REST), SQLAlchemy 2 ORM |
-| Database | SQLite for development; **Firebase Data Connect (Cloud SQL for PostgreSQL)** in production via `DATABASE_URL` |
-| Logic programming | SWI-Prolog 9 (`backend/app/prolog/access_rules.pl`) called from Python |
-| AI | Tool-calling LLM: Anthropic Messages API, any OpenAI-compatible API, or the built-in offline extractive model |
-
-> **About "Firebase + SQLAlchemy".** SQLAlchemy needs a SQL database. Firebase's SQL offering is **Firebase Data Connect**, which runs on Cloud SQL for PostgreSQL. To use it, point `DATABASE_URL` at that instance (see *Deploying with Firebase*). The same models, the append-only triggers (PostgreSQL version included) and the tests work unchanged. Locally, the app uses SQLite with no setup.
-
----
-
-## Project deliverables (CS 413 handout)
-
-| Deliverable | Where |
-|---|---|
-| Project proposal and final system requirements (task 1.03) | [docs/PROPOSAL.md](docs/PROPOSAL.md) |
-| UML diagrams: use case, sequence, class (task 1.05) | [docs/UML.md](docs/UML.md) |
-| Working prototype with source code, under version control | this repository |
-| README with setup steps | this file, sections 1–3 |
-| Design note on the AI's model, tools and instructions | [docs/AI_DESIGN.md](docs/AI_DESIGN.md) |
-| EBNF grammar of the Legacy Policy language, with three sample programs | [backend/app/policy_lang/grammar.ebnf](backend/app/policy_lang/grammar.ebnf), [samples](backend/app/policy_lang/samples), [docs/POLICY_LANGUAGE.md](docs/POLICY_LANGUAGE.md) |
-| Prolog rule file and access test table | [backend/app/prolog/access_rules.pl](backend/app/prolog/access_rules.pl), [docs/ACCESS_TEST_TABLE.md](docs/ACCESS_TEST_TABLE.md) |
-| Parser tests (valid and invalid policies) | [backend/tests/test_policy_language.py](backend/tests/test_policy_language.py) |
-| Short design report: paradigm per component, and what we would change | [docs/DESIGN_REPORT.md](docs/DESIGN_REPORT.md) |
-| AI-use log with verifiers | [docs/AI_USE_LOG.md](docs/AI_USE_LOG.md) |
-| Kaneo project and weekly updates | [KANEO PROJECT LINK] · [reports/weekly/](reports/weekly) |
-| Extra features and their paradigms | [docs/EXTRA_FEATURES.md](docs/EXTRA_FEATURES.md) |
-| Names of all members | [Team](#team) below, [docs/TEAM.md](docs/TEAM.md), and the header of every document |
-| Presentation slides and live demo | [SLIDES LINK] · live: https://mmk-web.onrender.com |
-
 ## Team
 
 | # | Complete name | Role |
