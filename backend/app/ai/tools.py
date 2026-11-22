@@ -48,6 +48,20 @@ TOOL_SPECS: list[dict[str, Any]] = [
         "input_schema": {"type": "object", "properties": {"entry_id": {"type": "integer"}}, "required": ["entry_id"]},
     },
     {
+        "name": "entries_about_me",
+        "description": ("Use when the person asks whether the diary mentions them or how often the owner wrote about "
+                        "them. Returns only how many of the entries they may see mention them, and their dates. "
+                        "It never returns content."),
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "my_letters",
+        "description": ("Letters the owner addressed to this person. A released letter includes its full text, which "
+                        "may be quoted. A letter that is not released yet includes only its title and, if known, the "
+                        "date it opens: say it is not released yet and never guess its content."),
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
         "name": "get_entry",
         "description": ("Retrieve an entry at the level this person is authorised for. Existence level returns only "
                         "the date; summary returns a short summary; verbatim returns the text."),
@@ -83,26 +97,39 @@ def stems(words) -> set[str]:
 class AuthorizedContext:
     handle: str
     views: dict[int, dict[str, Any]] = field(default_factory=dict)
+    # Entries (among the authorised ones) that mention the asker: id/date/access only. None = name is ambiguous.
+    about_me: list[dict[str, Any]] | None = field(default_factory=list)
+    # Letters addressed to the asker: released ones carry their text; sealed ones only title + opening date.
+    letters: list[dict[str, Any]] = field(default_factory=list)
     retrieved: dict[int, dict[str, Any]] = field(default_factory=dict)  # what get_entry actually returned
     trace: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
-    def build(cls, handle: str, entries: Iterable[Entry], decisions: dict[int, Decision]) -> "AuthorizedContext":
+    def build(cls, handle: str, entries: Iterable[Entry], decisions: dict[int, Decision],
+              asker_names: set[str] | None = frozenset(), letters: list[dict[str, Any]] | None = None) -> "AuthorizedContext":
+        """``asker_names``: lower-case names that refer to the asker (None when the name is ambiguous).
+        ``letters``: the asker's own letters, already decided by Prolog (see qa_service.letters_for)."""
         views: dict[int, dict[str, Any]] = {}
+        about_me: list[dict[str, Any]] | None = [] if asker_names is not None else None
         for e in entries:
             if e.kind == "letter":
-                continue  # letters are delivered on the Letters page, never through the assistant
+                continue  # letters only reach their recipient, through my_letters
             d = decisions.get(int(e.id))
             level = d.level if d else "none"  # fail closed
             if level_rank(level) >= 1:
                 view = e.render(level)
                 if view:
                     views[int(e.id)] = view
-        return cls(handle=handle, views=views)
+                    # Mentions are checked while the full entry is in hand; only id/date/access are kept.
+                    if about_me is not None and asker_names and {n.lower() for n in e.extraction.names} & asker_names:
+                        about_me.append({"entry_id": int(e.id), "date": view["date"], "access": level})
+        if about_me is not None:
+            about_me.sort(key=lambda x: x["date"])
+        return cls(handle=handle, views=views, about_me=about_me, letters=list(letters or []))
 
     @property
     def has_any(self) -> bool:
-        return bool(self.views)
+        return bool(self.views) or bool(self.letters)
 
     # ---- tool implementations ------------------------------------------------------------
     def search_entries(self, query: str, from_date: str | None = None, to_date: str | None = None) -> dict:
@@ -141,9 +168,24 @@ class AuthorizedContext:
         self.retrieved[eid] = v
         return dict(v)
 
+    def entries_about_me(self) -> dict:
+        if self.about_me is None:  # AmbiguousName: never guess who is meant
+            return {"count": 0, "dates": [], "note": "The asker's name is ambiguous, so mentions cannot be counted."}
+        return {"count": len(self.about_me), "dates": [m["date"] for m in self.about_me],
+                "readable": sum(1 for m in self.about_me if m["access"] in ("summary", "verbatim"))}
+
+    def my_letters(self) -> dict:
+        out = []
+        for letter in self.letters:
+            if letter["status"] == "released":
+                self.retrieved[letter["entry_id"]] = {**letter, "access": "verbatim"}
+            out.append(dict(letter))
+        return {"letters": out, "count": len(out)}
+
     def call(self, name: str, args: dict) -> dict:
         fn = {"search_entries": self.search_entries, "check_access": self.check_access,
-              "get_entry": self.get_entry}.get(name)
+              "get_entry": self.get_entry, "entries_about_me": self.entries_about_me,
+              "my_letters": self.my_letters}.get(name)
         if fn is None:
             result = {"error": f"Unknown tool {name}"}
         else:

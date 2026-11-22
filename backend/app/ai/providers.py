@@ -157,6 +157,8 @@ class OpenAIProvider(LLMProvider):
 NEUTRAL_ANSWER = "I'm not able to share anything about that from the diary."
 
 _SENT = re.compile(r"(?<=[.!?])\s+")
+_LETTER_Q = re.compile(r"\bletters?\b|\bsulat\b", re.I)
+_ABOUT_ME_Q = re.compile(r"\b(?:about|mention(?:ed|s)?|of)\s+me\b|\btungkol\s+sa\s+akin\b|\bako\b", re.I)
 _WORD = re.compile(r"[a-z0-9]+")
 _STOP = frozenset("the a an of to and or in on at for with about did does do was were is are what when who how why "
                   "my your her his their she he they it me i you tell any anything know there".split())
@@ -173,6 +175,16 @@ class OfflineProvider(LLMProvider):
     def complete(self, system, messages, tools) -> LLMResponse:
         question = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
         tool_msgs = [m for m in messages if m["role"] == "tool"]
+        by_name = {m["name"]: json.loads(m["content"]) for m in tool_msgs}
+        # Questions about the asker's letters, or about whether they are mentioned, have their own tools.
+        if _LETTER_Q.search(question):
+            if "my_letters" not in by_name:
+                return LLMResponse("", [ToolCall("call_letters", "my_letters", {})])
+            return LLMResponse(self._letters(by_name["my_letters"].get("letters", [])))
+        if _ABOUT_ME_Q.search(question):
+            if "entries_about_me" not in by_name:
+                return LLMResponse("", [ToolCall("call_about_me", "entries_about_me", {})])
+            return LLMResponse(self._about_me(by_name["entries_about_me"]))
         searched = [m for m in tool_msgs if m["name"] == "search_entries"]
         fetched = [m for m in tool_msgs if m["name"] == "get_entry"]
         if not searched:
@@ -184,6 +196,34 @@ class OfflineProvider(LLMProvider):
             return LLMResponse("", [ToolCall(f"call_get_{r['entry_id']}", "get_entry", {"entry_id": r["entry_id"]})
                                     for r in results[:3]])
         return LLMResponse(self._compose(question, [json.loads(m["content"]) for m in fetched]))
+
+    @staticmethod
+    def _letters(letters: list[dict]) -> str:
+        if not letters:
+            return NEUTRAL_ANSWER
+        parts = []
+        for lt in letters:
+            if lt.get("status") == "released":
+                parts.append(f"Here is the letter \"{lt['title']}\", written on {lt['date']}:\n\n{lt['text']} [{lt['date']}]")
+            else:
+                when = f" It opens on {lt['opens_on']}." if lt.get("opens_on") else " It will be released later."
+                parts.append(f"There is a letter for you, \"{lt['title']}\", but it has not been released yet, so I "
+                             f"can't show it.{when}")
+        return "\n\n".join(parts)
+
+    @staticmethod
+    def _about_me(result: dict) -> str:
+        n = int(result.get("count") or 0)
+        if n == 0:
+            return NEUTRAL_ANSWER  # never confirm or deny entries the person may not see
+        dates = result.get("dates") or []
+        listed = ", ".join(dates[:-1]) + f" and {dates[-1]}" if len(dates) > 1 else (dates[0] if dates else "")
+        noun = "entry" if n == 1 else "entries"
+        readable = int(result.get("readable") or 0)
+        tail = ("Their contents are not shared with you." if readable == 0 else
+                "You can ask about them to hear more." if readable == n else
+                f"You may read {readable} of them; the contents of the others are not shared with you.")
+        return f"Yes. The diary mentions you in {n} {noun}{f', dated {listed}' if listed else ''}. {tail}"
 
     @staticmethod
     def _best_sentences(text: str, terms: set[str], k: int = 2) -> str:

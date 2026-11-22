@@ -120,7 +120,9 @@ export default function Assistant() {
           <p className="text-ink-500">1. The access rules decide, before anything is read, which entries may be used and at what level.</p>
           <p className="text-ink-500">2. The assistant can search and read only those entries, through its tools.</p>
           <p className="text-ink-500">3. Every statement cites the date of the entry it came from.</p>
-          <p className="text-ink-500">4. If nothing may be shared, it says so plainly, without hinting at what is hidden.</p>
+          <p className="text-ink-500">4. Letters addressed to you are shown in full once they are released; before that, it tells you when they open.</p>
+          <p className="text-ink-500">5. If nothing may be shared, it says so plainly, without hinting at what is hidden.</p>
+          <p className="text-ink-500">6. It speaks about the diary owner and quotes their real words. It never pretends to be them.</p>
           {info.data && (
             <p className="border-t border-cream-300 pt-3 text-xs text-ink-400">
               Model: {info.data.provider === 'offline' ? 'built-in extractive model (no external AI)' : `${info.data.provider} · ${info.data.model}`}

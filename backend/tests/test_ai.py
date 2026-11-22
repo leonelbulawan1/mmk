@@ -133,14 +133,17 @@ def test_denied_and_missing_entries_are_indistinguishable(db, policy):
     assert ctx.check_access(policy["entries"]["health"].id)["access"] == ctx.check_access(99999)["access"] == "none"
 
 
-def test_letters_never_go_through_the_assistant(db, policy):
+def test_letters_reach_only_their_recipient_through_the_assistant(db, policy):
     owner = policy["owner"]
-    set_policy(db, owner, "allow carla verbatim access to entries;\nrelease letters to carla after death;")
+    set_policy(db, owner, "allow everyone verbatim access to entries about \"family\";\nrelease letters to everyone after death;")
     owner.death_triggered_at = "2026-11-16T00:00:00+00:00"
     db.commit()
-    spy = SpyProvider()
-    _ask(db, policy, "carla", "Did she write me a letter for when she is gone?", spy)
-    assert "this letter is for you" not in "".join(spy.payloads)
+    mine = _ask(db, policy, "carla", "Did she write me a letter for when she is gone?", SpyProvider())
+    assert "this letter is for you" in mine.answer and [c["date"] for c in mine.citations] == ["2022-01-01"]
+    for other in ("ben", "dina"):
+        spy = SpyProvider()
+        ans = _ask(db, policy, other, "Is there a letter for me?", spy)
+        assert "this letter is for you" not in "".join(spy.payloads) and "For Carla" not in ans.answer
 
 
 def test_no_authorised_entries_means_model_is_not_called(db, family):

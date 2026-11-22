@@ -78,13 +78,18 @@ def decisions_for(db: Session, owner: User, handle: str, today: date, assume_dea
     return engine_for(db, owner, assume_death).decide_all(handle, today)
 
 
-def letter_releases_for(protocol: Protocol, handle: str) -> list[str]:
-    """The policy's `release letters to ...` statements that reach this beneficiary
-    (directly, through `everyone`, or through a group), as readable text. Mirrors applies/2."""
+def letter_release_rules(protocol: Protocol, handle: str) -> list:
+    """The policy's `release letters to ...` rules that reach this beneficiary
+    (directly, through `everyone`, or through a group). Mirrors applies/2 in access_rules.pl."""
     from ..domain.protocol import Group, LetterRelease
     groups = {r.name for r in protocol.rules if isinstance(r, Group) and handle in r.members}
-    return [r.describe() for r in protocol.rules
+    return [r for r in protocol.rules
             if isinstance(r, LetterRelease) and (r.who in ("everyone", handle) or r.who in groups)]
+
+
+def letter_releases_for(protocol: Protocol, handle: str) -> list[str]:
+    """Readable text of the release rules that reach this beneficiary."""
+    return [r.describe() for r in letter_release_rules(protocol, handle)]
 
 
 def add_letter_release(db: Session, owner: User, handle: str):

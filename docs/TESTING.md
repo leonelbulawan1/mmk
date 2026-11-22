@@ -1,6 +1,6 @@
 # Test catalogue
 
-Run with `cd backend && python -m pytest`. There are 152 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
+Run with `cd backend && python -m pytest`. There are 163 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
 
 | Required area | File | What is covered |
 |---|---|---|
@@ -19,3 +19,4 @@ Run with `cd backend && python -m pytest`. There are 152 tests. Each test uses a
 | Email verification | `test_email_verification.py` | No use before verification; correct code signs in; 5-attempt limit; expiry; resend rate limit and code replacement; no email enumeration; unfinished sign-ups do not block the real owner; verified emails cannot be re-registered; code hidden unless the development flag is on; existing accounts migrated as verified |
 | Password reset | `test_password_recovery.py` | Code emailed and resets the password; works for beneficiaries; same answer for unknown emails; single use, 5-attempt limit, expiry, resend limit; reset signs out every device; changing the password keeps this device and signs out others; weak passwords refused; inactive or unverified accounts cannot reset; audit; old databases upgraded |
 | Security extras | `test_api_security.py` | scrypt hashing, registration and login, weak passwords, 401 on every protected route, invite flow (single-use), handle validation, death trigger (password, phrase, irreversible, seals the vault), audit coverage |
+| Handout "Try It Yourself" table (Maria, after the death trigger) | `test_handout_scenarios.py` | "Did he ever write about me?" gives the count only; family question gives summaries with dates; the letter is refused before 2040-05-01 and shown verbatim after; business question and a person with no protocol get the same neutral reply; hidden text never reaches the model; other people never receive Maria's letter; an ambiguous name shares nothing (`AmbiguousName`) |
