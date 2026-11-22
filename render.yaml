@@ -51,6 +51,12 @@ services:
       - path: /*
         name: X-Frame-Options
         value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
     envVars:
       - key: VITE_API_BASE         # the API address, e.g. https://mmk-api.onrender.com
         sync: false

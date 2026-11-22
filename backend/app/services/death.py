@@ -95,7 +95,21 @@ def withdraw_by_executor(db: Session, executor: User) -> DeathReport:
     return _close(db, rep, "withdrawn", executor, "death.report_withdrawn")
 
 
-def process_due(db: Session) -> int:
+_LAST_REQUEST_CHECK = [0.0]
+
+
+def process_due_light(db: Session, min_interval_seconds: float = 20) -> int:
+    """The check run inside ordinary requests: only due executor reports, at most every few seconds.
+    The heavier letter sweep runs in the background loop and on /api/health instead."""
+    import time
+    now = time.monotonic()
+    if min_interval_seconds and now - _LAST_REQUEST_CHECK[0] < min_interval_seconds:
+        return 0
+    _LAST_REQUEST_CHECK[0] = now
+    return process_due(db, letters=False)
+
+
+def process_due(db: Session, letters: bool = True) -> int:
     """Activate every pending report whose waiting period is over. Returns how many activated."""
     now = _now().isoformat()
     due = db.scalars(select(DeathReport).where(DeathReport.status == "pending", DeathReport.activates_at <= now)).all()
@@ -107,6 +121,8 @@ def process_due(db: Session) -> int:
         if owner and not owner.death_triggered_at:
             activate(db, owner, db.get(User, rep.reported_by), via="executor_report")
             count += 1
+    if not letters:
+        return count
     try:  # letters whose own date has now come: tell their recipient (throttled inside)
         notify.notify_released_letters(db)
     except Exception as exc:  # never block a request because of an email problem

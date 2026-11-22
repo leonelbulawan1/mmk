@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export function PageHeader({ eyebrow, title, subtitle, actions }) {
   return (
@@ -137,5 +137,57 @@ export function LegalDisclaimer({ compact = false, className = '' }) {
           : 'Letters and the legacy policy in MMK are personal messages and wishes. They are not a will and have no legal effect on property or inheritance. Philippine law has formal requirements for wills; for those, consult a lawyer. MMK does not give legal advice.'}
       </p>
     </div>
+  )
+}
+
+/**
+ * Accessible modal dialog: role="dialog", aria-modal, Escape closes, focus moves into it on open and
+ * returns to where it was on close, Tab stays inside. Fits small screens (scrolls inside).
+ */
+export function Dialog({ open, title, onClose, children, footer, wide = false }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return undefined
+    const before = document.activeElement
+    const node = ref.current
+    const focusables = () => [...node.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+      .filter((el) => !el.disabled)
+    ;(node.querySelector('[data-autofocus]') || focusables()[0] || node).focus()
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose?.() }
+      if (e.key === 'Tab') {
+        const f = focusables(); if (!f.length) return
+        if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus() }
+        else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus() }
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = overflow; before?.focus?.() }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-700/40 p-0 sm:items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabIndex={-1}
+        className={`flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-cream-50 shadow-paper sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}>
+        <h2 id="dialog-title" className="px-6 pt-5 text-2xl font-semibold">{title}</h2>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
+        {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-cream-300 px-6 py-4">{footer}</div>}
+      </div>
+    </div>
+  )
+}
+
+/** Yes/no confirmation built on Dialog. */
+export function ConfirmDialog({ open, title, children, confirmLabel = 'Confirm', cancelLabel = 'Cancel', onConfirm, onCancel, busy = false, danger = false }) {
+  return (
+    <Dialog open={open} title={title} onClose={busy ? undefined : onCancel}
+      footer={<>
+        <button type="button" className="btn-ghost" onClick={onCancel} disabled={busy}>{cancelLabel}</button>
+        <button type="button" data-autofocus className={danger ? 'btn-primary bg-rose-600 hover:bg-rose-600/90' : 'btn-primary'} onClick={onConfirm} disabled={busy}>{busy ? 'Please wait…' : confirmLabel}</button>
+      </>}>
+      <div className="text-sm text-ink-600">{children}</div>
+    </Dialog>
   )
 }

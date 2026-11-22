@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth'
 import Layout from './components/Layout'
@@ -7,18 +8,18 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import Activate from './pages/Activate'
 import VerifyEmail from './pages/VerifyEmail'
-import Dashboard from './pages/Dashboard'
-import Entries from './pages/Entries'
-import CreateEntry from './pages/CreateEntry'
-import EntryDetail from './pages/EntryDetail'
-import Beneficiaries from './pages/Beneficiaries'
-import PolicyEditor from './pages/PolicyEditor'
-import AccessPermissions from './pages/AccessPermissions'
-import Assistant from './pages/Assistant'
-import VaultIntegrity from './pages/VaultIntegrity'
-import Settings from './pages/Settings'
-import BeneficiaryHome from './pages/BeneficiaryHome'
-import Letters from './pages/Letters'
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Entries = lazy(() => import('./pages/Entries'))
+const CreateEntry = lazy(() => import('./pages/CreateEntry'))
+const EntryDetail = lazy(() => import('./pages/EntryDetail'))
+const Beneficiaries = lazy(() => import('./pages/Beneficiaries'))
+const PolicyEditor = lazy(() => import('./pages/PolicyEditor'))
+const AccessPermissions = lazy(() => import('./pages/AccessPermissions'))
+const Assistant = lazy(() => import('./pages/Assistant'))
+const VaultIntegrity = lazy(() => import('./pages/VaultIntegrity'))
+const Settings = lazy(() => import('./pages/Settings'))
+const BeneficiaryHome = lazy(() => import('./pages/BeneficiaryHome'))
+const Letters = lazy(() => import('./pages/Letters'))
 
 function Guard({ role, children }) {
   const { user, loading } = useAuth()
@@ -37,6 +38,7 @@ function PublicOnly({ children }) {
 
 export default function App() {
   return (
+    <Suspense fallback={<Spinner />}>
     <Routes>
       {/* No landing page: visitors go straight to Sign in; signed-in users to their home. */}
       <Route path="/" element={<PublicOnly><Navigate to="/login" replace /></PublicOnly>} />
@@ -67,5 +69,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }

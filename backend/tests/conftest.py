@@ -108,3 +108,13 @@ def login(client, email, password=PASSWORD) -> dict:
     r = client.post("/api/auth/login", json={"email": email, "password": password})
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['token']}"}
+
+
+@pytest.fixture(autouse=True)
+def _fresh_attempt_limits():
+    from app.services import attempts
+    from app.services import death
+
+    attempts.reset_all()
+    death._LAST_REQUEST_CHECK[0] = 0.0
+    yield

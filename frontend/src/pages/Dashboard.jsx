@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { api, fmtDate } from '../api'
+import { api, draftStore, fmtDate } from '../api'
+import { useAuth } from '../auth'
 import { Alert, Card, Empty, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
@@ -13,7 +14,10 @@ function Stat({ label, value, to }) {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const { data, error, loading } = useAsync(() => api('/api/dashboard'))
+  const draft = draftStore.get(user.id)
+  const hasDraft = !!(draft?.form?.text?.trim() || draft?.form?.title?.trim())
   if (loading) return <Spinner />
   if (error) return <Alert>{error}</Alert>
   const hour = new Date().getHours()
@@ -25,6 +29,16 @@ export default function Dashboard() {
         subtitle={data.death_triggered_at ? 'Your vault is sealed. Your legacy policy is now in effect.' : 'What would you like to remember today?'}
         actions={!data.death_triggered_at && <Link to="/write" className="btn-primary"><NavIcon name="write" size={16} />New entry</Link>} />
 
+      {hasDraft && !data.death_triggered_at && (
+        <Card className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-wider text-ink-400">Unfinished {draft.form.kind === 'letter' ? 'letter' : 'entry'} on this device</p>
+            <p className="truncate font-semibold">{draft.form.title?.trim() || draft.form.text.trim().slice(0, 80)}</p>
+            {draft.saved_at && <p className="text-xs text-ink-400">Last saved {new Date(draft.saved_at).toLocaleString()}</p>}
+          </div>
+          <Link to="/write" className="btn-primary"><NavIcon name="write" size={16} />Continue writing</Link>
+        </Card>
+      )}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Diary entries" value={data.entry_count} to="/entries" />
         <Stat label="Letters" value={data.letter_count} to="/entries?kind=letter" />
@@ -64,7 +78,7 @@ export default function Dashboard() {
             <h2 className="text-2xl font-semibold">Your vault</h2>
             <p className={`mt-2 flex items-center gap-2 font-medium ${data.integrity.ok ? 'text-sage-600' : 'text-rose-600'}`}>
               <NavIcon name={data.integrity.ok ? 'access' : 'close'} size={18} />
-              {data.integrity.ok ? 'Sealed and verified' : 'Something was changed'}
+              {data.integrity.ok ? 'Verified' : 'Verification failed'}
             </p>
             <p className="mt-1 text-sm text-ink-400">
               {data.integrity.ok ? 'Every entry is exactly as you saved it.' : 'Some records no longer match what was saved. Check the details.'}

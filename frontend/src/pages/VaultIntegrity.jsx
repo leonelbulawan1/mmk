@@ -6,7 +6,7 @@ function Report({ title, r }) {
   return (
     <Card>
       <p className="text-xs uppercase tracking-wider text-ink-400">{title}</p>
-      <p className={`mt-1 text-3xl font-semibold ${r.ok ? 'text-sage-600' : 'text-rose-600'}`}>{r.ok ? 'Intact' : 'Tampered'}</p>
+      <p className={`mt-1 text-3xl font-semibold ${r.ok ? 'text-sage-600' : 'text-rose-600'}`}>{r.ok ? 'Verified' : 'Verification failed'}</p>
       <p className="text-sm text-ink-400">{r.length} records · head <Hash value={r.head} /></p>
       {r.problems.length > 0 && (
         <ul className="mt-3 space-y-1 text-sm text-rose-600">{r.problems.map((p, i) => <li key={i}>#{p.seq} {p.ref}: {p.problem}</li>)}</ul>
@@ -42,16 +42,25 @@ export default function VaultIntegrity() {
   return (
     <>
       <PageHeader eyebrow="nothing changes unseen" title="Vault integrity"
-        subtitle="Each record's hash includes the previous record's hash. Recomputing the chain proves no entry, revision, policy version or audit event was altered or removed."
+        subtitle="Each record's hash includes the previous record's hash. Recomputing the chain shows whether any entry, revision, policy version or audit event was changed or removed in the database. It is a check run by this server, not an outside audit, and the diary is not end-to-end encrypted."
         actions={<>
           <button className="btn-secondary" onClick={() => { v.reload(); audit.reload() }}>Verify again</button>
           <button className="btn-secondary" onClick={exportVault} disabled={exporting}>{exporting ? 'Exporting…' : copied ? 'Copied to clipboard ✓' : import.meta.env.VITE_WEB_RUNTIME === '1' ? 'Copy vault export (JSON)' : 'Export vault (JSON)'}</button>
         </>} />
       <Alert onClose={() => setError('')}>{error}</Alert>
-      {v.loading ? <Spinner label="Recomputing hashes" /> : v.error ? <Alert>{v.error}</Alert> : (
+      {v.loading ? <Spinner label="Recomputing hashes" /> : v.error ? (
+        <div className="mb-6 rounded-2xl bg-cream-200 px-6 py-4 text-ink-600" role="status">
+          <p className="text-2xl font-semibold">Unable to verify right now</p>
+          <p className="mt-1 text-sm">The check could not run ({v.error}). This does not mean anything changed. Check your connection and try again.</p>
+          <button className="btn-secondary mt-3" onClick={() => { v.reload(); audit.reload() }}>Try again</button>
+        </div>
+      ) : (
         <>
           <div className={`mb-6 rounded-2xl px-6 py-4 ${v.data.ok ? 'bg-sage-100 text-sage-600' : 'bg-rose-100 text-rose-600'}`}>
-            <p className="text-2xl font-semibold">{v.data.ok ? '✓ Every record verified' : '⚠ Integrity problems found'}</p>
+            <p className="text-2xl font-semibold">{v.data.ok ? '✓ Verified: every record matches its hash' : '⚠ Verification failed'}</p>
+            <p className="text-sm">{v.data.ok
+              ? `Checked ${new Date().toLocaleString()}. No entry, revision, policy version or audit event was changed or removed since it was saved.`
+              : 'Some records no longer match their hashes, so they were changed outside MMK. Nothing is shared with beneficiaries until this is resolved. Contact the MMK administrator and keep an exported copy.'}</p>
             {v.data.sealed && <p className="text-sm">The vault is sealed; no new records can be appended.</p>}
           </div>
           <div className="grid gap-4 md:grid-cols-3">

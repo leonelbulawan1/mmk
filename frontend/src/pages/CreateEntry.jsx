@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, draftStore, fmtDate, today, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
-import { Alert, Card, Field, LegalDisclaimer, PageHeader, useAsync } from '../components/ui'
+import { Alert, Card, Dialog, Field, LegalDisclaimer, PageHeader, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 const MODES = [
@@ -56,6 +56,8 @@ function Row({ label, htmlFor, children, error }) {
   </div>
   )
 }
+const SIZES = ['text-base', 'text-lg', 'text-xl', 'text-2xl']
+const clock = (d) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 const bare = 'min-w-0 flex-1 border-0 bg-transparent p-0 text-ink-700 placeholder:text-ink-400/60 focus:outline-none focus:ring-0'
 
 export default function CreateEntry() {
@@ -74,7 +76,11 @@ export default function CreateEntry() {
   const beneficiaries = useAsync(() => api('/api/beneficiaries'))
   const [form, setForm] = useState(draft ? { ...blank, ...draft.form } : blank)
   const [restored, setRestored] = useState(!!draft)
-  const [draftSaved, setDraftSaved] = useState(false)
+  const [draftSaved, setDraftSaved] = useState(null)   // time the draft was last stored on this device
+  const [confirming, setConfirming] = useState(false)   // final check before the permanent save
+  const [focus, setFocus] = useState(false)             // distraction-free full-screen writing
+  const [size, setSize] = useState(() => { try { return Math.min(3, Math.max(0, Number(localStorage.getItem('mmk.textsize') ?? 1))) } catch { return 1 } })
+  const changeSize = (d) => setSize((n) => { const v = Math.min(3, Math.max(0, n + d)); try { localStorage.setItem('mmk.textsize', String(v)) } catch { /* private mode */ } return v })
   const [release, setRelease] = useState(null)   // does the policy release letters to the chosen recipient?
   const [addingRelease, setAddingRelease] = useState(false)
   const [error, setError] = useState('')
@@ -87,9 +93,11 @@ export default function CreateEntry() {
   // Save the draft as the person types; drop it once the page is empty.
   useEffect(() => {
     const t = setTimeout(() => {
-      if (hasContent) { draftStore.set(user.id, { form, mode }); setDraftSaved(true) }
-      else { draftStore.clear(user.id); setDraftSaved(false) }
-    }, 400)
+      if (hasContent) {
+        try { draftStore.set(user.id, { form, mode, saved_at: new Date().toISOString() }); setDraftSaved(new Date()) }
+        catch { setDraftSaved('failed') }
+      } else { draftStore.clear(user.id); setDraftSaved(null) }
+    }, 800)
     return () => clearTimeout(t)
   }, [form, mode, hasContent, user.id])
 
@@ -117,13 +125,26 @@ export default function CreateEntry() {
     catch (err) { setError(err.message) }
     setAddingRelease(false)
   }
-  const discardDraft = () => { draftStore.clear(user.id); setForm(blank); setRestored(false); setDraftSaved(false) }
+  const discardDraft = () => { draftStore.clear(user.id); setForm(blank); setRestored(false); setDraftSaved(null) }
+
+  // Keyboard: Ctrl/Cmd+S opens the final check; Esc leaves focus mode.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (canSaveRef.current) setConfirming(true) }
+      else if (e.key === 'Escape' && focus && !confirming) setFocus(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [focus, confirming])
+  const canSaveRef = useRef(false)
   const recipientName = active.find((b) => b.handle === form.recipient)?.display_name || form.recipient
 
   if (user.death_triggered_at) return <Alert kind="warn">The vault is sealed; new entries cannot be written.</Alert>
 
-  const submit = async (e) => {
-    e.preventDefault()
+  // The form's Save opens the final check; only "Save permanently" stores the entry.
+  const askToSave = (e) => { e.preventDefault(); if (canSave) setConfirming(true) }
+  const submit = async () => {
+    if (busy) return  // no double saves
     setBusy(true); setError('')
     try {
       const body = { title: form.title, text: form.text, entry_date: form.entry_date, mode, kind: form.kind }
@@ -133,7 +154,10 @@ export default function CreateEntry() {
       const res = await api('/api/entries', { method: 'POST', body })
       draftStore.clear(user.id)
       navigate(`/entries/${res.entry.id}`, { state: { justCreated: true, delivery: res.delivery } })
-    } catch (err) { setError(err.message); setBusy(false) }
+    } catch (err) {
+      setError(err.status ? err.message : 'Could not reach MMK. Check your connection; your draft is still on this device.')
+      setBusy(false)
+    }
   }
 
   const isLetter = form.kind === 'letter'
@@ -145,13 +169,18 @@ export default function CreateEntry() {
   const canSave = !busy && !!form.text.trim() && !futureDate && !noRelease && !noRecipient
   const setKind = (kind) => setForm({ ...form, kind })
   const words = form.text.trim() ? form.text.trim().split(/\s+/).length : 0
+  const chars = form.text.length
+  const minutes = Math.max(1, Math.round(words / 200))
+  canSaveRef.current = canSave
+  const saveHint = !form.text.trim() ? 'Write something first.' : noRecipient ? 'Choose who the letter is for.'
+    : futureDate ? 'The date can’t be in the future.' : noRelease ? 'Choose when the letter opens.' : ''
 
 
   return (
     <>
       <PageHeader title={isLetter ? 'New letter' : 'New entry'} />
-      <form onSubmit={submit} className="mx-auto max-w-4xl">
-        <div className="card overflow-hidden p-0">
+      <form onSubmit={askToSave} className={focus ? 'fixed inset-0 z-40 overflow-y-auto bg-cream-50 px-2 py-4 sm:px-6 sm:py-8' : 'mx-auto max-w-4xl'}>
+        <div className={`card overflow-hidden p-0 ${focus ? 'mx-auto max-w-3xl' : ''}`}>
           {/* Window bar: what you are writing, and the draft status */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cream-300 bg-cream-100/70 px-4 py-2.5 sm:px-5">
             <div role="radiogroup" aria-label="What are you writing?" className="inline-flex rounded-xl bg-cream-200 p-1">
@@ -162,10 +191,17 @@ export default function CreateEntry() {
                 </button>
               ))}
             </div>
-            <span className="text-xs text-ink-400" aria-live="polite">
-              {restored ? <>Draft restored · <button type="button" onClick={discardDraft} className="font-medium text-bark-500 hover:underline">Discard</button></>
-                : draftSaved ? 'Draft saved' : ''}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-ink-400" aria-live="polite">
+                {draftSaved === 'failed' ? <span className="text-rose-600">Draft not saved: this browser blocked storage</span>
+                  : draftSaved ? <>Draft saved on this device · {clock(draftSaved)}</> : restored ? 'Draft restored' : 'Not saved yet'}
+                {restored && <> · <button type="button" onClick={discardDraft} className="font-medium text-bark-500 hover:underline">Discard draft</button></>}
+              </span>
+              <button type="button" onClick={() => setFocus(!focus)} aria-pressed={focus} title={focus ? 'Leave focus mode (Esc)' : 'Focus mode'}
+                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-ink-500 hover:bg-cream-200">
+                <NavIcon name={focus ? 'close' : 'focus'} size={15} />{focus ? 'Exit focus' : 'Focus'}
+              </button>
+            </div>
           </div>
 
           {error && <div className="px-5 pt-4 sm:px-6"><Alert>{error}</Alert></div>}
@@ -230,7 +266,11 @@ export default function CreateEntry() {
           )}
 
           {/* Body */}
-          <textarea required className="paper-lines block min-h-[380px] w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 placeholder:text-ink-400/50 focus:outline-none sm:px-6"
+          <div className="flex items-center justify-end gap-1 px-4 pt-2 text-ink-400" role="group" aria-label="Text size">
+            <button type="button" onClick={() => changeSize(-1)} disabled={size === 0} className="h-8 w-8 rounded-lg text-xs hover:bg-cream-200 disabled:opacity-40" aria-label="Smaller text">A−</button>
+            <button type="button" onClick={() => changeSize(1)} disabled={size === 3} className="h-8 w-8 rounded-lg text-sm hover:bg-cream-200 disabled:opacity-40" aria-label="Larger text">A+</button>
+          </div>
+          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 ${SIZES[size]} text-ink-600 ${focus ? 'min-h-[65vh]' : 'min-h-[380px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
             placeholder={isLetter ? 'Dear…' : 'Start writing…'} value={form.text} onChange={set('text')} aria-label={isLetter ? 'Letter text' : 'Entry text'} />
 
           {isLetter && <div className="px-5 pb-4 sm:px-6"><LegalDisclaimer compact /></div>}
@@ -254,17 +294,45 @@ export default function CreateEntry() {
                 </button>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-xs text-ink-400">{words} words</span>
-                <button className="btn-primary px-5 py-2.5" disabled={!canSave}>
+                <span className="text-xs text-ink-400" title={`${chars} characters`}>
+                  {words} word{words === 1 ? '' : 's'} · {chars} characters{words ? ` · ${minutes} min read` : ''}
+                </span>
+                <button className="btn-primary px-5 py-2.5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title="Save (Ctrl+S)">
                   <NavIcon name="write" size={16} />{busy ? 'Saving…' : 'Save'}
                 </button>
               </div>
             </div>
-            <p className="mt-2 text-xs text-ink-400">{current.short} Saved entries can’t be edited or deleted, only revised.</p>
+            {saveHint && form.text.trim() && <p id="save-hint" className="mt-2 text-xs text-rose-600">{saveHint}</p>}
+            <p className="mt-2 text-xs text-ink-400">{current.short} Drafts stay on this device until you save. Saved entries can’t be edited or deleted, only revised. Light Fix and Review run on the MMK server; your writing is not sent to an outside AI service.</p>
             {showPreview && <div className="mt-3"><ModePreview mode={mode} text={form.text} /></div>}
           </div>
         </div>
       </form>
+
+      <Dialog open={confirming} wide title={isLetter ? 'Save this letter?' : 'Save this entry?'} onClose={busy ? undefined : () => setConfirming(false)}
+        footer={<>
+          <button type="button" className="btn-ghost" onClick={() => setConfirming(false)} disabled={busy}>Keep editing</button>
+          <button type="button" data-autofocus className="btn-primary" onClick={submit} disabled={busy}>
+            {busy ? 'Saving…' : error ? 'Try again' : 'Save permanently'}
+          </button>
+        </>}>
+        {error && <div className="mb-3"><Alert>{error}</Alert></div>}
+        <dl className="mb-4 grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1 text-sm">
+          {isLetter && <><dt className="text-ink-400">To</dt><dd>{recipientName}</dd></>}
+          <dt className="text-ink-400">Title</dt><dd>{form.title.trim() || <span className="text-ink-400">No title</span>}</dd>
+          <dt className="text-ink-400">Date</dt><dd>{fmtDate(form.entry_date)}</dd>
+          {isLetter && <><dt className="text-ink-400">Opens</dt><dd>{opensOnDate ? (form.release_on === today() ? 'Today, as soon as you save' : fmtDate(form.release_on)) : 'After your death'}</dd></>}
+          <dt className="text-ink-400">Mode</dt><dd>{current.label}</dd>
+          <dt className="text-ink-400">Length</dt><dd>{words} words</dd>
+        </dl>
+        <div className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap rounded-xl border border-cream-300 bg-white/70 p-4 text-ink-600">{form.text}</div>
+        <ul className="mt-4 list-disc space-y-1 pl-5 text-xs text-ink-500">
+          <li>The original is kept exactly as written and cannot be edited or deleted later. You can add revisions; the original stays.</li>
+          {mode === 'light_fix' && <li>Light Fix stores its small corrections as a separate revision. Your original stays as written.</li>}
+          {mode === 'review' && <li>Review suggestions appear on the entry page. You choose which to keep; nothing changes without you.</li>}
+          {isLetter && opensOnDate && <li>{recipientName} gets an email and can read the letter on their MMK home page {form.release_on === today() ? 'right away' : `on ${fmtDate(form.release_on)}`}.</li>}
+        </ul>
+      </Dialog>
     </>
   )
 }

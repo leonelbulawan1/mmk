@@ -5,6 +5,8 @@ import { useAuth } from '../auth'
 import { Alert, Empty, LetterBadge, PageHeader, Spinner, Tag } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
+const PAGE = 30  // entries shown at a time; "Show more" adds the next batch
+
 export default function Entries() {
   const { user } = useAuth()
   const [params, setParams] = useSearchParams()
@@ -13,6 +15,9 @@ export default function Entries() {
   const topic = params.get('topic') || ''
   const kind = params.get('kind') || ''
   const reviewOnly = params.get('review') === '1'
+  const oldest = params.get('sort') === 'oldest'
+  const [limit, setLimit] = useState(PAGE)
+  useEffect(() => setLimit(PAGE), [params])
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -33,9 +38,13 @@ export default function Entries() {
   }, [q]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const needReview = state.data.filter((e) => e.pending_review).length
-  const shown = reviewOnly ? state.data.filter((e) => e.pending_review) : state.data
+  const filtered = reviewOnly ? state.data.filter((e) => e.pending_review) : state.data
+  const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
+  const shown = sorted.slice(0, limit)
   // group entries by year for a journal feel
   const byYear = shown.reduce((acc, e) => { (acc[e.entry_date.slice(0, 4)] ||= []).push(e); return acc }, {})
+  const years = Object.keys(byYear).sort()
+  if (!oldest) years.reverse()
 
   return (
     <>
@@ -57,11 +66,14 @@ export default function Entries() {
         <select className="input sm:w-56" value={kind} onChange={(e) => update('kind', e.target.value)} aria-label="Show">
           <option value="">Entries and letters</option><option value="text">Entries only</option><option value="letter">Letters only</option>
         </select>
+        <select className="input sm:w-44" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
+          <option value="">Newest first</option><option value="oldest">Oldest first</option>
+        </select>
       </form>
       <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-sm text-ink-400" aria-live="polite">
         {!state.loading && (
           <span>
-            {shown.length} {shown.length === 1 ? (kind === 'letter' ? 'letter' : 'entry') : (kind === 'letter' ? 'letters' : 'entries')}
+            {filtered.length} {filtered.length === 1 ? (kind === 'letter' ? 'letter' : 'entry') : (kind === 'letter' ? 'letters' : 'entries')}
             {params.get('q') && <> matching <b className="font-medium text-ink-600">“{params.get('q')}”</b></>}
           </span>
         )}
@@ -83,12 +95,12 @@ export default function Entries() {
           </button>
         </div>
       )}
-      {state.loading ? <Spinner /> : shown.length === 0 ? (
+      {state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner /> : shown.length === 0 ? (
         <Empty title="Nothing here yet" action={!user.death_triggered_at && <Link to="/write" className="btn-primary">Write an entry</Link>}>
           {params.get('q') || topic || kind || reviewOnly ? 'No entries match these filters.' : 'Your first page is waiting.'}
         </Empty>
       ) : (
-        Object.keys(byYear).sort().reverse().map((year) => (
+        years.map((year) => (
           <section key={year} className="mb-10">
             <h2 className="mb-3 text-xl font-semibold text-bark-500">{year}</h2>
             <ol className="space-y-3">
@@ -123,6 +135,13 @@ export default function Entries() {
             </ol>
           </section>
         ))
+      )}
+      {!state.loading && filtered.length > shown.length && (
+        <div className="text-center">
+          <button type="button" className="btn-secondary" onClick={() => setLimit((n) => n + PAGE)}>
+            Show more ({filtered.length - shown.length} more)
+          </button>
+        </div>
       )}
     </>
   )

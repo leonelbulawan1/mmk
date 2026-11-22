@@ -38,7 +38,7 @@ def current_user(creds: HTTPAuthorizationCredentials | None = Depends(_bearer), 
         raise _unauthorized("Invalid or expired token")
     from .services import death
 
-    death.process_due(db)  # activate any executor report whose waiting period has ended
+    death.process_due_light(db)  # activate any executor report whose waiting period has ended
     user = db.get(User, int(payload.get("sub", 0)))
     if (user is None or not user.active or user.password_hash is None or user.role != payload.get("role")
             or (user.role == "owner" and user.email_verified_at is None)

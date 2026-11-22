@@ -5,13 +5,14 @@ import hmac
 import re
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import User, now_iso
+from ..services import attempts
 from ..services.email_check import InvalidEmail, check_address
 from ..security import create_token, current_user, hash_password, verify_password
 from ..services import audit, verification
@@ -167,12 +168,16 @@ def resend_verification(body: ResendIn, db: Session = Depends(get_db)):
 
 
 @router.post("/activate")
-def activate(body: ActivateIn, db: Session = Depends(get_db)):
+def activate(body: ActivateIn, request: Request, db: Session = Depends(get_db)):
     _strong(body.password)
+    ip = attempts.client_ip(request)
+    attempts.check("activate", body.email, ip)
     user = db.scalars(select(User).where(User.email == body.email.lower(), User.role == "beneficiary")).first()
     if (user is None or not user.invite_code_hash or not user.active
             or not hmac.compare_digest(user.invite_code_hash, hash_invite(body.invite_code))):
+        attempts.failed("activate", body.email, ip)
         raise HTTPException(400, "Invalid email or invite code")
+    attempts.succeeded("activate", body.email)
     user.password_hash = hash_password(body.password)
     user.invite_code_hash = None
     user.email_verified_at = user.email_verified_at or now_iso()  # the invite proved the address
@@ -182,18 +187,22 @@ def activate(body: ActivateIn, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(body: LoginIn, db: Session = Depends(get_db)):
+def login(body: LoginIn, request: Request, db: Session = Depends(get_db)):
+    ip = attempts.client_ip(request)
+    attempts.check("login", body.email, ip)
     user = db.scalars(select(User).where(User.email == body.email.lower())).first()
     if user is None or not user.password_hash or not user.active or not verify_password(body.password, user.password_hash):
+        attempts.failed("login", body.email, ip)
         if user is not None:
             audit.record(db, user.owner_id or user.id, None, "auth.login_failed", {"email": user.email})
         raise HTTPException(401, "Incorrect email or password")
+    attempts.succeeded("login", body.email)
     if user.role == "owner" and user.email_verified_at is None:
         # Only said after the correct password, so it reveals nothing to someone guessing.
         raise HTTPException(403, {"message": "Please verify your email address first.", "verify": True})
     from ..services import death
 
-    death.process_due(db)  # a waiting report may have just come due
+    death.process_due(db, letters=False)  # a waiting report may have just come due
     db.refresh(user)
     audit.record(db, user.owner_id or user.id, user, "auth.login", {"remember": body.remember})
     return {"token": create_token(user, body.remember), "user": user_out(user, db), "remember": body.remember}
