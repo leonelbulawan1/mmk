@@ -37,7 +37,7 @@ export default function Layout() {
   const [open, setOpen] = useState(false)
   const opened = user?.owner?.death_triggered
   const nav = user?.role === 'owner' ? OWNER_NAV
-    : BENEFICIARY_NAV.filter(([to]) => opened || !['/assistant', '/letters'].includes(to))
+    : BENEFICIARY_NAV.filter(([to]) => opened || to !== '/assistant')
   const sealed = user?.role === 'owner' ? user?.death_triggered_at : user?.owner?.death_triggered
 
   const links = (

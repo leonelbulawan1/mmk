@@ -82,6 +82,8 @@ def build_facts(entries: Iterable[Entry], protocol: Protocol, beneficiaries: Ite
                 facts.append(f"letter_cond({int(e.id)}, date({pl_date(e.release_on)})).")
             if e.release_on_death:
                 facts.append(f"letter_cond({int(e.id)}, death).")
+            if e.deliver_while_alive:
+                facts.append(f"deliver_while_alive({int(e.id)}).")
     facts.extend(protocol.to_prolog_facts())
     if death_triggered:
         facts.append("death_triggered.")

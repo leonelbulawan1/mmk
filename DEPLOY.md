@@ -84,10 +84,10 @@ To see the executor flow without waiting 14 days, add `DEATH_REPORT_WAIT_MINUTES
 
 ## 6. Optional: process executor reports while nobody visits
 
-Reports whose waiting period is over are processed whenever someone uses the app. To process them even when nobody visits, create a free job at https://cron-job.org:
+Reports whose waiting period is over, and letters whose opening date has arrived, are processed whenever someone uses the app. To process them even when nobody visits (so a letter's email goes out on its day), create a free job at https://cron-job.org:
 
 - URL: `https://mmk-api.onrender.com/api/health`
-- Schedule: every 3 hours
+- Schedule: every 3 hours (set the job's time zone to Asia/Manila)
 
 Do not ping more often just to keep the API awake. Each ping also wakes the database, and frequent pings would use up Neon's free compute hours.
 

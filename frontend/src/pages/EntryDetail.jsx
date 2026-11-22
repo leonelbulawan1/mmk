@@ -9,6 +9,17 @@ import NavIcon from '../components/NavIcon'
 
 const MODE_LABEL = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Review' }
 
+function savedText(d) {
+  if (!d) return 'Saved.'
+  if (d.status === 'delivered') {
+    if (d.email === 'sent') return `Saved and delivered. An email was sent to ${d.to}, and the letter is on their MMK home page.`
+    if (d.email === 'failed') return `Saved and delivered to their MMK home page, but the email could not be sent. ${d.email_problem || ''}`
+    return 'Saved and delivered to their MMK home page.'
+  }
+  if (d.after_death) return 'Saved. This letter opens after your death.'
+  return `Saved. It will be delivered on ${fmtDate(d.opens_on)}.`
+}
+
 export default function EntryDetail() {
   const { id } = useParams()
   const { user } = useAuth()
@@ -17,7 +28,7 @@ export default function EntryDetail() {
   const [view, setView] = useState('current')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
-  const [msg, setMsg] = useState({ kind: '', text: location.state?.justCreated ? 'Saved.' : '' })
+  const [msg, setMsg] = useState({ kind: location.state?.delivery?.email === 'failed' ? 'warn' : '', text: location.state?.justCreated ? savedText(location.state.delivery) : '' })
   const [busy, setBusy] = useState(false)
   const sealed = !!user.death_triggered_at
 
@@ -97,9 +108,16 @@ export default function EntryDetail() {
             <h2 className="text-xl font-semibold">About this page</h2>
             <p><span className="text-ink-400">Writing mode:</span> {MODE_LABEL[e.writing_mode]}</p>
             <p><span className="text-ink-400">Written:</span> {fmtDate(e.created_at)}</p>
-            {e.kind === 'letter' && (
-              <p><span className="text-ink-400">Letter to</span> <b>{e.recipient_name || e.recipient}</b>, opens {[e.release_on && `on ${fmtDate(e.release_on)}`, e.release_on_death && 'after death'].filter(Boolean).join(' or ')}</p>
-            )}
+            {e.kind === 'letter' && (<>
+              <p><span className="text-ink-400">Letter to</span> <b>{e.recipient_name || e.recipient}</b>,{' '}
+                {e.release_on_death ? <>opens after your death{e.release_on ? `, not before ${fmtDate(e.release_on)}` : ''}</>
+                  : e.deliver_while_alive ? <>opens on {fmtDate(e.release_on)}</>
+                  : <>opens on {fmtDate(e.release_on)}, after your death</>}</p>
+              {e.delivery && <p><span className="text-ink-400">Delivery:</span>{' '}
+                {e.delivery.status === 'delivered'
+                  ? <>delivered to their home page{e.delivery.email === 'sent' ? ', email sent' : e.delivery.email === 'failed' ? ', but the email failed' : ''}</>
+                  : e.delivery.after_death ? 'waits for your death' : `will be delivered on ${fmtDate(e.delivery.opens_on)}`}</p>}
+            </>)}
             <div><p className="text-ink-400">Themes</p><div className="mt-1 flex flex-wrap gap-1.5">{e.topics.length ? e.topics.map((t) => <Tag key={t} tone="bark">{t}</Tag>) : '—'}</div></div>
             <div><p className="text-ink-400">People</p><div className="mt-1 flex flex-wrap gap-1.5">{e.names.length ? e.names.map((n) => <Tag key={n}>{n}</Tag>) : '—'}</div></div>
             <div><p className="text-ink-400">Summary (what “summary” access shows)</p><p className="mt-1 italic">{e.summary}</p></div>

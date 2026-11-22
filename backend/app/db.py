@@ -91,6 +91,7 @@ LATER_COLUMNS = (
     ("users", "token_version", "INTEGER DEFAULT 0", None),
     ("email_notices", "entry_id", "INTEGER", None),
     ("email_notices", "provider_id", "VARCHAR(200)", None),
+    ("entries", "deliver_while_alive", "BOOLEAN DEFAULT FALSE", None),
 )
 
 

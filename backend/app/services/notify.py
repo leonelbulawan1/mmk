@@ -364,42 +364,55 @@ _LAST_LETTER_SWEEP = [0.0]
 
 
 def notify_released_letters(db: Session, min_interval_seconds: int = 600) -> int:
-    """Email each recipient once when one of their letters opens (its date arrives after the death trigger).
-    Runs at most every few minutes; decisions come from Prolog. Returns how many emails were queued."""
+    """Email each recipient once when one of their letters opens: on its own date (dated letters, even while
+    the owner is alive) or after the death trigger. Runs at most every few minutes; decisions come from Prolog.
+    Returns how many emails were queued."""
     import time
     now = time.monotonic()
     if min_interval_seconds and now - _LAST_LETTER_SWEEP[0] < min_interval_seconds:
         return 0
     _LAST_LETTER_SWEEP[0] = now
-    from ..routers.auth import hash_invite, new_code
-
     sent = 0
-    owners = db.scalars(select(User).where(User.role == "owner", User.death_triggered_at.is_not(None))).all()
-    for owner in owners:
-        vault = vault_service.load_vault(db, owner)
-        if not any(e.kind == "letter" for e in vault.entries):
-            continue
-        engine = policy_service.engine_for(db, owner)
-        told = _letters_already_told(db, owner)
-        for ben in vault_service.beneficiary_rows(db, owner):
-            for e in _released_letters(db, owner, engine, ben, vault):
-                if (ben.id, int(e.id)) in told:
-                    continue
-                invite = None
-                if ben.password_hash is None:
-                    invite = new_code()
-                    ben.invite_code_hash = hash_invite(invite)
-                subject, body = _compose_letter_released(owner, ben, e.title or "Untitled letter", invite)
-                notice = EmailNotice(owner_id=owner.id, beneficiary_id=ben.id, to_email=ben.email, subject=subject,
-                                     body=body, kind="letter_released", status="queued", error="", attempts=0,
-                                     entry_id=int(e.id))
-                db.add(notice)
-                _send(notice)
-                db.flush()
-                audit.record(db, owner.id, None, f"notify.letter.{notice.status}", {"to": ben.handle,
-                             "entry": int(e.id)}, commit=False)
-                sent += 1
-        db.commit()
+    for owner in db.scalars(select(User).where(User.role == "owner")).all():
+        try:
+            sent += notify_owner_letters(db, owner)
+        except Exception as exc:  # one owner's problem (e.g. a tampered vault) must not stop the others
+            db.rollback()
+            print(f"[letters] skipped owner {owner.id}: {exc}", file=sys.stderr, flush=True)
+    return sent
+
+
+def notify_owner_letters(db: Session, owner: User) -> int:
+    """Email each of this owner's recipients once for every letter of theirs that is open today."""
+    from ..routers.auth import hash_invite, new_code
+    from .integrity import ensure_intact
+
+    vault = vault_service.load_vault(db, owner)
+    if not any(e.kind == "letter" for e in vault.entries):
+        return 0
+    ensure_intact(db, owner, vault)  # never release from a tampered vault
+    engine = policy_service.engine_for(db, owner)
+    told = _letters_already_told(db, owner)
+    sent = 0
+    for ben in vault_service.beneficiary_rows(db, owner):
+        for e in _released_letters(db, owner, engine, ben, vault):
+            if (ben.id, int(e.id)) in told:
+                continue
+            invite = None
+            if ben.password_hash is None:
+                invite = new_code()
+                ben.invite_code_hash = hash_invite(invite)
+            subject, body = _compose_letter_released(owner, ben, e.title or "Untitled letter", invite)
+            notice = EmailNotice(owner_id=owner.id, beneficiary_id=ben.id, to_email=ben.email, subject=subject,
+                                 body=body, kind="letter_released", status="queued", error="", attempts=0,
+                                 entry_id=int(e.id))
+            db.add(notice)
+            _send(notice)
+            db.flush()
+            audit.record(db, owner.id, None, f"notify.letter.{notice.status}", {"to": ben.handle,
+                         "entry": int(e.id)}, commit=False)
+            sent += 1
+    db.commit()
     return sent
 
 

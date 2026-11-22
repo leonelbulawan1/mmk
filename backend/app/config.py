@@ -45,7 +45,7 @@ class Settings:
     llm_api_key: str = os.getenv("LLM_API_KEY", "")
     llm_base_url: str = os.getenv("LLM_BASE_URL", "")
     llm_max_tool_rounds: int = int(os.getenv("LLM_MAX_TOOL_ROUNDS", "6"))
-    timezone: str = os.getenv("APP_TIMEZONE", "UTC")
+    timezone: str = os.getenv("APP_TIMEZONE", "Asia/Manila")  # dates of entries and letters follow this zone
     # Email notices to beneficiaries after the death trigger (plain SMTP; leave SMTP_HOST empty to disable).
     app_url: str = os.getenv("APP_URL", "http://localhost:5173")
     # Waiting period between an executor's report of the owner's passing and the death trigger.

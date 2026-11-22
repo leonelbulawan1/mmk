@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
-import { api } from '../api'
+import { api, fmtDate } from '../api'
 import { ExecutorPanel } from '../components/Executor'
 import { Alert, Card, PageHeader, Spinner, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 export default function BeneficiaryHome() {
   const o = useAsync(() => api('/api/beneficiary/overview'))
+  const letters = useAsync(() => api('/api/letters'))
   if (o.loading) return <Spinner />
   if (o.error) return <Alert>{o.error}</Alert>
   const d = o.data
@@ -17,10 +18,23 @@ export default function BeneficiaryHome() {
       <>
         <PageHeader eyebrow="welcome" title={`${d.owner}'s diary`}
           subtitle={`${d.owner} named you as someone who may remember them through their diary.`} />
+        {letters.data?.length > 0 && (
+          <div className="mb-6 space-y-6">
+            <h2 className="text-2xl font-semibold">Letters from {first}</h2>
+            {letters.data.map((l) => (
+              <article key={l.entry_id} className="card p-6 sm:p-10 fade-in">
+                <p className="text-sm font-medium text-bark-500">{fmtDate(l.date)}</p>
+                <h3 className="mt-1 text-2xl font-semibold">{l.title || 'A letter'}</h3>
+                <p className="paper-lines mt-4 whitespace-pre-wrap text-lg text-ink-600">{l.text}</p>
+              </article>
+            ))}
+          </div>
+        )}
         <Card className="text-center">
           <p className="mx-auto max-w-xl text-ink-500">
-            Nothing is shared while {first} is alive. When the time comes, the entries and letters {first} chose for you
-            will open here, and you will receive an email.
+            {letters.data?.length
+              ? <>{first}'s diary entries stay private while {first} is alive. When {first} sends you another letter, you will get an email and it will appear here.</>
+              : <>Nothing has been sent to you yet. When {first} sends you a letter, you will get an email and it will appear here. {first}'s diary entries stay private while {first} is alive.</>}
           </p>
         </Card>
         <ExecutorPanel />

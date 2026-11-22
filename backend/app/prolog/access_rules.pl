@@ -26,7 +26,7 @@
       6. Frozen policy              - can_modify_policy fails after death / freeze.
 */
 
-:- dynamic beneficiary/1, entry/3, entry_topic/2, entry_name/2, letter_to/2, letter_cond/2,
+:- dynamic beneficiary/1, entry/3, entry_topic/2, entry_name/2, letter_to/2, letter_cond/2, deliver_while_alive/1,
            group_member/2, rule_grant/5, rule_deny/3, rule_letters/3,
            death_triggered/0, policy_frozen/0.
 
@@ -66,6 +66,7 @@ best_grant(B, E, Now, Level, Id) :-
 %  decision(+Beneficiary, +Entry, +Now, -Level, -Reason)
 decision(B, _, _, none, not_beneficiary) :- \+ beneficiary(B), !.
 decision(_, E, _, none, no_such_entry)   :- \+ entry(E, _, _), !.
+decision(B, E, Now, L, R) :- dated_letter(E), !, dated_letter_decision(B, E, Now, L, R).  % see below
 decision(_, _, _, none, owner_alive)     :- \+ death_triggered, !.   % the diary opens only after death
 decision(B, E, Now, L, R) :- entry(E, _, letter), !, letter_decision(B, E, Now, L, R).
 decision(B, E, _, none, denied_by(Id)) :-
@@ -86,6 +87,16 @@ letter_decision(B, _, Now, verbatim, released_by(Id)) :-
     rule_letters(Id, Who, C), applies(B, Who), cond_ok(C, Now), !.
 letter_decision(B, _, _, none, pending(Id)) :- rule_letters(Id, Who, _), applies(B, Who), !.
 letter_decision(_, _, _, none, default_deny).
+
+% ---- dated letters ----------------------------------------------------------------------
+% A letter the owner marked "deliver on this date, even while I'm alive" is the owner's own explicit release:
+% it opens for its recipient on that date, whether or not the owner is alive. Nothing else opens early.
+dated_letter(E) :- deliver_while_alive(E), entry(E, _, letter), letter_cond(E, date(_)), \+ letter_cond(E, death).
+dated_letter_decision(B, E, _, none, not_recipient) :- \+ letter_to(E, B), !.
+dated_letter_decision(B, E, _, none, denied_by(Id)) :-
+    rule_deny(Id, Who, Fs), applies(B, Who), matches(E, Fs), !.
+dated_letter_decision(_, E, Now, none, letter_sealed) :- letter_cond(E, C), \+ cond_ok(C, Now), !.
+dated_letter_decision(_, _, _, verbatim, letter_date_reached).
 
 % ---- policy mutability -------------------------------------------------------------------
 can_modify_policy :- \+ policy_frozen, \+ death_triggered.

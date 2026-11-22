@@ -161,7 +161,7 @@ Priority: **M** = Must, **S** = Should, **C** = Could. Every *Must* is covered b
 | FR-R2 | **Deny beats allow:** an explicit deny overrides every allow for the same entry | M |
 | FR-R3 | Levels: *existence* (date only), *summary* (summary and topics), *verbatim* (full text); the highest permitted level applies | M |
 | FR-R4 | Grants and letter releases can start **on a date** or **after death** | M |
-| FR-R5 | **Nothing is shared while the owner is alive**, whatever the policy says | M |
+| FR-R5 | **Nothing is shared while the owner is alive**, whatever the policy says. The one exception is a letter the owner explicitly sends on a date (FR-L4) | M |
 | FR-R6 | A letter reaches **only its recipient**, only when its own release and a `release letters` rule allow it | M |
 | FR-R7 | After the death trigger the policy is **frozen** (checked by Prolog and by the domain model) | M |
 | FR-R8 | Every decision returns a reason (rule and line, deny, default deny, pending date) shown to the owner | M |
@@ -214,7 +214,8 @@ Priority: **M** = Must, **S** = Should, **C** = Could. Every *Must* is covered b
 |---|---|---|
 | FR-L1 | A beneficiary sees a Letters page with the letters released to them | M |
 | FR-L2 | Every letter screen and the notice email carry the not-a-legal-will disclaimer | M |
-| FR-L3 | When a letter opens after the death trigger (its date arrives), its recipient is emailed once: the title and a sign-in link, never the letter's text | M |
+| FR-L3 | When a letter opens (its date arrives, or after the death trigger), its recipient is emailed once: the title and a sign-in link, never the letter's text | M |
+| FR-L4 | In the composer the owner chooses when a letter opens: **On a date** or **After my death**. A letter set to open on a date is delivered on that date even while the owner is alive: its recipient is emailed and the letter appears on their home page. A date of today delivers it as soon as it is saved. The opening date cannot be in the past. Only that letter opens; diary entries stay private | M |
 
 ## 9. Non-functional requirements
 

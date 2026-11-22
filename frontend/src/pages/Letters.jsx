@@ -12,7 +12,7 @@ export default function Letters() {
       {letters.loading ? <Spinner /> : letters.error ? <Alert>{letters.error}</Alert> : !letters.data.length ? (
         <Empty title="No letters yet">{user.owner?.death_triggered
           ? 'Some letters open on a particular day; they will appear here when they do.'
-          : `Letters open only after ${user.owner?.display_name || 'the owner'}'s passing.`}</Empty>
+          : `When ${user.owner?.display_name || 'the owner'} sends you a letter, it will appear here and you will get an email.`}</Empty>
       ) : (
         <div className="space-y-8">
           {letters.data.map((l) => (

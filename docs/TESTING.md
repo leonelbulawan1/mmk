@@ -36,3 +36,13 @@ Run with `cd backend && python -m pytest`. There are 195 tests. Each test uses a
 | DNS unavailable | address accepted (fails open) |
 | address already on MMK (any letter case) | 409 "This email is already registered on MMK." |
 | Brevo reports `hardBounces` | invitation shows `bounced`; owner corrects email → new code, new email, `delivered` |
+
+## Letters sent on a date (`tests/test_dated_letters.py`)
+
+| Case | Expected |
+|---|---|
+| Letter "On" today, owner alive | delivered on save: email sent once, letter on the recipient's home page; diary entries still hidden; other beneficiaries see nothing |
+| Letter "On" a future date | scheduled; nothing visible; on that date the sweep emails the recipient and the letter opens |
+| Letter "After my death" | unchanged: waits for the death trigger and the policy |
+| Opening date in the past / both date and death / future entry date | 422 with a plain message |
+| Older date-only letters (no "deliver on date" flag) | handout rule unchanged (`owner_alive`) |

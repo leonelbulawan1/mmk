@@ -4,7 +4,7 @@
 
 A policy is a list of statements, each ending with `;`. Comments start with `#`.
 **Anything not allowed is denied, and `deny` always overrides `allow`.**
-**Nothing is shared while the owner is alive:** the whole policy takes effect only after the death trigger. `after death` is therefore optional (it is implied); `after DATE` means "after the owner's passing, and not before DATE".
+**Nothing is shared while the owner is alive:** the whole policy takes effect only after the death trigger. `after death` is therefore optional (it is implied); `after DATE` means "after the owner's passing, and not before DATE". (Letters the owner sends **On a date** from the composer are the one exception: they open on their date even while the owner is alive, without any policy rule.)
 
 ## Grammar (EBNF)
 The full grammar is in `backend/app/policy_lang/grammar.ebnf`:

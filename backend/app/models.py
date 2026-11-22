@@ -70,6 +70,7 @@ class EntryRow(Base):
     recipient_handle: Mapped[str | None] = mapped_column(String(40), nullable=True)
     release_on: Mapped[str | None] = mapped_column(String(10), nullable=True)
     release_on_death: Mapped[bool] = mapped_column(Boolean, default=False)
+    deliver_while_alive: Mapped[bool] = mapped_column(Boolean, default=False)
     prev_hash: Mapped[str] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64))
 

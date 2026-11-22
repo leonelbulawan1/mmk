@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { api, draftStore, today, tokenStore } from '../api'
+import { api, draftStore, fmtDate, today, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
 import { Alert, Card, Field, LegalDisclaimer, PageHeader, useAsync } from '../components/ui'
@@ -63,7 +63,7 @@ export default function CreateEntry() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const initialMode = MODES.some((m) => m.key === params.get('mode')) ? params.get('mode') : user.default_writing_mode || 'verbatim'
-  const blank = { title: '', text: '', entry_date: today(), kind: 'text', recipient: '', release_on: '', release_on_death: true }
+  const blank = { title: '', text: '', entry_date: today(), kind: 'text', recipient: '', release_on: '', release_on_death: false, opens: 'date' }
   // A draft left from earlier (navigated away, refreshed, browser closed while "Keep me signed in").
   const [draft] = useState(() => {
     const d = draftStore.get(user.id)
@@ -104,12 +104,12 @@ export default function CreateEntry() {
   // A letter is only delivered if the policy releases letters to its recipient.
   useEffect(() => {
     setRelease(null)
-    if (form.kind !== 'letter' || !form.recipient) return
+    if (form.kind !== 'letter' || !form.recipient || form.opens !== 'death') return
     let live = true
     api(`/api/policy/letter-release/${encodeURIComponent(form.recipient)}`)
       .then((r) => live && setRelease(r)).catch(() => {})
     return () => { live = false }
-  }, [form.kind, form.recipient])
+  }, [form.kind, form.recipient, form.opens])
 
   const addRelease = async () => {
     setAddingRelease(true); setError('')
@@ -127,17 +127,20 @@ export default function CreateEntry() {
     setBusy(true); setError('')
     try {
       const body = { title: form.title, text: form.text, entry_date: form.entry_date, mode, kind: form.kind }
-      if (form.kind === 'letter') Object.assign(body, {
-        recipient: form.recipient, release_on: form.release_on || null, release_on_death: form.release_on_death })
+      if (form.kind === 'letter') Object.assign(body, form.opens === 'death'
+        ? { recipient: form.recipient, release_on: null, release_on_death: true, deliver_while_alive: false }
+        : { recipient: form.recipient, release_on: form.release_on || null, release_on_death: false, deliver_while_alive: true })
       const res = await api('/api/entries', { method: 'POST', body })
       draftStore.clear(user.id)
-      navigate(`/entries/${res.entry.id}`, { state: { justCreated: true } })
+      navigate(`/entries/${res.entry.id}`, { state: { justCreated: true, delivery: res.delivery } })
     } catch (err) { setError(err.message); setBusy(false) }
   }
 
   const isLetter = form.kind === 'letter'
   const futureDate = form.entry_date > today()
-  const noRelease = isLetter && !form.release_on && !form.release_on_death
+  const opensOnDate = (form.opens || 'date') === 'date'
+  const pastOpen = isLetter && opensOnDate && form.release_on && form.release_on < today()
+  const noRelease = isLetter && opensOnDate && (!form.release_on || pastOpen)
   const noRecipient = isLetter && !form.recipient
   const canSave = !busy && !!form.text.trim() && !futureDate && !noRelease && !noRecipient
   const setKind = (kind) => setForm({ ...form, kind })
@@ -178,14 +181,14 @@ export default function CreateEntry() {
                   {active.map((b) => <option key={b.id} value={b.handle}>{b.display_name}{b.relationship ? ` · ${b.relationship}` : ''}</option>)}
                 </select>
               )}
-              {release?.released && (
+              {!opensOnDate && release?.released && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-sage-100 px-2.5 py-0.5 text-xs font-medium text-sage-600" title="Allowed in your legacy policy">
                   ✓ Can receive letters
                 </span>
               )}
             </Row>
           )}
-          {isLetter && release && !release.released && (
+          {isLetter && !opensOnDate && release && !release.released && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gold-500/30 bg-[#FBF0D9] px-5 py-3 text-sm text-bark-600 sm:px-6">
               <span className="min-w-0 flex-1">{recipientName} can't receive letters yet. Add them to your legacy policy.</span>
               <button type="button" onClick={addRelease} disabled={addingRelease} className="btn-secondary py-1.5 text-sm">
@@ -201,12 +204,29 @@ export default function CreateEntry() {
             <input id="date" type="date" required max={today()} value={form.entry_date} onChange={set('entry_date')} className={`${bare} flex-none text-sm`} />
           </Row>
           {isLetter && (
-            <Row label="Opens" error={noRelease ? 'Choose when the letter opens.' : ''}>
-              <label className="flex items-center gap-2 text-sm text-ink-600"><input type="checkbox" className="checkbox" checked={form.release_on_death} onChange={set('release_on_death')} /> After my death</label>
-              <span className="text-xs text-ink-400">or on</span>
-              <input type="date" min={today()} value={form.release_on} onChange={set('release_on')} aria-label="Opens on a date (optional)"
-                className="rounded-lg border border-cream-300 bg-white/80 px-2 py-1 text-sm text-ink-700 focus:border-gold-500 focus:outline-none" />
+            <Row label="Opens" error={pastOpen ? 'The opening date can’t be in the past.' : noRelease ? 'Choose the date the letter opens.' : ''}>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <label className="flex items-center gap-2 text-sm text-ink-600">
+                  <input type="radio" name="opens" checked={opensOnDate} onChange={() => setForm({ ...form, opens: 'date' })} /> On
+                  <input type="date" min={today()} value={form.release_on} aria-label="Opening date"
+                    onChange={(e) => setForm({ ...form, opens: 'date', release_on: e.target.value })}
+                    className="rounded-lg border border-cream-300 bg-white/80 px-2 py-1 text-sm text-ink-700 focus:border-gold-500 focus:outline-none" />
+                </label>
+                {opensOnDate && <button type="button" className="text-xs font-medium text-bark-500 hover:underline" onClick={() => setForm({ ...form, opens: 'date', release_on: today() })}>Today</button>}
+                <label className="flex items-center gap-2 text-sm text-ink-600">
+                  <input type="radio" name="opens" checked={!opensOnDate} onChange={() => setForm({ ...form, opens: 'death' })} /> After my death
+                </label>
+              </div>
             </Row>
+          )}
+          {isLetter && form.recipient && (
+            <p className="border-b border-cream-200 px-5 py-2 text-xs text-ink-400 sm:px-6">
+              {opensOnDate
+                ? (form.release_on === today()
+                  ? <>{recipientName} gets it as soon as you save: an email, and the letter on their MMK home page.</>
+                  : form.release_on ? <>On {fmtDate(form.release_on)}, {recipientName} gets an email and the letter appears on their MMK home page.</> : null)
+                : <>{recipientName} can read it only after your death, as your legacy policy allows.</>}
+            </p>
           )}
 
           {/* Body */}

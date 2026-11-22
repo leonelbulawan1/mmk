@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import sys
+
 from collections import Counter
 from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, model_validator
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import today
@@ -29,6 +32,7 @@ class EntryIn(BaseModel):
     recipient: str | None = None
     release_on: date | None = None
     release_on_death: bool = False
+    deliver_while_alive: bool = False  # "On a date": opens on release_on even while the owner is alive
 
     @model_validator(mode="after")
     def _letter(self):
@@ -36,7 +40,14 @@ class EntryIn(BaseModel):
             if not self.recipient:
                 raise ValueError("A letter needs a recipient")
             if self.release_on is None and not self.release_on_death:
-                raise ValueError("A letter needs a release date or release after death")
+                raise ValueError("Choose when the letter opens: on a date, or after your death")
+            if self.deliver_while_alive:
+                if self.release_on is None:
+                    raise ValueError("Choose the date the letter opens")
+                if self.release_on_death:
+                    raise ValueError("A letter opens either on a date or after your death, not both")
+            if self.release_on is not None and self.release_on < today():
+                raise ValueError("The opening date cannot be in the past")
         if not normalize(self.text):
             raise ValueError("Entry text is empty")
         if self.entry_date > today():
@@ -64,7 +75,7 @@ def entry_summary(e: Entry) -> dict:
     }
     if isinstance(e, LetterEntry):
         out.update(recipient=e.recipient_handle, release_on=e.release_on.isoformat() if e.release_on else None,
-                   release_on_death=e.release_on_death)
+                   release_on_death=e.release_on_death, deliver_while_alive=e.deliver_while_alive)
     return out
 
 
@@ -129,11 +140,44 @@ def create(body: EntryIn, owner: User = Depends(require_living_owner), db: Sessi
         entry, result = vault_service.create_entry(
             db, owner, title=body.title, text=body.text, entry_date=body.entry_date, mode_key=body.mode,
             kind=body.kind, recipient_handle=body.recipient, release_on=body.release_on,
-            release_on_death=body.release_on_death)
+            release_on_death=body.release_on_death, deliver_while_alive=body.deliver_while_alive)
     except (ValueError, VaultSealedError) as exc:
         raise HTTPException(400, str(exc))
-    return {"entry": with_recipient_name(entry_detail(entry), recipient_names(db, owner)),
-            "mode_result": result.to_dict()}
+    out = {"entry": with_recipient_name(entry_detail(entry), recipient_names(db, owner)),
+           "mode_result": result.to_dict()}
+    if body.kind == "letter":
+        out["delivery"] = _deliver_now(db, owner, entry)
+    return out
+
+
+def _deliver_now(db: Session, owner: User, entry) -> dict:
+    """A letter whose opening date is today is delivered at once: email + the recipient's home page."""
+    from ..models import EmailNotice
+    from ..services import notify
+
+    if not entry.deliver_while_alive or entry.release_on > today():
+        return {"status": "scheduled", "opens_on": entry.release_on.isoformat() if entry.release_on else None,
+                "after_death": bool(entry.release_on_death)}
+    try:
+        notify.notify_owner_letters(db, owner)
+    except Exception as exc:
+        print(f"[letters] delivery of entry {entry.id} failed: {exc}", file=sys.stderr, flush=True)
+    return letter_delivery(db, owner, entry)
+
+
+def letter_delivery(db: Session, owner: User, entry) -> dict:
+    """Has this letter reached its recipient yet (home page + email)?"""
+    from ..models import EmailNotice
+    from ..services import notify
+
+    if not entry.deliver_while_alive or entry.release_on > today():
+        return {"status": "scheduled", "opens_on": entry.release_on.isoformat() if entry.release_on else None,
+                "after_death": bool(entry.release_on_death)}
+    n = db.scalars(select(EmailNotice).where(EmailNotice.owner_id == owner.id, EmailNotice.entry_id == int(entry.id),
+                                             EmailNotice.kind == "letter_released")
+                   .order_by(EmailNotice.id.desc())).first()
+    return {"status": "delivered", "email": n.status if n else "not_sent", "to": n.to_email if n else None,
+            "email_problem": notify.email_problem(n) if n else ""}
 
 
 @router.get("/entries/{entry_id}")
@@ -141,7 +185,10 @@ def get_entry(entry_id: int, owner: User = Depends(require_owner), db: Session =
     e = vault_service.load_vault(db, owner).get(entry_id)
     if e is None:
         raise HTTPException(404, "Entry not found")
-    return with_recipient_name(entry_detail(e), recipient_names(db, owner))
+    out = with_recipient_name(entry_detail(e), recipient_names(db, owner))
+    if e.kind == "letter":
+        out["delivery"] = letter_delivery(db, owner, e)
+    return out
 
 
 @router.post("/entries/{entry_id}/revisions", status_code=201)

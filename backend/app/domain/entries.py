@@ -144,17 +144,23 @@ class TextEntry(Entry):
 class LetterEntry(Entry):
     """A letter addressed to one beneficiary, released on a date and/or after death."""
 
-    def __init__(self, *, recipient_handle: str, release_on: date | None, release_on_death: bool, **kw):
+    def __init__(self, *, recipient_handle: str, release_on: date | None, release_on_death: bool,
+                 deliver_while_alive: bool = False, **kw):
         if release_on is None and not release_on_death:
             raise ValueError("A letter needs a release date or release-on-death")
+        if deliver_while_alive and (release_on is None or release_on_death):
+            raise ValueError("Only a letter that opens on a date can be delivered while the owner is alive")
         super().__init__(**kw)
         self._recipient_handle = recipient_handle
         self._release_on = release_on
         self._release_on_death = release_on_death
+        self._deliver_while_alive = bool(deliver_while_alive)
 
     recipient_handle = property(lambda self: self._recipient_handle)
     release_on = property(lambda self: self._release_on)
     release_on_death = property(lambda self: self._release_on_death)
+    # The owner's own explicit release: the letter opens on its date even while the owner is alive.
+    deliver_while_alive = property(lambda self: self._deliver_while_alive)
 
     @property
     def kind(self) -> str:
@@ -167,6 +173,8 @@ class LetterEntry(Entry):
             release_on=self._release_on.isoformat() if self._release_on else None,
             release_on_death=self._release_on_death,
         )
+        if self._deliver_while_alive:  # only present when set, so older letters keep their hashes
+            payload["deliver_while_alive"] = True
         return payload
 
     def render(self, level: str) -> dict[str, Any] | None:

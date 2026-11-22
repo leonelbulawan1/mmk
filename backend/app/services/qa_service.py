@@ -52,6 +52,10 @@ def letters_for(vault, protocol, decisions: dict, handle: str, today: date, owne
             out.append({**base, "status": "released", "text": e.current_text})
             continue
         reason = d.reason if d else ""
+        dated = e.kind == "letter" and getattr(e, "deliver_while_alive", False)
+        if dated and reason == "letter_sealed":  # opens by itself on its date
+            out.append({**base, "status": "sealed", "opens_on": e.release_on.isoformat()})
+            continue
         if not rules or not (reason.startswith("pending") or reason == "letter_sealed"):
             continue
         own = e.release_on if e.release_on and e.release_on > today else None
