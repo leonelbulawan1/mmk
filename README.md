@@ -141,7 +141,7 @@ alaala/
 ## 5. Pages
 | # | Page | Route | Role |
 |---|---|---|---|
-| 1 | Landing | `/` | public |
+| 1 | (no landing page) `/` redirects to Sign in, or to the signed-in user's home | `/` | public |
 | 2 | Registration (owner sign-up and beneficiary invite activation) | `/register` | public |
 | 3 | Login | `/login` | public |
 | 4 | Owner dashboard | `/dashboard` | owner |
