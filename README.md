@@ -24,6 +24,7 @@ All people in the demo data and tests are fictional.
 
 | Deliverable | Where |
 |---|---|
+| Project proposal and final system requirements (task 1.03) | [docs/PROPOSAL.md](docs/PROPOSAL.md) |
 | Working prototype with source code, under version control | this repository |
 | README with setup steps | this file, sections 1–3 |
 | Design note on the AI's model, tools and instructions | [docs/AI_DESIGN.md](docs/AI_DESIGN.md) |
