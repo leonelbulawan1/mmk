@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, fmtDate, today } from '../api'
-import { Alert, Card, Empty, LevelBadge, PageHeader, Spinner, useAsync } from '../components/ui'
+import { Alert, Card, Empty, LetterBadge, LevelBadge, PageHeader, Spinner, useAsync } from '../components/ui'
 import { reasonText } from '../components/access'
 
 export default function AccessPermissions() {
@@ -45,7 +45,7 @@ export default function AccessPermissions() {
                 {m.data.entries.map((e) => (
                   <tr key={e.id} className="border-b border-cream-300/60 last:border-0 hover:bg-cream-100/50">
                     <td className="px-4 py-3">
-                      <Link to={`/entries/${e.id}`} className="text-base font-semibold hover:text-bark-500">{e.kind === 'letter' && '✉ '}{e.title || 'Untitled'}</Link>
+                      <Link to={`/entries/${e.id}`} className="text-base font-semibold hover:text-bark-500">{e.title || 'Untitled'}</Link>{e.kind === 'letter' && <LetterBadge className="ml-2 align-middle" />}
                       <span className="block text-xs text-ink-400">{fmtDate(e.date)}{e.topics.length ? ` · ${e.topics.join(', ')}` : ''}</span>
                     </td>
                     {m.data.beneficiaries.map((b) => {

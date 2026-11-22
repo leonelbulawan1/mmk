@@ -4,7 +4,7 @@ import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import WhoCanRead from '../components/WhoCanRead'
 import DiffView from '../components/DiffView'
-import { Alert, Card, Hash, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
+import { Alert, Card, Hash, LetterBadge, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
 
 const MODE_LABEL = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Review' }
 
@@ -34,7 +34,7 @@ export default function EntryDetail() {
 
   return (
     <>
-      <PageHeader eyebrow={fmtDate(e.entry_date)} title={<>{e.kind === 'letter' && '✉ '}{e.title || 'Untitled'}</>}
+      <PageHeader eyebrow={<span className="inline-flex flex-wrap items-center gap-2">{fmtDate(e.entry_date)}{e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}</span>} title={e.title || 'Untitled'}
         actions={<Link to="/entries" className="btn-ghost">← All entries</Link>} />
       {msg.text && <div className="mb-4"><Alert kind={msg.kind || 'success'} onClose={() => setMsg({})}>{msg.text}</Alert></div>}
 

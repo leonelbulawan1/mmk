@@ -110,3 +110,15 @@ export function useAsync(fn, deps = []) {
   useEffect(() => { run() }, deps)
   return { ...state, reload: run, setData: (data) => setState((s) => ({ ...s, data })) }
 }
+
+/** "Letter" marker (replaces the ✉ emoji). With `to`, reads "Letter to <name>". */
+export function LetterBadge({ to, className = '' }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full bg-ink-700 px-2.5 py-0.5 text-xs font-medium text-cream-50 ${className}`}>
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M3.5 7l8.5 6 8.5-6" />
+      </svg>
+      {to ? <>Letter to {to}</> : 'Letter'}
+    </span>
+  )
+}

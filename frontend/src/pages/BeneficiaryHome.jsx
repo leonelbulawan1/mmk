@@ -40,7 +40,7 @@ export default function BeneficiaryHome() {
         <Card>
           <p className="text-5xl font-semibold">{d.released_letters}</p>
           <p className="text-sm text-ink-400">letter{d.released_letters === 1 ? '' : 's'} addressed to you, opened</p>
-          <Link to="/letters" className="btn-secondary mt-6">✉ Read letters</Link>
+          <Link to="/letters" className="btn-secondary mt-6">Read letters</Link>
         </Card>
       </div>
     </>
