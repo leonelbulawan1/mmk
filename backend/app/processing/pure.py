@@ -12,9 +12,11 @@ Pipeline:  raw text --normalize--> text --extract--> (names, topics)
 from __future__ import annotations
 
 import difflib
+import json
 import re
 import unicodedata
 from dataclasses import dataclass
+from pathlib import Path
 from types import MappingProxyType
 from typing import Iterable, Mapping
 
@@ -86,18 +88,10 @@ TOPIC_LEXICON: Mapping[str, tuple[str, ...]] = MappingProxyType(
     }
 )
 
-COMMON_TYPOS: Mapping[str, str] = MappingProxyType(
-    {
-        "teh": "the", "recieve": "receive", "recieved": "received", "definately": "definitely",
-        "seperate": "separate", "occured": "occurred", "untill": "until", "wich": "which",
-        "becuase": "because", "beacuse": "because", "tommorow": "tomorrow", "tomorow": "tomorrow",
-        "freind": "friend", "freinds": "friends", "alot": "a lot", "goverment": "government",
-        "beleive": "believe", "wierd": "weird", "thier": "their", "truely": "truly",
-        "acheive": "achieve", "begining": "beginning", "embarass": "embarrass", "dont": "don't",
-        "cant": "can't", "wont": "won't", "didnt": "didn't", "im": "I'm", "ive": "I've",
-        "isnt": "isn't", "wasnt": "wasn't", "couldnt": "couldn't", "wouldnt": "wouldn't",
-    }
-)
+# Shared with the website's as-you-type correction (frontend/src/autocorrect.js), so both fix the same words.
+_TYPO_DATA = json.loads((Path(__file__).with_name("typos.json")).read_text(encoding="utf-8"))
+COMMON_TYPOS: Mapping[str, str] = MappingProxyType(dict(_TYPO_DATA["words"]))
+COMMON_PHRASES: Mapping[str, str] = MappingProxyType(dict(_TYPO_DATA["phrases"]))
 
 # Capitalised words that are not personal names.
 _NAME_STOPWORDS: frozenset[str] = frozenset(
@@ -193,6 +187,12 @@ def _apply(rule: str, pattern: str, repl, text: str, flags: int = 0) -> tuple[st
     return re.sub(pattern, _sub, text, flags=flags), tuple(changes)
 
 
+def _fix_phrase(m: re.Match) -> str:
+    found = m.group(0)
+    fixed = COMMON_PHRASES[found.lower()]
+    return fixed[0].upper() + fixed[1:] if found[0].isupper() else fixed
+
+
 def _fix_typo(m: re.Match) -> str:
     word = m.group(0)
     fixed = COMMON_TYPOS.get(word.lower())
@@ -211,7 +211,9 @@ def correct(text: str) -> Correction:
     double spaces.  Meaning is never altered.
     """
     original = text
+    phrase_re = r"\b(" + "|".join(re.escape(p) for p in sorted(COMMON_PHRASES, key=len, reverse=True)) + r")\b"
     steps = (
+        ("grammar", phrase_re, _fix_phrase, re.IGNORECASE),
         ("typo", r"\b[A-Za-z]+\b", _fix_typo, 0),
         ("pronoun-i", r"(?<![A-Za-z'])i(?=[ ,.!?']|$)", lambda m: "I", 0),
         ("repeated-word", r"\b([A-Za-z]+)\s+\1\b", lambda m: m.group(1), re.IGNORECASE),

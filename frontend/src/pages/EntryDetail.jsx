@@ -12,12 +12,12 @@ const MODE_LABEL = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Revi
 function savedText(d) {
   if (!d) return 'Saved.'
   if (d.status === 'delivered') {
-    if (d.email === 'sent') return `Saved and delivered. An email was sent to ${d.to}, and the letter is on their MMK home page.`
-    if (d.email === 'failed') return `Saved and delivered to their MMK home page, but the email could not be sent. ${d.email_problem || ''}`
-    return 'Saved and delivered to their MMK home page.'
+    if (d.email === 'sent') return `Sent. An email went to ${d.to}, and the letter is on their MMK home page.`
+    if (d.email === 'failed') return `Sent to their MMK home page, but the email could not be sent. ${d.email_problem || ''}`
+    return 'Sent to their MMK home page.'
   }
-  if (d.after_death) return 'Saved. This letter opens after your death.'
-  return `Saved. It will be delivered on ${fmtDate(d.opens_on)}.`
+  if (d.after_death) return 'Sent. This letter opens after your death.'
+  return `Sent. It will be delivered on ${fmtDate(d.opens_on)}.`
 }
 
 export default function EntryDetail() {
