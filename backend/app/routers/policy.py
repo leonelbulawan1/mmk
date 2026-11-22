@@ -65,6 +65,36 @@ def save(body: SourceIn, owner: User = Depends(require_living_owner), db: Sessio
     return {**result.to_dict(), "version": row.version, "hash": row.hash}
 
 
+def _letter_release_out(db: Session, owner: User, handle: str) -> dict:
+    if handle not in policy_service.handles(db, owner):
+        raise HTTPException(404, "No beneficiary with that handle")
+    by = policy_service.letter_releases_for(policy_service.current_protocol(db, owner), handle)
+    return {"handle": handle, "released": bool(by), "by": by}
+
+
+@router.get("/policy/letter-release/{handle}")
+def letter_release(handle: str, owner: User = Depends(require_owner), db: Session = Depends(get_db)):
+    """Does the policy release letters to this beneficiary? (A letter is only delivered if it does.)"""
+    return _letter_release_out(db, owner, handle)
+
+
+@router.post("/policy/letter-release/{handle}")
+def add_letter_release(handle: str, owner: User = Depends(require_living_owner), db: Session = Depends(get_db)):
+    """Add `release letters to <handle> after death;` to the policy as a new version."""
+    current = _letter_release_out(db, owner, handle)
+    if current["released"]:
+        return current
+    try:
+        result, row = policy_service.add_letter_release(db, owner, handle)
+    except PolicyFrozenError as exc:
+        raise HTTPException(403, str(exc))
+    except PrologError as exc:
+        raise HTTPException(503, f"Access engine unavailable: {exc}")
+    if row is None:
+        raise HTTPException(422, {"message": "The policy has errors", **result.to_dict()})
+    return {**_letter_release_out(db, owner, handle), "version": row.version}
+
+
 @router.get("/policy/samples")
 def samples():
     return [{"name": p.stem.split("_", 1)[1].replace("_", " ").title(), "file": p.name, "source": p.read_text()}

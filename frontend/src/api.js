@@ -51,3 +51,24 @@ export const today = () => {
   const d = new Date()
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 }
+
+// Unsaved Write-page drafts, one per user. Kept where the session token is kept: in sessionStorage
+// (gone when the tab closes) unless "Keep me signed in" was ticked. Signing out removes them.
+const DRAFT = 'mmk.draft.'
+export const draftStore = {
+  get: (uid) => {
+    const raw = safe(() => sessionStorage.getItem(DRAFT + uid)) || safe(() => localStorage.getItem(DRAFT + uid))
+    try { return raw ? JSON.parse(raw) : null } catch { return null }
+  },
+  set: (uid, value) => {
+    draftStore.clear(uid)
+    safe(() => (tokenStore.remembered() ? localStorage : sessionStorage).setItem(DRAFT + uid, JSON.stringify(value)))
+  },
+  clear: (uid) => { safe(() => sessionStorage.removeItem(DRAFT + uid)); safe(() => localStorage.removeItem(DRAFT + uid)) },
+  clearAll: () => {
+    for (const store of [safe(() => sessionStorage), safe(() => localStorage)]) {
+      if (!store) continue
+      safe(() => Object.keys(store).filter((k) => k.startsWith(DRAFT)).forEach((k) => store.removeItem(k)))
+    }
+  },
+}

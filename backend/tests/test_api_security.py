@@ -162,3 +162,22 @@ def test_letters_show_recipient_display_name(client):
     assert client.get(f"/api/entries/{eid}", headers=h).json()["recipient_name"] == "Jose Ramos"
     listed = [e for e in client.get("/api/entries", headers=h).json() if e["id"] == eid][0]
     assert listed["recipient_name"] == "Jose Ramos" and listed["recipient"] == "jose"
+
+
+def test_letter_release_check_and_add(client):
+    h = {"Authorization": f"Bearer {register_owner(client, 'letters@example.com')['token']}"}
+    for name, handle in (("Ana Cruz", "ana"), ("Ben Cruz", "ben")):
+        assert client.post("/api/beneficiaries", json={"display_name": name, "handle": handle,
+                           "email": f"{handle}@example.com"}, headers=h).status_code in (200, 201)
+    r = client.put("/api/policy", json={"source": "group kids = ben;\nrelease letters to kids after death;\n"}, headers=h)
+    assert r.status_code == 200, r.text
+    assert client.get("/api/policy/letter-release/ben", headers=h).json()["released"] is True  # through a group
+    assert client.get("/api/policy/letter-release/ana", headers=h).json() == {"handle": "ana", "released": False, "by": []}
+    assert client.get("/api/policy/letter-release/nobody", headers=h).status_code == 404
+
+    r = client.post("/api/policy/letter-release/ana", headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["released"] is True and r.json()["by"] == ["release letters to ana after death"]
+    pol = client.get("/api/policy", headers=h).json()
+    assert "release letters to ana after death;" in pol["source"] and "release letters to kids" in pol["source"]
+    assert client.post("/api/policy/letter-release/ana", headers=h).json().get("version") is None  # already there: no new version

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { api, today } from '../api'
+import { api, draftStore, today, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
 import { Alert, Card, Field, PageHeader, useAsync } from '../components/ui'
@@ -48,16 +48,62 @@ export default function CreateEntry() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const initialMode = MODES.some((m) => m.key === params.get('mode')) ? params.get('mode') : user.default_writing_mode || 'verbatim'
-  const [mode, setMode] = useState(initialMode)
+  const blank = { title: '', text: '', entry_date: today(), kind: 'text', recipient: '', release_on: '', release_on_death: true }
+  // A draft left from earlier (navigated away, refreshed, browser closed while "Keep me signed in").
+  const [draft] = useState(() => {
+    const d = draftStore.get(user.id)
+    return d && (d.form?.text?.trim() || d.form?.title?.trim()) ? d : null
+  })
+  const [mode, setMode] = useState(draft?.mode || initialMode)
   const [showPreview, setShowPreview] = useState(false)
   const beneficiaries = useAsync(() => api('/api/beneficiaries'))
-  const [form, setForm] = useState({ title: '', text: '', entry_date: today(), kind: 'text', recipient: '',
-    release_on: '', release_on_death: true })
+  const [form, setForm] = useState(draft ? { ...blank, ...draft.form } : blank)
+  const [restored, setRestored] = useState(!!draft)
+  const [draftSaved, setDraftSaved] = useState(false)
+  const [release, setRelease] = useState(null)   // does the policy release letters to the chosen recipient?
+  const [addingRelease, setAddingRelease] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   const active = (beneficiaries.data || []).filter((b) => b.active)
   const current = MODES.find((m) => m.key === mode)
+  const hasContent = !!(form.text.trim() || form.title.trim())
+
+  // Save the draft as the person types; drop it once the page is empty.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (hasContent) { draftStore.set(user.id, { form, mode }); setDraftSaved(true) }
+      else { draftStore.clear(user.id); setDraftSaved(false) }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [form, mode, hasContent, user.id])
+
+  // A session-only draft disappears with the tab, so warn before closing or reloading it.
+  useEffect(() => {
+    if (!hasContent || tokenStore.remembered()) return undefined
+    const warn = (e) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [hasContent])
+
+  // A letter is only delivered if the policy releases letters to its recipient.
+  useEffect(() => {
+    setRelease(null)
+    if (form.kind !== 'letter' || !form.recipient) return
+    let live = true
+    api(`/api/policy/letter-release/${encodeURIComponent(form.recipient)}`)
+      .then((r) => live && setRelease(r)).catch(() => {})
+    return () => { live = false }
+  }, [form.kind, form.recipient])
+
+  const addRelease = async () => {
+    setAddingRelease(true); setError('')
+    try { setRelease(await api(`/api/policy/letter-release/${encodeURIComponent(form.recipient)}`, { method: 'POST' })) }
+    catch (err) { setError(err.message) }
+    setAddingRelease(false)
+  }
+  const discardDraft = () => { draftStore.clear(user.id); setForm(blank); setRestored(false); setDraftSaved(false) }
+  const recipientName = active.find((b) => b.handle === form.recipient)?.display_name || form.recipient
 
   if (user.death_triggered_at) return <Alert kind="warn">The vault is sealed; new entries cannot be written.</Alert>
 
@@ -69,6 +115,7 @@ export default function CreateEntry() {
       if (form.kind === 'letter') Object.assign(body, {
         recipient: form.recipient, release_on: form.release_on || null, release_on_death: form.release_on_death })
       const res = await api('/api/entries', { method: 'POST', body })
+      draftStore.clear(user.id)
       navigate(`/entries/${res.entry.id}`, { state: { justCreated: true } })
     } catch (err) { setError(err.message); setBusy(false) }
   }
@@ -86,7 +133,13 @@ export default function CreateEntry() {
             placeholder="A title, if you like" value={form.title} onChange={set('title')} aria-label="Title" maxLength={200} />
           <textarea required className="paper-lines mt-4 min-h-[420px] w-full resize-y border-0 bg-transparent text-lg text-ink-600 placeholder:text-ink-400/40 focus:outline-none"
             placeholder={form.kind === 'letter' ? 'Dear…' : 'Today I…'} value={form.text} onChange={set('text')} aria-label="Entry text" />
-          <p className="text-right text-xs text-ink-400">{words} words</p>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-400">
+            <span aria-live="polite">
+              {restored ? <>Draft restored · <button type="button" onClick={discardDraft} className="font-medium text-bark-500 hover:underline">Discard draft</button></>
+                : draftSaved ? 'Draft saved on this device' : ''}
+            </span>
+            <span>{words} words</span>
+          </div>
         </Card>
 
         <div className="space-y-6">
@@ -124,14 +177,25 @@ export default function CreateEntry() {
                   <Field label="Recipient">
                     <select className="input" required value={form.recipient} onChange={set('recipient')}>
                       <option value="">Choose…</option>
-                      {active.map((b) => <option key={b.id} value={b.handle}>{b.display_name} ({b.handle})</option>)}
+                      {active.map((b) => <option key={b.id} value={b.handle}>{b.display_name}{b.relationship ? ` · ${b.relationship}` : ''}</option>)}
                     </select>
                   </Field>
                 )}
                 <Field label="Release on date" hint="Optional. The letter opens on this day.">
                   <input className="input" type="date" value={form.release_on} onChange={set('release_on')} /></Field>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="checkbox" checked={form.release_on_death} onChange={set('release_on_death')} /> Release after my death trigger</label>
-                <p className="text-xs text-ink-400">Your legacy policy must also contain a <code>release letters to …</code> statement for this person.</p>
+                {release && !release.released && (
+                  <Alert kind="warn">
+                    Your legacy policy doesn't release letters to {recipientName} yet, so {recipientName} would never receive this letter. Adding it releases their letters after your death.
+                    <button type="button" onClick={addRelease} disabled={addingRelease} className="btn-secondary mt-2 w-full py-2 text-sm">
+                      {addingRelease ? 'Adding…' : 'Add to my policy'}
+                    </button>
+                  </Alert>
+                )}
+                {release?.released && (
+                  <p className="flex gap-1.5 text-xs text-sage-600"><span aria-hidden>✓</span>
+                    <span>Your policy releases letters to {recipientName}{release.version ? ` (added as policy v${release.version})` : ''}.</span></p>
+                )}
               </>
             )}
           </Card>

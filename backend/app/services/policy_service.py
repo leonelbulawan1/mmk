@@ -76,3 +76,19 @@ def save_policy(db: Session, owner: User, source: str) -> tuple[CompileResult, P
 
 def decisions_for(db: Session, owner: User, handle: str, today: date, assume_death: bool = False) -> dict[int, Decision]:
     return engine_for(db, owner, assume_death).decide_all(handle, today)
+
+
+def letter_releases_for(protocol: Protocol, handle: str) -> list[str]:
+    """The policy's `release letters to ...` statements that reach this beneficiary
+    (directly, through `everyone`, or through a group), as readable text. Mirrors applies/2."""
+    from ..domain.protocol import Group, LetterRelease
+    groups = {r.name for r in protocol.rules if isinstance(r, Group) and handle in r.members}
+    return [r.describe() for r in protocol.rules
+            if isinstance(r, LetterRelease) and (r.who in ("everyone", handle) or r.who in groups)]
+
+
+def add_letter_release(db: Session, owner: User, handle: str):
+    """Append `release letters to <handle> after death;` to the policy and save a new version."""
+    source = current_protocol(db, owner).source.rstrip()
+    line = f"release letters to {handle} after death;"
+    return save_policy(db, owner, f"{source}\n\n# Added from the Write page so this letter can be delivered\n{line}\n")

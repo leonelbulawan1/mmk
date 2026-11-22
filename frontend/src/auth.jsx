@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { api, tokenStore } from './api'
+import { api, tokenStore, draftStore } from './api'
 
 const AuthContext = createContext(null)
 
@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
   // Registration does not sign in: the email must be verified first (see VerifyEmail).
   const register = async (body) => api('/api/auth/register', { method: 'POST', body })
   const activate = async (body) => accept(await api('/api/auth/activate', { method: 'POST', body }))
-  const logout = () => { tokenStore.set(null); setUser(null) }
+  const logout = () => { draftStore.clearAll(); tokenStore.set(null); setUser(null) }
 
   return (
     <AuthContext.Provider value={{ user, setUser, loading, login, register, activate, accept, logout, refresh }}>
