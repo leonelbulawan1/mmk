@@ -68,7 +68,7 @@ export default function Entries() {
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Tag>{MODE_LABEL[e.writing_mode]}</Tag>
                     {e.revisions > 0 && <Tag>{e.revisions} revision{e.revisions > 1 ? 's' : ''}</Tag>}
-                    {e.kind === 'letter' && <Tag tone="ink">to {e.recipient}</Tag>}
+                    {e.kind === 'letter' && <Tag tone="ink">to {e.recipient_name || e.recipient}</Tag>}
                     {e.topics.slice(0, 3).map((t) => <Tag key={t} tone="bark">{t}</Tag>)}
                   </div>
                 </Link>

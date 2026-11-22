@@ -145,3 +145,20 @@ def test_remember_me_issues_longer_session(client, db):
     ttl = lambda t: (lambda p: p["exp"] - p["iat"])(pyjwt.decode(t, options={"verify_signature": False}))
     assert ttl(short) == 8 * 3600
     assert ttl(long) == 30 * 24 * 3600
+
+
+def test_letters_show_recipient_display_name(client):
+    from tests.conftest import register_owner
+    h = {"Authorization": f"Bearer {register_owner(client, 'names@example.com')['token']}"}
+    r = client.post("/api/beneficiaries", json={"display_name": "Jose Ramos", "handle": "jose", "email": "jose@example.com",
+                                                 "relationship": "son"}, headers=h)
+    assert r.status_code in (200, 201), r.text
+    r = client.post("/api/entries", json={"title": "For you", "text": "Dear Jose, be kind.", "entry_date": "2024-01-02",
+                                          "mode": "verbatim", "kind": "letter", "recipient": "jose",
+                                          "release_on_death": True}, headers=h)
+    assert r.status_code == 201, r.text
+    assert r.json()["entry"]["recipient_name"] == "Jose Ramos"
+    eid = r.json()["entry"]["id"]
+    assert client.get(f"/api/entries/{eid}", headers=h).json()["recipient_name"] == "Jose Ramos"
+    listed = [e for e in client.get("/api/entries", headers=h).json() if e["id"] == eid][0]
+    assert listed["recipient_name"] == "Jose Ramos" and listed["recipient"] == "jose"

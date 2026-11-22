@@ -1,6 +1,6 @@
 # Test catalogue
 
-Run with `cd backend && python -m pytest`. There are 148 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
+Run with `cd backend && python -m pytest`. There are 149 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
 
 | Required area | File | What is covered |
 |---|---|---|

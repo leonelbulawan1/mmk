@@ -66,6 +66,18 @@ def entry_summary(e: Entry) -> dict:
     return out
 
 
+def recipient_names(db: Session, owner: User) -> dict[str, str]:
+    """Handle -> display name of the owner's beneficiaries, so letters show "Jose", not "jose"."""
+    rows = db.query(User.handle, User.display_name).filter(User.owner_id == owner.id, User.role == "beneficiary")
+    return {h: n for h, n in rows if h}
+
+
+def with_recipient_name(out: dict, names: dict[str, str]) -> dict:
+    if out.get("recipient"):
+        out["recipient_name"] = names.get(out["recipient"], out["recipient"])
+    return out
+
+
 def entry_detail(e: Entry) -> dict:
     out = entry_summary(e)
     texts = [e.original_text] + [r.text for r in e.revisions]
@@ -105,7 +117,8 @@ def list_entries(q: str = "", topic: str = "", kind: str = "", owner: User = Dep
     if kind in ("text", "letter"):
         entries = [e for e in entries if e.kind == kind]
     entries.sort(key=lambda e: (e.entry_date, e.seq), reverse=True)
-    return [entry_summary(e) for e in entries]
+    names = recipient_names(db, owner)
+    return [with_recipient_name(entry_summary(e), names) for e in entries]
 
 
 @router.post("/entries", status_code=201)
@@ -117,7 +130,8 @@ def create(body: EntryIn, owner: User = Depends(require_living_owner), db: Sessi
             release_on_death=body.release_on_death)
     except (ValueError, VaultSealedError) as exc:
         raise HTTPException(400, str(exc))
-    return {"entry": entry_detail(entry), "mode_result": result.to_dict()}
+    return {"entry": with_recipient_name(entry_detail(entry), recipient_names(db, owner)),
+            "mode_result": result.to_dict()}
 
 
 @router.get("/entries/{entry_id}")
@@ -125,7 +139,7 @@ def get_entry(entry_id: int, owner: User = Depends(require_owner), db: Session =
     e = vault_service.load_vault(db, owner).get(entry_id)
     if e is None:
         raise HTTPException(404, "Entry not found")
-    return entry_detail(e)
+    return with_recipient_name(entry_detail(e), recipient_names(db, owner))
 
 
 @router.post("/entries/{entry_id}/revisions", status_code=201)

@@ -94,7 +94,7 @@ export default function EntryDetail() {
             <p><span className="text-ink-400">Writing mode:</span> {MODE_LABEL[e.writing_mode]}</p>
             <p><span className="text-ink-400">Written:</span> {fmtDate(e.created_at)}</p>
             {e.kind === 'letter' && (
-              <p><span className="text-ink-400">Letter to</span> <b>{e.recipient}</b>, opens {[e.release_on && `on ${fmtDate(e.release_on)}`, e.release_on_death && 'after death'].filter(Boolean).join(' or ')}</p>
+              <p><span className="text-ink-400">Letter to</span> <b>{e.recipient_name || e.recipient}</b>, opens {[e.release_on && `on ${fmtDate(e.release_on)}`, e.release_on_death && 'after death'].filter(Boolean).join(' or ')}</p>
             )}
             <div><p className="text-ink-400">Themes</p><div className="mt-1 flex flex-wrap gap-1.5">{e.topics.length ? e.topics.map((t) => <Tag key={t} tone="bark">{t}</Tag>) : '—'}</div></div>
             <div><p className="text-ink-400">People</p><div className="mt-1 flex flex-wrap gap-1.5">{e.names.length ? e.names.map((n) => <Tag key={n}>{n}</Tag>) : '—'}</div></div>
