@@ -1,5 +1,3 @@
-<h1><img src="docs/brand/mmk-mark.svg" width="48" align="center" alt="MMK logo"> MMK</h1>
-
 ## Team
 
 | # | Complete name | Role |
