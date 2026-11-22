@@ -4,11 +4,13 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager, suppress
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import init_db
+from .errors import AccessDenied, PolicySyntaxError, TamperDetected
 from .prolog.engine import swipl_available
 from .routers import assistant, auth, beneficiaries, entries, executor, policy, settings as settings_router, vault
 
@@ -33,6 +35,23 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="MMK API", version="1.0.0", lifespan=lifespan)
+
+
+# Typed failures -> safe responses (see app/errors.py)
+@app.exception_handler(AccessDenied)
+async def _access_denied(request: Request, exc: AccessDenied):
+    return JSONResponse(status_code=404, content={"detail": "Not found"})  # same as missing: confirm nothing
+
+
+@app.exception_handler(TamperDetected)
+async def _tamper_detected(request: Request, exc: TamperDetected):
+    return JSONResponse(status_code=503, content={
+        "detail": "This diary failed its integrity check, so nothing can be shared until the problem is resolved."})
+
+
+@app.exception_handler(PolicySyntaxError)
+async def _policy_syntax(request: Request, exc: PolicySyntaxError):
+    return JSONResponse(status_code=422, content={"detail": f"The policy has a syntax error: {exc}"})
 app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins), allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 

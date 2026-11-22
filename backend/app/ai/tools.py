@@ -23,6 +23,7 @@ from datetime import date
 from typing import Any, Iterable
 
 from ..domain.entries import Entry, level_rank
+from ..errors import AccessDenied
 from ..prolog.engine import Decision
 
 NOT_AVAILABLE = {"available": False, "message": "This entry is not available."}
@@ -160,11 +161,18 @@ class AuthorizedContext:
         v = self.views.get(_as_int(entry_id))
         return {"entry_id": entry_id, "access": v["access"] if v else "none"}
 
-    def get_entry(self, entry_id: int) -> dict:
+    def _view(self, entry_id) -> tuple[int, dict[str, Any]]:
         eid = _as_int(entry_id)
         v = self.views.get(eid)
         if v is None:
-            return dict(NOT_AVAILABLE)
+            raise AccessDenied(f"entry {entry_id} is not authorised for {self.handle}")
+        return eid, v
+
+    def get_entry(self, entry_id: int) -> dict:
+        try:
+            eid, v = self._view(entry_id)
+        except AccessDenied:
+            return dict(NOT_AVAILABLE)  # safe action: identical to an entry that does not exist
         self.retrieved[eid] = v
         return dict(v)
 
@@ -191,6 +199,9 @@ class AuthorizedContext:
         else:
             try:
                 result = fn(**(args or {}))
+            except AccessDenied:
+                # Safe action: identical to an entry that does not exist, so nothing is confirmed.
+                result = dict(NOT_AVAILABLE)
             except TypeError:
                 result = {"error": "Invalid arguments"}
         self.trace.append({"tool": name, "args": args})

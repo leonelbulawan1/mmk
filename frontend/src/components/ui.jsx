@@ -122,3 +122,20 @@ export function LetterBadge({ to, className = '' }) {
     </span>
   )
 }
+
+/** Required by the project rules: letters and the legacy policy are personal wishes, not a legal will. */
+export function LegalDisclaimer({ compact = false, className = '' }) {
+  return (
+    <div role="note" className={`flex gap-2.5 rounded-xl border border-cream-300 bg-cream-100 px-3.5 py-3 text-xs leading-relaxed text-ink-500 ${className}`}>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0 text-bark-500">
+        <circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" />
+      </svg>
+      <p>
+        <b className="font-semibold text-ink-600">Not a legal will.</b>{' '}
+        {compact
+          ? 'Letters and the legacy policy are personal messages and wishes. They do not transfer property and are not legal advice.'
+          : 'Letters and the legacy policy in MMK are personal messages and wishes. They are not a will and have no legal effect on property or inheritance. Philippine law has formal requirements for wills; for those, consult a lawyer. MMK does not give legal advice.'}
+      </p>
+    </div>
+  )
+}

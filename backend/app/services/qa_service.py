@@ -16,6 +16,7 @@ from . import audit
 from ..domain.protocol import AfterDate, AfterDeath
 from ..errors import AmbiguousName
 from .policy_service import current_protocol, engine_for, letter_release_rules
+from .integrity import ensure_intact
 from .vault_service import beneficiary_rows, load_vault
 
 
@@ -68,6 +69,8 @@ def build_context(db: Session, owner: User, handle: str, today: date,
     # 1. Access decisions are made by Prolog before any content is touched.
     decisions = engine_for(db, owner, assume_death).decide_all(handle, today)
     vault = load_vault(db, owner)
+    if not assume_death:  # real beneficiary questions: release nothing from a tampered vault
+        ensure_intact(db, owner, vault)
     protocol = current_protocol(db, owner)
     try:
         names = asker_names(db, owner, handle)

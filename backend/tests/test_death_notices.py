@@ -142,3 +142,12 @@ def test_notices_are_audited_and_owner_scoped(client, db, vault):
     nid = db.query(EmailNotice).first().id
     assert client.post(f"/api/settings/notifications/{nid}/retry", headers=login(client, other.email)).status_code == 404
     assert client.get("/api/settings/notifications", headers=login(client, vault["carla"].email)).status_code == 403
+
+
+def test_death_notice_says_it_is_not_a_legal_will():
+    from types import SimpleNamespace
+    from app.services.notify import _compose
+    owner = SimpleNamespace(display_name="Rosa Dizon")
+    ben = SimpleNamespace(display_name="Maria Dizon", email="maria@example.com")
+    _, body = _compose(owner, ben, 1, 2, None)
+    assert "not a legal will" in body and "Dear Maria" in body

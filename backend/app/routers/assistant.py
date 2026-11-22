@@ -14,6 +14,7 @@ from ..models import QAMessage, User
 from ..prolog.engine import PrologError
 from ..security import current_user, require_beneficiary
 from ..services import audit, policy_service, qa_service, vault_service
+from ..services.integrity import ensure_intact
 
 router = APIRouter(prefix="/api", tags=["assistant"])
 
@@ -77,6 +78,7 @@ def letters(user: User = Depends(require_beneficiary), db: Session = Depends(get
     except PrologError:
         raise HTTPException(503, "The access engine is unavailable, so nothing can be shared right now.")
     vault = vault_service.load_vault(db, owner)
+    ensure_intact(db, owner, vault, user)
     released = []
     for e in vault.entries:
         if e.kind == "letter" and decisions.get(int(e.id)) and decisions[int(e.id)].level == "verbatim":
@@ -93,6 +95,7 @@ def overview(user: User = Depends(require_beneficiary), db: Session = Depends(ge
     except PrologError:
         raise HTTPException(503, "The access engine is unavailable.")
     vault = vault_service.load_vault(db, owner)
+    ensure_intact(db, owner, vault, user)
     kinds = {int(e.id): e.kind for e in vault.entries}
     visible = [d for d in decisions.values() if d.level != "none"]
     return {

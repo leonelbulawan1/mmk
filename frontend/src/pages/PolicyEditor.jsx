@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
-import { Alert, Card, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
+import { Alert, Card, LegalDisclaimer, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
 
 const CHEATSHEET = [
   ['group family = maria, jose;', 'Name a set of beneficiaries'],
@@ -63,6 +63,7 @@ export default function PolicyEditor() {
           <Tag tone="ink">v{policy.data.version}</Tag>
           {frozen && <Tag tone="bark">Frozen</Tag>}
         </>} />
+      <LegalDisclaimer className="mb-6" />
       {frozen && <div className="mb-4"><Alert kind="warn">The death trigger was activated, so this policy is frozen and can no longer be changed.</Alert></div>}
       {msg.text && <div className="mb-4"><Alert kind={msg.kind} onClose={() => setMsg({})}>{msg.text}</Alert></div>}
 

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, draftStore, today, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
-import { Alert, Card, Field, PageHeader, useAsync } from '../components/ui'
+import { Alert, Card, Field, LegalDisclaimer, PageHeader, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 const MODES = [
@@ -155,6 +155,7 @@ export default function CreateEntry() {
             </span>
             <span>{words} words</span>
           </div>
+          {isLetter && <LegalDisclaimer compact className="mt-5" />}
           <div className="mt-5 flex flex-col-reverse gap-3 border-t border-cream-300 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-ink-400">Saved entries can never be edited or deleted, only revised.</p>
             <button className="btn-primary px-6 py-3" disabled={!canSave}>{busy ? 'Sealing…' : isLetter ? 'Save and seal letter' : 'Save and seal entry'}</button>

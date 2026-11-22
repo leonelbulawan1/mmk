@@ -88,6 +88,9 @@ def _compose(owner: User, ben: User, letters: int, entries: int, invite_code: st
         "",
         "For privacy, no part of the diary is included in this email.",
         "",
+        "Please note: letters and wishes on MMK are personal messages, not a legal will. They have no legal",
+        "effect on property or inheritance, and MMK does not give legal advice.",
+        "",
         "With care,",
         "MMK",
     ]

@@ -1,6 +1,6 @@
 # Test catalogue
 
-Run with `cd backend && python -m pytest`. There are 163 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
+Run with `cd backend && python -m pytest`. There are 169 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
 
 | Required area | File | What is covered |
 |---|---|---|
@@ -20,3 +20,4 @@ Run with `cd backend && python -m pytest`. There are 163 tests. Each test uses a
 | Password reset | `test_password_recovery.py` | Code emailed and resets the password; works for beneficiaries; same answer for unknown emails; single use, 5-attempt limit, expiry, resend limit; reset signs out every device; changing the password keeps this device and signs out others; weak passwords refused; inactive or unverified accounts cannot reset; audit; old databases upgraded |
 | Security extras | `test_api_security.py` | scrypt hashing, registration and login, weak passwords, 401 on every protected route, invite flow (single-use), handle validation, death trigger (password, phrase, irreversible, seals the vault), audit coverage |
 | Handout "Try It Yourself" table (Maria, after the death trigger) | `test_handout_scenarios.py` | "Did he ever write about me?" gives the count only; family question gives summaries with dates; the letter is refused before 2040-05-01 and shown verbatim after; business question and a person with no protocol get the same neutral reply; hidden text never reaches the model; other people never receive Maria's letter; an ambiguous name shares nothing (`AmbiguousName`) |
+| Typed exceptions and safe actions | `test_typed_exceptions.py` | AccessDenied looks exactly like a missing entry; a forged entry or policy row (database guards removed) makes letters, overview and the assistant refuse with 503 and log `integrity.failed`, while the owner can still verify; a policy syntax error keeps the previous version; exception hierarchy |

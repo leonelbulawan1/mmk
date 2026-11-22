@@ -1,6 +1,6 @@
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, Empty, PageHeader, Spinner, useAsync } from '../components/ui'
+import { Alert, Empty, LegalDisclaimer, PageHeader, Spinner, useAsync } from '../components/ui'
 
 export default function Letters() {
   const { user } = useAuth()
@@ -8,6 +8,7 @@ export default function Letters() {
   return (
     <>
       <PageHeader eyebrow="for you" title="Letters" subtitle={`Letters ${user.owner?.display_name || ''} wrote to you appear here once they are released.`} />
+      <LegalDisclaimer className="mb-6" />
       {letters.loading ? <Spinner /> : letters.error ? <Alert>{letters.error}</Alert> : !letters.data.length ? (
         <Empty title="No letters yet">{user.owner?.death_triggered
           ? 'Some letters open on a particular day; they will appear here when they do.'

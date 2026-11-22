@@ -9,16 +9,9 @@ from ..models import PolicyVersion, User
 from ..processing.hashchain import ChainRecord, verify_chain
 from ..security import require_owner
 from ..services import audit, vault_service
+from ..services.integrity import policy_chain
 
 router = APIRouter(prefix="/api/vault", tags=["vault"])
-
-
-def policy_chain(db: Session, owner: User):
-    rows = db.scalars(select(PolicyVersion).where(PolicyVersion.owner_id == owner.id)
-                      .order_by(PolicyVersion.version)).all()
-    return verify_chain(ChainRecord(r.version, f"policy:v{r.version}",
-                                    {"owner_id": r.owner_id, "version": r.version, "source": r.source,
-                                     "rules_json": r.rules_json}, r.prev_hash, r.hash) for r in rows)
 
 
 @router.get("/verify")
