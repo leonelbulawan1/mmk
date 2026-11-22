@@ -34,7 +34,7 @@ git push -u origin main
 
 ## 2. Create the database (Neon)
 
-1. Sign up at https://neon.com (no card needed) and create a project. Region: **AWS US East 2 (Ohio)**, the same region as the API in `render.yaml` (`region: ohio`). If you pick another Neon region, change `region` in `render.yaml` to the nearest Render region.
+1. Sign up at https://neon.com (no card needed) and create a project. Region: **AWS Asia Pacific 1 (Singapore)**, the same region as the API in `render.yaml` (`region: singapore`). If you pick another Neon region, change `region` in `render.yaml` to the nearest Render region.
 2. On the project dashboard click **Connect** and copy the connection string. It looks like:
    `postgresql://neondb_owner:XXXX@ep-....ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require`
 3. Keep it for step 4. Paste it exactly as Neon shows it; MMK converts it for its database driver.

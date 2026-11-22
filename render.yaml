@@ -6,7 +6,7 @@ services:
     name: mmk-api
     runtime: docker
     plan: free
-    region: ohio            # same region as the Neon database (AWS US East 2, Ohio)
+    region: singapore       # same region as the Neon database (AWS Asia Pacific 1, Singapore)
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /api/ping
