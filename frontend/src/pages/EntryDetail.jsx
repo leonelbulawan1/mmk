@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import WhoCanRead from '../components/WhoCanRead'
 import DiffView from '../components/DiffView'
 import { Alert, Card, Hash, LetterBadge, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
+import NavIcon from '../components/NavIcon'
 
 const MODE_LABEL = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Review' }
 
@@ -55,12 +56,14 @@ export default function EntryDetail() {
           )}
 
           <Card>
-            <div className="mb-4 flex flex-wrap gap-2 text-sm" role="tablist">
-              {[['current', 'Current text'], ['original', 'Original'], ['history', `Revisions (${e.revision_history.length})`]].map(([k, l]) => (
-                <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
-                  className={`rounded-lg px-3 py-1.5 ${view === k ? 'bg-ink-700 text-cream-50' : 'bg-cream-200 text-ink-500'}`}>{l}</button>
-              ))}
-            </div>
+            {e.revision_history.length > 0 ? (
+              <div className="mb-4 flex flex-wrap gap-2 text-sm" role="tablist">
+                {[['current', 'Current text'], ['original', 'Original'], ['history', `Revisions (${e.revision_history.length})`]].map(([k, l]) => (
+                  <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
+                    className={`rounded-lg px-3 py-1.5 ${view === k ? 'bg-ink-700 text-cream-50' : 'bg-cream-200 text-ink-500'}`}>{l}</button>
+                ))}
+              </div>
+            ) : <p className="mb-3 text-xs text-ink-400">Exactly as first written · no revisions</p>}
             {editing ? (
               <div>
                 <textarea className="input paper-lines min-h-72 text-lg" value={draft} onChange={(ev) => setDraft(ev.target.value)} aria-label="Revision text" />
@@ -104,10 +107,16 @@ export default function EntryDetail() {
           <WhoCanRead entryId={e.id} sealed={sealed} />
           <Card className="space-y-2 text-sm">
             <h2 className="text-xl font-semibold">Integrity</h2>
-            <p><span className="text-ink-400">Sequence</span> #{e.seq}</p>
-            <p><span className="text-ink-400">Hash</span> <Hash value={e.hash} n={16} /></p>
-            <p><span className="text-ink-400">Previous</span> <Hash value={e.prev_hash} n={16} /></p>
-            <Link to="/vault" className="inline-block pt-1 text-bark-500 hover:underline">Verify the whole chain →</Link>
+            <p className="flex items-center gap-2 font-medium text-sage-600"><NavIcon name="access" size={18} />Sealed in your vault</p>
+            <p className="text-ink-400">Record #{e.seq}{e.revision_history.length > 0 && <> · {e.revision_history.length} revision{e.revision_history.length > 1 ? 's' : ''} sealed after it</>}</p>
+            <details className="group">
+              <summary className="cursor-pointer list-none text-bark-500 hover:underline">Show technical details</summary>
+              <div className="mt-2 space-y-1.5 rounded-xl bg-cream-100 p-3 text-xs">
+                <p><span className="text-ink-400">Hash</span> <Hash value={e.hash} n={16} /></p>
+                <p><span className="text-ink-400">Previous</span> <Hash value={e.prev_hash} n={16} /></p>
+              </div>
+            </details>
+            <Link to="/vault" className="inline-block pt-1 text-bark-500 hover:underline">Verify the whole vault →</Link>
           </Card>
         </div>
       </div>

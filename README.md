@@ -61,7 +61,7 @@ New beneficiaries are added by an owner on **Beneficiaries**. That page shows a 
 
 ### Tests
 ```bash
-cd backend && python -m pytest          # 151 tests
+cd backend && python -m pytest          # 152 tests
 ```
 
 ### Browser edition (no server needed)

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
-import { Alert, Card, Empty, Hash, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
+import { Alert, Card, Empty, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 function Stat({ label, value, to }) {
@@ -29,7 +29,7 @@ export default function Dashboard() {
         <Stat label="Diary entries" value={data.entry_count} to="/entries" />
         <Stat label="Letters" value={data.letter_count} to="/entries?kind=letter" />
         <Stat label="Beneficiaries" value={data.beneficiary_count} to="/beneficiaries" />
-        <Stat label="Policy version" value={`v${data.policy_version}`} to="/policy" />
+        <Stat label="Needs review" value={data.pending_reviews} to={data.pending_reviews ? '/entries?review=1' : '/entries'} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -61,12 +61,15 @@ export default function Dashboard() {
 
         <div className="space-y-6">
           <Card>
-            <h2 className="text-2xl font-semibold">Vault integrity</h2>
-            <p className={`mt-2 text-sm ${data.integrity.ok ? 'text-sage-600' : 'text-rose-600'}`}>
-              {data.integrity.ok ? '✓ All records verified' : '⚠ Tampering detected'} · {data.integrity.length} records
+            <h2 className="text-2xl font-semibold">Your vault</h2>
+            <p className={`mt-2 flex items-center gap-2 font-medium ${data.integrity.ok ? 'text-sage-600' : 'text-rose-600'}`}>
+              <NavIcon name={data.integrity.ok ? 'access' : 'close'} size={18} />
+              {data.integrity.ok ? 'Sealed and verified' : 'Something was changed'}
             </p>
-            <p className="mt-1 text-xs text-ink-400">Chain head <Hash value={data.integrity.head} /></p>
-            <Link to="/vault" className="mt-3 inline-block text-sm text-bark-500 hover:underline">Inspect →</Link>
+            <p className="mt-1 text-sm text-ink-400">
+              {data.integrity.ok ? 'Every entry is exactly as you saved it.' : 'Some records no longer match what was saved. Check the details.'}
+            </p>
+            <Link to="/vault" className="mt-3 inline-block text-sm text-bark-500 hover:underline">Details →</Link>
           </Card>
           <Card>
             <h2 className="text-2xl font-semibold">Themes</h2>

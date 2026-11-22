@@ -4,6 +4,7 @@ import { api, draftStore, today, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
 import { Alert, Card, Field, PageHeader, useAsync } from '../components/ui'
+import NavIcon from '../components/NavIcon'
 
 const MODES = [
   { key: 'verbatim', label: 'Verbatim', short: 'Kept exactly as you write it. No corrections.' },
@@ -120,6 +121,12 @@ export default function CreateEntry() {
     } catch (err) { setError(err.message); setBusy(false) }
   }
 
+  const isLetter = form.kind === 'letter'
+  const futureDate = form.entry_date > today()
+  const noRelease = isLetter && !form.release_on && !form.release_on_death
+  const noRecipient = isLetter && !form.recipient
+  const canSave = !busy && !!form.text.trim() && !futureDate && !noRelease && !noRecipient
+  const setKind = (kind) => setForm({ ...form, kind })
   const words = form.text.trim() ? form.text.trim().split(/\s+/).length : 0
 
   return (
@@ -128,6 +135,14 @@ export default function CreateEntry() {
         subtitle="Every word is sealed into your vault exactly as written." />
       <form onSubmit={submit} className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
+          <div role="radiogroup" aria-label="What are you writing?" className="mb-4 inline-flex rounded-xl bg-cream-200 p-1">
+            {[['text', 'Diary entry', 'entries'], ['letter', 'Letter', 'letters']].map(([k, label, icon]) => (
+              <button key={k} type="button" role="radio" aria-checked={form.kind === k} onClick={() => setKind(k)}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${form.kind === k ? 'bg-white text-ink-700 shadow-paper' : 'text-ink-500 hover:text-ink-700'}`}>
+                <NavIcon name={icon} size={16} />{label}
+              </button>
+            ))}
+          </div>
           <Alert>{error}</Alert>
           <input className="mt-2 w-full border-0 bg-transparent text-3xl font-semibold placeholder:text-ink-400/40 focus:outline-none"
             placeholder="A title, if you like" value={form.title} onChange={set('title')} aria-label="Title" maxLength={200} />
@@ -139,6 +154,10 @@ export default function CreateEntry() {
                 : draftSaved ? 'Draft saved on this device' : ''}
             </span>
             <span>{words} words</span>
+          </div>
+          <div className="mt-5 flex flex-col-reverse gap-3 border-t border-cream-300 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-ink-400">Saved entries can never be edited or deleted, only revised.</p>
+            <button className="btn-primary px-6 py-3" disabled={!canSave}>{busy ? 'Sealing…' : isLetter ? 'Save and seal letter' : 'Save and seal entry'}</button>
           </div>
         </Card>
 
@@ -162,13 +181,8 @@ export default function CreateEntry() {
           </Card>
 
           <Card className="space-y-4">
-            <Field label="Date of this memory"><input className="input" type="date" required value={form.entry_date} onChange={set('entry_date')} /></Field>
-            <Field label="Kind">
-              <select className="input" value={form.kind} onChange={set('kind')}>
-                <option value="text">Diary entry</option>
-                <option value="letter">Letter to a beneficiary</option>
-              </select>
-            </Field>
+            <Field label={isLetter ? 'Date written' : 'Date of this memory'} error={futureDate ? 'This date is in the future. Choose today or an earlier day.' : ''}>
+              <input className="input" type="date" required max={today()} value={form.entry_date} onChange={set('entry_date')} /></Field>
             {form.kind === 'letter' && (
               <>
                 {active.length === 0 ? (
@@ -181,9 +195,13 @@ export default function CreateEntry() {
                     </select>
                   </Field>
                 )}
-                <Field label="Release on date" hint="Optional. The letter opens on this day.">
-                  <input className="input" type="date" value={form.release_on} onChange={set('release_on')} /></Field>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="checkbox" checked={form.release_on_death} onChange={set('release_on_death')} /> Release after my death trigger</label>
+                <fieldset className="space-y-3">
+                  <legend className="label">When may {recipientName || 'they'} open it?</legend>
+                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="checkbox" checked={form.release_on_death} onChange={set('release_on_death')} /> After my death</label>
+                  <Field label="On a date (optional)" hint="For example, a birthday. The letter opens on that day, but never while you are alive.">
+                    <input className="input" type="date" min={today()} value={form.release_on} onChange={set('release_on')} /></Field>
+                  {noRelease && <p className="text-xs text-rose-600" role="alert">Choose at least one: after your death, or a date.</p>}
+                </fieldset>
                 {release && !release.released && (
                   <Alert kind="warn">
                     Your legacy policy doesn't release letters to {recipientName} yet, so {recipientName} would never receive this letter. Adding it releases their letters after your death.
@@ -199,8 +217,6 @@ export default function CreateEntry() {
               </>
             )}
           </Card>
-          <button className="btn-primary w-full py-3" disabled={busy || !form.text.trim()}>{busy ? 'Sealing…' : 'Save and seal entry'}</button>
-          <p className="text-center text-xs text-ink-400">Saved entries can never be edited or deleted, only revised.</p>
         </div>
       </form>
     </>

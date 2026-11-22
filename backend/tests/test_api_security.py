@@ -201,3 +201,14 @@ def test_entry_access_lists_each_beneficiary(client):
     assert "health" in e["topics"]
     assert people["ben"]["level"] == "none" and people["ben"]["reason"].startswith("denied_by")
     assert client.get("/api/entries/99999/access", headers=h).status_code == 404
+
+
+def test_entry_date_cannot_be_in_the_future(client):
+    from datetime import timedelta
+    from app.config import today
+    h = {"Authorization": f"Bearer {register_owner(client, 'future@example.com')['token']}"}
+    tomorrow = (today() + timedelta(days=1)).isoformat()
+    r = client.post("/api/entries", json={"text": "Not yet.", "entry_date": tomorrow, "mode": "verbatim"}, headers=h)
+    assert r.status_code == 422 and "future" in r.text
+    ok = client.post("/api/entries", json={"text": "Today.", "entry_date": today().isoformat(), "mode": "verbatim"}, headers=h)
+    assert ok.status_code == 201, ok.text

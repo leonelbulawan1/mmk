@@ -39,6 +39,8 @@ class EntryIn(BaseModel):
                 raise ValueError("A letter needs a release date or release after death")
         if not normalize(self.text):
             raise ValueError("Entry text is empty")
+        if self.entry_date > today():
+            raise ValueError("The date of a memory cannot be in the future")
         return self
 
 
