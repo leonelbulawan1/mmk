@@ -25,6 +25,20 @@ function useCountdown(iso) {
   return `in ${Math.round(hours / 24)} days`
 }
 
+const STATE_TEXT = {
+  reported: 'waiting for an MMK reviewer to check the documents',
+  under_review: 'being checked by an MMK reviewer',
+  verified: 'verified by an MMK reviewer; the waiting period is running',
+  disputed: 'disputed by a beneficiary; an MMK reviewer will look again',
+  pending: 'waiting',
+}
+const toBase64 = (file) => new Promise((resolve, reject) => {
+  const r = new FileReader()
+  r.onload = () => resolve(String(r.result).split(',')[1])
+  r.onerror = () => reject(new Error('The file could not be read'))
+  r.readAsDataURL(file)
+})
+
 // Owner: warning shown everywhere while an executor's report is waiting.
 export function PendingReportBanner() {
   const { user, setUser } = useAuth()
@@ -40,8 +54,10 @@ export function PendingReportBanner() {
   return (
     <div role="alert" className="border-b border-rose-600/30 bg-rose-100 px-4 py-3 text-sm text-rose-600 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-        <p><b>{rep.reported_by}</b>, your executor, reported your passing on {fmtWhen(rep.reported_at)}. Your vault will be sealed and
-          your beneficiaries notified {left} ({fmtWhen(rep.activates_at)}) unless you cancel.</p>
+        <p><b>{rep.reported_by}</b>, your executor, reported your passing on {fmtWhen(rep.reported_at)}.{' '}
+          {rep.activates_at
+            ? <>Your vault will be sealed and your beneficiaries notified {left} ({fmtWhen(rep.activates_at)}) unless you cancel.</>
+            : <>The report is {STATE_TEXT[rep.status] || rep.status}. Nothing is released until it is verified and a waiting period ends. If you are alive, cancel it now.</>}</p>
         <button className="btn-danger shrink-0" disabled={busy} onClick={cancel}>{busy ? 'Cancelling…' : "I'm still here"}</button>
       </div>
       {error && <p className="mx-auto mt-2 max-w-6xl">{error}</p>}
@@ -99,6 +115,7 @@ export function ExecutorPanel() {
   const [form, setForm] = useState({ password: '', confirmation: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const rep = user.report
   const left = useCountdown(rep?.activates_at)
   const phrase = user.confirm_phrase || 'REPORT PASSING'
@@ -111,6 +128,17 @@ export function ExecutorPanel() {
     try { setUser(await api(path, { method: 'POST', body })); setForm({ password: '', confirmation: '' }) }
     catch (e) { setError(e.message) } finally { setBusy(false) }
   }
+  const upload = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { setError('The file must be smaller than 5 MB.'); return }
+    setUploading(true); setError('')
+    try { setUser(await api('/api/executor/report/evidence', { method: 'POST', body: { filename: file.name, content_base64: await toBase64(file) } })) }
+    catch (err) { setError(err.message) } finally { setUploading(false) }
+  }
+  const reviewed = rep && rep.status !== 'pending'
+  const canUpload = reviewed && ['reported', 'under_review', 'disputed'].includes(rep.status)
 
   return (
     <Card className="mt-6 border-gold-500/40">
@@ -118,9 +146,27 @@ export function ExecutorPanel() {
       {rep ? (
         <>
           <p className="mt-2 text-sm text-ink-500">
-            You reported {first}'s passing on {fmtDate(rep.reported_at)}. {first} has been emailed. Unless {first} signs in and
-            cancels it, the diary will be sealed and opened as {first} wished <b>{left}</b> ({fmtWhen(rep.activates_at)}).
+            You reported {first}'s passing on {fmtDate(rep.reported_at)}. {first} has been emailed.{' '}
+            {rep.activates_at
+              ? <>Unless {first} signs in and cancels it, or someone disputes it, the diary will be sealed and opened as {first} wished <b>{left}</b> ({fmtWhen(rep.activates_at)}).</>
+              : <>The report is <b>{STATE_TEXT[rep.status] || rep.status}</b>.</>}
           </p>
+          {rep.decision_note && <p className="mt-2 text-sm text-ink-500">Reviewer's note: {rep.decision_note}</p>}
+          {reviewed && (
+            <div className="mt-4 rounded-xl bg-cream-100 p-4 text-sm">
+              <p className="font-medium">Documents for the reviewer</p>
+              <p className="mt-1 text-xs text-ink-400">Upload a death certificate or another official document (PDF, JPEG or PNG, under 5 MB). Only MMK reviewers can open it; it is stored encrypted.</p>
+              {rep.evidence?.length > 0 && (
+                <ul className="mt-2 list-disc pl-5 text-xs text-ink-500">{rep.evidence.map((d) => <li key={d.id}>{d.filename} · {Math.ceil(d.size / 1024)} KB · added {fmtDate(d.created_at)}</li>)}</ul>
+              )}
+              {canUpload && (
+                <label className="btn-secondary mt-3 cursor-pointer">
+                  {uploading ? 'Uploading…' : 'Add a document'}
+                  <input type="file" accept="application/pdf,image/jpeg,image/png" className="sr-only" onChange={upload} disabled={uploading} />
+                </label>
+              )}
+            </div>
+          )}
           {rep.wait_minutes < 60 && <p className="mt-2 text-xs text-ink-400">In this demo the waiting period is {waitText(rep.wait_minutes)} instead of 14 days.</p>}
           {error && <div className="mt-3"><Alert>{error}</Alert></div>}
           <button className="btn-secondary mt-4" disabled={busy} onClick={() => call('/api/executor/withdraw')}>Withdraw my report</button>
@@ -128,7 +174,7 @@ export function ExecutorPanel() {
       ) : (
         <>
           <p className="mt-2 max-w-3xl text-sm text-ink-500">
-            {ownerName} trusted you to tell MMK when they pass away. Only do this when it has happened. {first} will be emailed and
+            {ownerName} trusted you to tell MMK when they pass away. After reporting, you will be asked for a document such as the death certificate, which an MMK reviewer checks. Only do this when it has happened. {first} will be emailed and
             can cancel it during a waiting period; after that, their diary is sealed and shared as they wished, and the other beneficiaries are emailed.
           </p>
           {error && <div className="mt-3"><Alert>{error}</Alert></div>}
@@ -139,6 +185,40 @@ export function ExecutorPanel() {
           </form>
         </>
       )}
+    </Card>
+  )
+}
+
+
+// Any beneficiary: a report is running; dispute it if it is not true (Home).
+export function DisputePanel() {
+  const { user, setUser } = useAuth()
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const rep = user?.open_report
+  if (!rep || user.owner?.death_triggered || (user.is_executor && user.report)) return null  // the reporter withdraws instead
+  const first = (user.owner?.display_name || 'the diary owner').split(' ')[0]
+  const send = async (e) => {
+    e.preventDefault()
+    setBusy(true); setError('')
+    try { setUser(await api('/api/executor/dispute', { method: 'POST', body: { reason } })); setReason('') }
+    catch (err) { setError(err.message) } finally { setBusy(false) }
+  }
+  return (
+    <Card className="mt-6 border-rose-600/30">
+      <h2 className="text-2xl font-semibold">{first}'s passing was reported</h2>
+      <p className="mt-2 text-sm text-ink-500">The report is {STATE_TEXT[rep.status] || rep.status}.
+        {rep.activates_at && <> If no one disputes it, {first}'s diary opens as {first} wished on {fmtWhen(rep.activates_at)}.</>}</p>
+      {rep.can_dispute ? (
+        <form onSubmit={send} className="mt-4 space-y-3">
+          <Field label="Is this not true? Tell the reviewer why" hint="A dispute stops the report until an MMK reviewer looks again.">
+            <textarea className="input min-h-24" required maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} />
+          </Field>
+          {error && <Alert>{error}</Alert>}
+          <button className="btn-secondary" disabled={busy || !reason.trim()}>{busy ? 'Sending…' : 'Dispute this report'}</button>
+        </form>
+      ) : <p className="mt-2 text-sm text-ink-500">Your dispute was received. An MMK reviewer will look at the report again.</p>}
     </Card>
   )
 }

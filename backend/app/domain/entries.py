@@ -145,7 +145,7 @@ class LetterEntry(Entry):
     """A letter addressed to one beneficiary, released on a date and/or after death."""
 
     def __init__(self, *, recipient_handle: str, release_on: date | None, release_on_death: bool,
-                 deliver_while_alive: bool = False, **kw):
+                 deliver_while_alive: bool = False, release_days_after_death: int | None = None, **kw):
         if release_on is None and not release_on_death:
             raise ValueError("A letter needs a release date or release-on-death")
         if deliver_while_alive and (release_on is None or release_on_death):
@@ -155,12 +155,16 @@ class LetterEntry(Entry):
         self._release_on = release_on
         self._release_on_death = release_on_death
         self._deliver_while_alive = bool(deliver_while_alive)
+        if release_days_after_death is not None and (not release_on_death or not 1 <= release_days_after_death <= 36500):
+            raise ValueError("'Days after death' needs a letter that opens after death, and 1 to 36500 days")
+        self._release_days_after_death = release_days_after_death or None
 
     recipient_handle = property(lambda self: self._recipient_handle)
     release_on = property(lambda self: self._release_on)
     release_on_death = property(lambda self: self._release_on_death)
     # The owner's own explicit release: the letter opens on its date even while the owner is alive.
     deliver_while_alive = property(lambda self: self._deliver_while_alive)
+    release_days_after_death = property(lambda self: self._release_days_after_death)
 
     @property
     def kind(self) -> str:
@@ -175,6 +179,8 @@ class LetterEntry(Entry):
         )
         if self._deliver_while_alive:  # only present when set, so older letters keep their hashes
             payload["deliver_while_alive"] = True
+        if self._release_days_after_death:
+            payload["release_days_after_death"] = self._release_days_after_death
         return payload
 
     def render(self, level: str) -> dict[str, Any] | None:

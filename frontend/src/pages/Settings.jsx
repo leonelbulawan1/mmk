@@ -10,7 +10,8 @@ export default function Settings() {
   const { user, setUser } = useAuth()
   const s = useAsync(() => api('/api/settings'))
   const isOwner = user.role === 'owner'
-  const [profile, setProfile] = useState({ display_name: user.display_name, default_writing_mode: user.default_writing_mode })
+  const [profile, setProfile] = useState({ display_name: user.display_name, default_writing_mode: user.default_writing_mode,
+    allow_ai_answers: user.allow_ai_answers !== false, email_letters: user.email_letters !== false })
   const [pw, setPw] = useState({ current_password: '', new_password: '' })
   const [death, setDeath] = useState({ password: '', confirmation: '' })
   const [msg, setMsg] = useState({})
@@ -22,7 +23,9 @@ export default function Settings() {
   }
   const note = (key) => msg.key === key && <div className="mb-3"><Alert kind={msg.kind} onClose={() => setMsg({})}>{msg.text}</Alert></div>
 
-  const saveProfile = (e) => { e.preventDefault(); run('profile', async () => setUser(await api('/api/settings', { method: 'PUT', body: isOwner ? profile : { display_name: profile.display_name } })), 'Saved.') }
+  const saveProfile = (e) => { e.preventDefault(); run('profile', async () => setUser(await api('/api/settings', { method: 'PUT', body: isOwner
+    ? { display_name: profile.display_name, default_writing_mode: profile.default_writing_mode, ...(user.death_triggered_at ? {} : { allow_ai_answers: profile.allow_ai_answers }) }
+    : { display_name: profile.display_name, email_letters: profile.email_letters } })), 'Saved.') }
   const changePw = (e) => {
     e.preventDefault()
     run('pw', async () => {
@@ -66,6 +69,21 @@ export default function Settings() {
                   <option value="verbatim">Verbatim</option><option value="light_fix">Light Fix</option><option value="review">Review</option>
                 </select>
               </Field>
+            )}
+            {isOwner ? (
+              <label className="flex items-start gap-3 text-sm">
+                <input type="checkbox" className="checkbox mt-0.5" checked={profile.allow_ai_answers} disabled={!!user.death_triggered_at}
+                  onChange={(e) => setProfile({ ...profile, allow_ai_answers: e.target.checked })} />
+                <span>Let the AI assistant answer my beneficiaries' questions
+                  <span className="block text-xs text-ink-400">It only uses entries your legacy policy lets each person see, never pretends to be you, and shows where each answer comes from. Turn this off and beneficiaries can still read what you shared, but cannot ask questions. The change is recorded in your audit log.</span></span>
+              </label>
+            ) : (
+              <label className="flex items-start gap-3 text-sm">
+                <input type="checkbox" className="checkbox mt-0.5" checked={profile.email_letters}
+                  onChange={(e) => setProfile({ ...profile, email_letters: e.target.checked })} />
+                <span>Email me when a letter opens for me
+                  <span className="block text-xs text-ink-400">The letter appears on your MMK home page either way.</span></span>
+              </label>
             )}
             <button className="btn-primary" disabled={busy === 'profile'}>Save</button>
           </form>

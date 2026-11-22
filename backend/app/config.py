@@ -50,6 +50,13 @@ class Settings:
     app_url: str = os.getenv("APP_URL", "http://localhost:5173")
     # Waiting period between an executor's report of the owner's passing and the death trigger.
     death_report_wait_minutes: int = int(os.getenv("DEATH_REPORT_WAIT_MINUTES", str(14 * 24 * 60)))
+    # admin: a report needs an MMK reviewer's approval (then the waiting period runs, during which the owner can
+    # cancel and beneficiaries can dispute). waiting_period: the earlier flow, the waiting period alone.
+    death_review: str = os.getenv("DEATH_REVIEW", "admin").strip().lower()
+    # Accounts that may review reports: their emails, comma-separated. They sign up like any account.
+    admin_emails: str = os.getenv("ADMIN_EMAILS", "")
+    # Key for encrypting uploaded evidence (Fernet). If empty, a key is derived from JWT_SECRET.
+    evidence_key: str = os.getenv("EVIDENCE_KEY", "")
     smtp_host: str = os.getenv("SMTP_HOST", "")
     smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
     smtp_user: str = os.getenv("SMTP_USER", "")

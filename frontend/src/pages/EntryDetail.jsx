@@ -16,7 +16,7 @@ function savedText(d) {
     if (d.email === 'failed') return `Sent to their MMK home page, but the email could not be sent. ${d.email_problem || ''}`
     return 'Sent to their MMK home page.'
   }
-  if (d.after_death) return 'Sent. This letter opens after your death.'
+  if (d.after_death) return d.days_after_death ? `Sent. This letter opens ${d.days_after_death} days after your death.` : 'Sent. This letter opens after your death.'
   return `Sent. It will be delivered on ${fmtDate(d.opens_on)}.`
 }
 
@@ -110,7 +110,7 @@ export default function EntryDetail() {
             <p><span className="text-ink-400">Written:</span> {fmtDate(e.created_at)}</p>
             {e.kind === 'letter' && (<>
               <p><span className="text-ink-400">Letter to</span> <b>{e.recipient_name || e.recipient}</b>,{' '}
-                {e.release_on_death ? <>opens after your death{e.release_on ? `, not before ${fmtDate(e.release_on)}` : ''}</>
+                {e.release_on_death ? <>opens {e.release_days_after_death ? `${e.release_days_after_death} days ` : ''}after your death{e.release_on ? ` (or on ${fmtDate(e.release_on)})` : ''}</>
                   : e.deliver_while_alive ? <>opens on {fmtDate(e.release_on)}</>
                   : <>opens on {fmtDate(e.release_on)}, after your death</>}</p>
               {e.delivery && <p><span className="text-ink-400">Delivery:</span>{' '}

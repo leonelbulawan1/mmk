@@ -41,7 +41,8 @@ def entry_from_rows(row: EntryRow, revs: list[RevisionRow]) -> Entry:
         return LetterEntry(recipient_handle=row.recipient_handle or "",
                            release_on=date.fromisoformat(row.release_on) if row.release_on else None,
                            release_on_death=row.release_on_death,
-                           deliver_while_alive=bool(getattr(row, "deliver_while_alive", False)), **common)
+                           deliver_while_alive=bool(getattr(row, "deliver_while_alive", False)),
+                           release_days_after_death=getattr(row, "release_days_after_death", None), **common)
     return TextEntry(**common)
 
 
@@ -73,7 +74,8 @@ def known_names(db: Session, owner: User) -> list[str]:
 # ---- writes ---------------------------------------------------------------------------
 def create_entry(db: Session, owner: User, *, title: str, text: str, entry_date: date, mode_key: str,
                  kind: str = "text", recipient_handle: str | None = None, release_on: date | None = None,
-                 release_on_death: bool = False, deliver_while_alive: bool = False) -> tuple[Entry, ModeResult]:
+                 release_on_death: bool = False, deliver_while_alive: bool = False,
+                 release_days_after_death: int | None = None) -> tuple[Entry, ModeResult]:
     mode = get_mode(mode_key)  # polymorphic writing behaviour
     vault = load_vault(db, owner)
     original = normalize(text)
@@ -89,6 +91,7 @@ def create_entry(db: Session, owner: User, *, title: str, text: str, entry_date:
             raise ValueError("Unknown recipient")
         entry: Entry = LetterEntry(recipient_handle=recipient_handle, release_on=release_on,
                                    release_on_death=release_on_death, deliver_while_alive=deliver_while_alive,
+                                   release_days_after_death=release_days_after_death,
                                    **common)
     else:
         entry = TextEntry(**common)
@@ -103,6 +106,7 @@ def create_entry(db: Session, owner: User, *, title: str, text: str, entry_date:
                    release_on=sealed.release_on.isoformat() if getattr(sealed, "release_on", None) else None,
                    release_on_death=bool(getattr(sealed, "release_on_death", False)),
                    deliver_while_alive=bool(getattr(sealed, "deliver_while_alive", False)),
+                   release_days_after_death=getattr(sealed, "release_days_after_death", None),
                    prev_hash=sealed.prev_hash, hash=sealed.hash)
     db.add(row)
     db.flush()

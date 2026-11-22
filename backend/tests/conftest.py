@@ -12,6 +12,8 @@ os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or f"sqlite:///
 os.environ["JWT_SECRET"] = "test-secret-not-for-production-use-0123456789"
 os.environ["LLM_PROVIDER"] = "offline"
 os.environ["DEV_SHOW_VERIFICATION_CODE"] = "true"  # tests read the code from the response
+os.environ["DEATH_REVIEW"] = "waiting_period"  # most tests use the plain flow; test_death_review.py switches it on
+os.environ["ADMIN_EMAILS"] = "reviewer@example.com"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

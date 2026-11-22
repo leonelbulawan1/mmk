@@ -22,6 +22,8 @@ CONFIRM_PHRASE = "SEAL MY VAULT"
 class SettingsIn(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=120)
     default_writing_mode: Literal["verbatim", "light_fix", "review"] | None = None
+    email_letters: bool | None = None        # beneficiary
+    allow_ai_answers: bool | None = None     # owner (consent; recorded in the audit log)
 
 
 class PasswordIn(BaseModel):
@@ -46,6 +48,16 @@ def update(body: SettingsIn, user: User = Depends(current_user), db: Session = D
         if user.role != "owner":
             raise HTTPException(403, "Only owners have a writing mode")
         user.default_writing_mode = body.default_writing_mode
+    if body.email_letters is not None:
+        if user.role != "beneficiary":
+            raise HTTPException(403, "Only beneficiaries receive letter emails")
+        user.email_letters = body.email_letters
+    if body.allow_ai_answers is not None:
+        if user.role != "owner":
+            raise HTTPException(403, "Only the diary owner decides this")
+        if user.death_triggered_at:
+            raise HTTPException(403, "The vault is sealed; this can no longer change")
+        user.allow_ai_answers = body.allow_ai_answers
     audit.record(db, user.owner_id or user.id, user, "settings.update", body.model_dump(exclude_none=True), commit=False)
     db.commit()
     return user_out(user, db)

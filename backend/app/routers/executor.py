@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -42,4 +42,44 @@ def withdraw(user: User = Depends(require_beneficiary), db: Session = Depends(ge
         death.withdraw_by_executor(db, user)
     except LookupError as exc:
         raise HTTPException(404, str(exc))
+    return user_out(user, db)
+
+
+class EvidenceIn(BaseModel):
+    filename: str = Field(max_length=200)
+    content_base64: str = Field(max_length=7_200_000)  # 5 MB file
+
+
+@router.post("/report/evidence")
+def add_evidence(body: EvidenceIn, user: User = Depends(require_beneficiary), db: Session = Depends(get_db)):
+    """The executor adds a document (death certificate) for the reviewer. Stored encrypted; never shown publicly."""
+    import base64
+    import binascii
+
+    try:
+        content = base64.b64decode(body.content_base64, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(400, "The file could not be read")
+    try:
+        death.add_evidence(db, user, body.filename, content)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc))
+    except death.ReviewError as exc:
+        raise HTTPException(400, str(exc))
+    return user_out(user, db)
+
+
+class DisputeIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+@router.post("/dispute")
+def dispute(body: DisputeIn, user: User = Depends(require_beneficiary), db: Session = Depends(get_db)):
+    """Any active beneficiary may dispute a report; it then cannot activate until a reviewer looks again."""
+    try:
+        death.dispute(db, user, body.reason)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc))
+    except death.ReviewError as exc:
+        raise HTTPException(409, str(exc))
     return user_out(user, db)

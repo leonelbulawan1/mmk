@@ -55,21 +55,33 @@ class ChangePasswordIn(BaseModel):
 
 def user_out(u: User, db: Session | None = None) -> dict:
     out = {"id": u.id, "email": u.email, "display_name": u.display_name, "role": u.role,
-           "death_triggered_at": u.death_triggered_at, "default_writing_mode": u.default_writing_mode}
+           "death_triggered_at": u.death_triggered_at, "default_writing_mode": u.default_writing_mode,
+           "email_letters": u.email_letters is not False, "allow_ai_answers": u.allow_ai_answers is not False}
     if u.role == "beneficiary":
         out.update(handle=u.handle, relationship=u.relationship)
         if db is not None and u.owner_id:
             from ..services import death
 
             owner = db.get(User, u.owner_id)
-            out["owner"] = {"display_name": owner.display_name, "death_triggered": bool(owner.death_triggered_at)}
+            out["owner"] = {"display_name": owner.display_name, "death_triggered": bool(owner.death_triggered_at),
+                            "allow_ai_answers": owner.allow_ai_answers is not False}
             out["is_executor"] = owner.executor_id == u.id
+            from ..services.death import pending_report as _open, review_required as _reviewed
+
+            rep = _open(db, owner.id)
+            # Every beneficiary sees that a report is running, so a false one can be disputed (no evidence shown).
+            out["open_report"] = ({"status": rep.status, "activates_at": None if rep.status != "verified"
+                                   else rep.activates_at, "can_dispute": rep.status in ("reported", "under_review", "verified")}
+                                  if rep and _reviewed() and rep.status != "pending" else None)
             if out["is_executor"]:
                 from ..services.death import pending_report, report_out
 
                 out["report"] = report_out(db, pending_report(db, owner.id))
                 out["confirm_phrase"] = "REPORT PASSING"
     elif u.role == "owner" and db is not None:
+        from ..services.death import is_reviewer
+
+        out["is_reviewer"] = is_reviewer(u)
         from ..services.death import pending_report, report_out
 
         ex = db.get(User, u.executor_id) if u.executor_id else None

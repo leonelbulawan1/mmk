@@ -43,7 +43,22 @@ def handles(db: Session, owner: User) -> set[str]:
 def engine_for(db: Session, owner: User, assume_death: bool = False) -> AccessEngine:
     vault = load_vault(db, owner)
     return AccessEngine(vault.entries, current_protocol(db, owner), sorted(handles(db, owner)),
-                        bool(owner.death_triggered_at), assume_death)
+                        bool(owner.death_triggered_at), assume_death, death_date=death_date(owner))
+
+
+def death_date(owner: User):
+    """The date of the death trigger in the app's time zone; for the owner's own previews, today."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from ..config import settings, today
+
+    if not owner.death_triggered_at:
+        return today()
+    try:
+        return datetime.fromisoformat(owner.death_triggered_at).astimezone(ZoneInfo(settings.timezone)).date()
+    except Exception:
+        return datetime.fromisoformat(owner.death_triggered_at).date()
 
 
 def compile_for(db: Session, owner: User, source: str) -> CompileResult:

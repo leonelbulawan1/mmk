@@ -52,7 +52,8 @@ def test_a_future_letter_waits_for_its_date(client, db, smtp, monkeypatch):
     owner, roby, _ = _setup(db)
     opens = today() + timedelta(days=3)
     r = _letter(client, login(client, owner.email), opens)
-    assert r.json()["delivery"] == {"status": "scheduled", "opens_on": opens.isoformat(), "after_death": False}
+    assert r.json()["delivery"] == {"status": "scheduled", "opens_on": opens.isoformat(), "after_death": False,
+                                    "days_after_death": None}
     hr = login(client, roby.email)
     assert client.get("/api/letters", headers=hr).json() == []
     assert notify.notify_released_letters(db, min_interval_seconds=0) == 0

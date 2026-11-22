@@ -20,6 +20,7 @@ const VaultIntegrity = lazy(() => import('./pages/VaultIntegrity'))
 const Settings = lazy(() => import('./pages/Settings'))
 const BeneficiaryHome = lazy(() => import('./pages/BeneficiaryHome'))
 const Letters = lazy(() => import('./pages/Letters'))
+const Review = lazy(() => import('./pages/Review'))
 
 function Guard({ role, children }) {
   const { user, loading } = useAuth()
@@ -54,6 +55,7 @@ export default function App() {
       </Route>
       <Route element={<Guard role="owner"><Layout /></Guard>}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/review" element={<Review />} />
         <Route path="/entries" element={<Entries />} />
         <Route path="/entries/new" element={<Navigate to="/write" replace />} />
         <Route path="/entries/:id" element={<EntryDetail />} />

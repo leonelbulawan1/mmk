@@ -33,6 +33,7 @@ class EntryIn(BaseModel):
     release_on: date | None = None
     release_on_death: bool = False
     deliver_while_alive: bool = False  # "On a date": opens on release_on even while the owner is alive
+    release_days_after_death: int | None = Field(default=None, ge=1, le=36500)  # "N days after my death"
 
     @model_validator(mode="after")
     def _letter(self):
@@ -46,6 +47,8 @@ class EntryIn(BaseModel):
                     raise ValueError("Choose the date the letter opens")
                 if self.release_on_death:
                     raise ValueError("A letter opens either on a date or after your death, not both")
+            if self.release_days_after_death and not self.release_on_death:
+                raise ValueError("'Days after death' is only for letters that open after your death")
             if self.release_on is not None and self.release_on < today():
                 raise ValueError("The opening date cannot be in the past")
         if not normalize(self.text):
@@ -75,7 +78,8 @@ def entry_summary(e: Entry) -> dict:
     }
     if isinstance(e, LetterEntry):
         out.update(recipient=e.recipient_handle, release_on=e.release_on.isoformat() if e.release_on else None,
-                   release_on_death=e.release_on_death, deliver_while_alive=e.deliver_while_alive)
+                   release_on_death=e.release_on_death, deliver_while_alive=e.deliver_while_alive,
+                   release_days_after_death=e.release_days_after_death)
     return out
 
 
@@ -140,7 +144,8 @@ def create(body: EntryIn, owner: User = Depends(require_living_owner), db: Sessi
         entry, result = vault_service.create_entry(
             db, owner, title=body.title, text=body.text, entry_date=body.entry_date, mode_key=body.mode,
             kind=body.kind, recipient_handle=body.recipient, release_on=body.release_on,
-            release_on_death=body.release_on_death, deliver_while_alive=body.deliver_while_alive)
+            release_on_death=body.release_on_death, deliver_while_alive=body.deliver_while_alive,
+            release_days_after_death=body.release_days_after_death)
     except (ValueError, VaultSealedError) as exc:
         raise HTTPException(400, str(exc))
     out = {"entry": with_recipient_name(entry_detail(entry), recipient_names(db, owner)),
@@ -157,7 +162,7 @@ def _deliver_now(db: Session, owner: User, entry) -> dict:
 
     if not entry.deliver_while_alive or entry.release_on > today():
         return {"status": "scheduled", "opens_on": entry.release_on.isoformat() if entry.release_on else None,
-                "after_death": bool(entry.release_on_death)}
+                "after_death": bool(entry.release_on_death), "days_after_death": entry.release_days_after_death}
     try:
         notify.notify_owner_letters(db, owner)
     except Exception as exc:
@@ -172,7 +177,7 @@ def letter_delivery(db: Session, owner: User, entry) -> dict:
 
     if not entry.deliver_while_alive or entry.release_on > today():
         return {"status": "scheduled", "opens_on": entry.release_on.isoformat() if entry.release_on else None,
-                "after_death": bool(entry.release_on_death)}
+                "after_death": bool(entry.release_on_death), "days_after_death": entry.release_days_after_death}
     n = db.scalars(select(EmailNotice).where(EmailNotice.owner_id == owner.id, EmailNotice.entry_id == int(entry.id),
                                              EmailNotice.kind == "letter_released")
                    .order_by(EmailNotice.id.desc())).first()

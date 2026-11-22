@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint, event
+from sqlalchemy import Boolean, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint, event
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -48,6 +48,10 @@ class User(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     death_triggered_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     default_writing_mode: Mapped[str] = mapped_column(String(20), default="verbatim")
+    # Beneficiary: email me when a letter opens (the letter is on the home page either way).
+    email_letters: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Owner's consent: may the AI assistant answer beneficiaries' questions from the entries the policy allows?
+    allow_ai_answers: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
@@ -71,6 +75,7 @@ class EntryRow(Base):
     release_on: Mapped[str | None] = mapped_column(String(10), nullable=True)
     release_on_death: Mapped[bool] = mapped_column(Boolean, default=False)
     deliver_while_alive: Mapped[bool] = mapped_column(Boolean, default=False)
+    release_days_after_death: Mapped[int | None] = mapped_column(Integer, nullable=True)
     prev_hash: Mapped[str] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64))
 
@@ -159,6 +164,28 @@ class DeathReport(Base):
     activates_at: Mapped[str] = mapped_column(String(40), index=True)
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)  # pending|cancelled|withdrawn|activated
     closed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Review by an MMK reviewer (DEATH_REVIEW=admin): who decided, when and why; a beneficiary's dispute.
+    reviewer_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reviewed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    disputed_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    dispute_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class DeathEvidence(Base):
+    """A document the executor uploaded with a report (e.g. a death certificate). Stored encrypted, never public."""
+
+    __tablename__ = "death_evidence"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    report_id: Mapped[int] = mapped_column(ForeignKey("death_reports.id"), index=True)
+    uploaded_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    filename: Mapped[str] = mapped_column(String(200))
+    content_type: Mapped[str] = mapped_column(String(60))
+    size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
 class QAMessage(Base):

@@ -94,6 +94,14 @@ LATER_COLUMNS = (
     ("entries", "deliver_while_alive", "BOOLEAN DEFAULT FALSE", None),
     ("email_notices", "next_attempt_at", "VARCHAR(40)", None),
     ("email_notices", "idempotency_key", "VARCHAR(120)", None),
+    ("entries", "release_days_after_death", "INTEGER", None),
+    ("users", "email_letters", "BOOLEAN DEFAULT TRUE", None),
+    ("users", "allow_ai_answers", "BOOLEAN DEFAULT TRUE", None),
+    ("death_reports", "reviewer_id", "INTEGER", None),
+    ("death_reports", "reviewed_at", "VARCHAR(40)", None),
+    ("death_reports", "decision_note", "TEXT", None),
+    ("death_reports", "disputed_by", "INTEGER", None),
+    ("death_reports", "dispute_reason", "TEXT", None),
 )
 
 

@@ -41,7 +41,7 @@ export default function Layout() {
   const toggleCompact = () => setCompact((c) => { try { localStorage.setItem('mmk.sidebar', c ? 'full' : 'compact') } catch { /* private mode */ } return !c })
   const signOut = () => { setConfirmOut(false); logout(); navigate('/login') }
   const opened = user?.owner?.death_triggered
-  const nav = user?.role === 'owner' ? OWNER_NAV
+  const nav = user?.role === 'owner' ? (user.is_reviewer ? [...OWNER_NAV, ['/review', 'Review reports', 'access']] : OWNER_NAV)
     : BENEFICIARY_NAV.filter(([to]) => opened || to !== '/assistant')
   const sealed = user?.role === 'owner' ? user?.death_triggered_at : user?.owner?.death_triggered
 

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
-import { ExecutorPanel } from '../components/Executor'
+import { DisputePanel, ExecutorPanel } from '../components/Executor'
 import { Alert, Card, PageHeader, Spinner, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
@@ -38,6 +38,7 @@ export default function BeneficiaryHome() {
           </p>
         </Card>
         <ExecutorPanel />
+        <DisputePanel />
       </>
     )
   }

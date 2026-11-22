@@ -317,14 +317,21 @@ def notify_owner_of_report(db: Session, owner: User, executor: User, rep) -> Ema
     """Tell the owner that their executor reported their passing, and how to cancel it."""
     from datetime import datetime
 
-    when = datetime.fromisoformat(rep.activates_at).strftime("%B %d, %Y at %H:%M UTC")
+    from .death import NOT_SET
+
     url = settings.app_url.rstrip("/")
+    if rep.activates_at == NOT_SET:  # an MMK reviewer must check the evidence first
+        deadline = "Nothing happens until an MMK reviewer has checked the evidence. If this is not true, sign in"
+        deadline += " now"
+    else:
+        deadline = "If this is not true, sign in before " + \
+            datetime.fromisoformat(rep.activates_at).strftime("%B %d, %Y at %H:%M UTC")
     body = "\n".join([
         f"Dear {owner.display_name.split()[0]},",
         "",
         f"{executor.display_name}, the executor you chose on MMK, has reported that you have passed away.",
         "",
-        f"If this is not true, sign in before {when} and press \"I'm still here\" to cancel it:",
+        f"{deadline} and press \"I'm still here\" to cancel it:",
         "",
         f"    {url}/login",
         "",
@@ -341,6 +348,47 @@ def notify_owner_of_report(db: Session, owner: User, executor: User, rep) -> Ema
     db.flush()
     audit.record(db, owner.id, None, f"notify.owner.{notice.status}", {"kind": "report_to_owner"}, commit=False)
     return notice
+
+
+def _notice_to(db: Session, owner: User, person: User, subject: str, body: str, kind: str) -> EmailNotice:
+    notice = EmailNotice(owner_id=owner.id, beneficiary_id=person.id, to_email=person.email, subject=subject,
+                         body=body, kind=kind, status="queued", error="", attempts=0)
+    db.add(notice)
+    _send(notice)
+    db.flush()
+    audit.record(db, owner.id, None, f"notify.{kind}.{notice.status}", {"to": person.id}, commit=False)
+    return notice
+
+
+def notify_reviewers(db: Session, owner: User, rep, disputed: bool = False) -> list[EmailNotice]:
+    """Tell MMK reviewers that a report needs a decision. No diary content; the owner is named so it can be found."""
+    from .death import is_reviewer, reviewer_emails
+
+    url = settings.app_url.rstrip("/")
+    people = [u for u in db.scalars(select(User).where(User.role == "owner")).all()
+              if u.email.lower() in reviewer_emails() and is_reviewer(u) and u.id != owner.id]
+    what = "was disputed by a beneficiary" if disputed else "was reported and needs review"
+    body = "\n".join([
+        "Hello,", "",
+        f"A report of the passing of {owner.display_name} on MMK {what}.", "",
+        "Review it, with the documents that were uploaded, here:", "", f"    {url}/review", "",
+        "Nothing is released until a reviewer approves it and the waiting period ends without a dispute.", "", "MMK"])
+    return [_notice_to(db, owner, p, "An MMK report needs review", body, "review_request") for p in people]
+
+
+def notify_owner_of_verification(db: Session, owner: User, rep) -> EmailNotice:
+    from datetime import datetime
+
+    url = settings.app_url.rstrip("/")
+    when = datetime.fromisoformat(rep.activates_at).strftime("%B %d, %Y at %H:%M UTC")
+    body = "\n".join([
+        f"Dear {owner.display_name.split()[0]},", "",
+        "An MMK reviewer has checked the report of your passing and the documents sent with it.", "",
+        f"If this is not true, sign in before {when} and press \"I'm still here\" to cancel it:", "",
+        f"    {url}/login", "",
+        "If nothing is cancelled or disputed by then, your vault will be sealed and your legacy policy applied,",
+        "as you arranged.", "", "MMK"])
+    return _notice_to(db, owner, owner, "A report of your passing was verified on MMK", body, "report_verified")
 
 
 def retry(db: Session, owner: User, notice_id: int) -> EmailNotice:
@@ -480,6 +528,8 @@ def notify_owner_letters(db: Session, owner: User) -> int:
         for e in _released_letters(db, owner, engine, ben, vault):
             if (ben.id, int(e.id)) in told:
                 continue
+            if ben.email_letters is False and ben.password_hash is not None:
+                continue  # they asked for no letter emails; the letter is on their home page
             invite = None
             if ben.password_hash is None:
                 invite = new_code()

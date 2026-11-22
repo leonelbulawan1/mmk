@@ -4,7 +4,8 @@ import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, Card, LevelBadge, PageHeader, useAsync } from '../components/ui'
 
-const SUGGESTIONS = ['What did she love cooking?', 'Tell me about family trips.', 'What happened in 2020?', 'What was she proud of?']
+const suggestionsFor = (first, isOwner) => [`What did ${first} love?`, 'Tell me about family trips.',
+  isOwner ? 'What did I write about this person?' : 'What did the letters to me say?', `What was ${first} proud of?`]
 
 function Answer({ text }) {
   // Turn [YYYY-MM-DD] citations into small date chips.
@@ -53,6 +54,14 @@ export default function Assistant() {
   }
 
   const ownerName = isOwner ? user.display_name : user.owner?.display_name
+  if (!isOwner && user.owner?.allow_ai_answers === false) {
+    return (
+      <>
+        <PageHeader eyebrow="ask gently" title="Ask MMK" />
+        <Card className="text-center text-ink-500">{ownerName} chose not to let the AI assistant answer questions about their diary. You can still read the letters and entries they shared with you.</Card>
+      </>
+    )
+  }
   if (!isOwner && !user.owner?.death_triggered) {
     return (
       <>
@@ -63,7 +72,7 @@ export default function Assistant() {
   }
   return (
     <>
-      <PageHeader eyebrow={isOwner ? 'see what they would see' : 'ask gently'} title={isOwner ? 'AI assistant preview' : 'Ask MMK'}
+      <PageHeader eyebrow={isOwner ? 'see what they would see' : 'ask gently'} title={isOwner ? 'AI assistant preview' : 'MMK AI Legacy Assistant'}
         subtitle={isOwner
           ? 'Ask questions exactly as a beneficiary will after your passing. The assistant only receives entries your policy permits for that person.'
           : `Ask about ${ownerName}'s life. Answers come only from what ${ownerName} chose to share, with the date of each memory.`} />
@@ -86,7 +95,7 @@ export default function Assistant() {
                   <p className="text-xl font-medium text-bark-500">What would you like to remember?</p>
                   {(!isOwner || asHandle) && (
                     <div className="mt-6 flex flex-wrap justify-center gap-2">
-                      {SUGGESTIONS.map((s) => <button key={s} className="btn-secondary text-xs" onClick={() => ask(s)}>{s}</button>)}
+                      {suggestionsFor((ownerName || 'they').split(' ')[0], isOwner).map((s) => <button key={s} className="btn-secondary text-xs" onClick={() => ask(s)}>{s}</button>)}
                     </div>
                   )}
                 </div>

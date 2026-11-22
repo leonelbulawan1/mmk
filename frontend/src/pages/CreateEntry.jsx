@@ -65,7 +65,7 @@ export default function CreateEntry() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const initialMode = MODES.some((m) => m.key === params.get('mode')) ? params.get('mode') : user.default_writing_mode || 'verbatim'
-  const blank = { title: '', text: '', entry_date: today(), kind: 'text', recipient: '', release_on: '', release_on_death: false, opens: 'date' }
+  const blank = { title: '', text: '', entry_date: today(), kind: 'text', recipient: '', release_on: '', release_on_death: false, opens: 'date', days_after: '' }
   // A draft left from earlier (navigated away, refreshed, browser closed while "Keep me signed in").
   const [draft] = useState(() => {
     const d = draftStore.get(user.id)
@@ -185,7 +185,8 @@ export default function CreateEntry() {
       // The date is always today (in this device's time zone); letters are sent as written.
       const body = { title: form.title, text: form.text, entry_date: today(), mode: form.kind === 'letter' ? 'verbatim' : mode, kind: form.kind }
       if (form.kind === 'letter') Object.assign(body, form.opens === 'death'
-        ? { recipient: form.recipient, release_on: null, release_on_death: true, deliver_while_alive: false }
+        ? { recipient: form.recipient, release_on: null, release_on_death: true, deliver_while_alive: false,
+            release_days_after_death: Number(form.days_after) > 0 ? Number(form.days_after) : null }
         : { recipient: form.recipient, release_on: form.release_on || null, release_on_death: false, deliver_while_alive: true })
       const res = await api('/api/entries', { method: 'POST', body })
       draftStore.clear(user.id)
@@ -284,6 +285,14 @@ export default function CreateEntry() {
                 <label className="flex items-center gap-2 text-sm text-ink-600">
                   <input type="radio" name="opens" checked={!opensOnDate} onChange={() => setForm({ ...form, opens: 'death' })} /> After my death
                 </label>
+                {!opensOnDate && (
+                  <label className="flex items-center gap-2 text-sm text-ink-600">
+                    <input type="number" min="0" max="36500" inputMode="numeric" value={form.days_after} placeholder="0" aria-label="Days after my death"
+                      onChange={(e) => setForm({ ...form, days_after: e.target.value.replace(/\D/g, '').slice(0, 5) })}
+                      className="w-20 rounded-lg border border-cream-300 bg-white/80 px-2 py-1 text-sm text-ink-700 focus:border-gold-500 focus:outline-none" />
+                    days after
+                  </label>
+                )}
               </div>
             </Row>
           )}
@@ -293,7 +302,9 @@ export default function CreateEntry() {
                 ? (form.release_on === today()
                   ? <>{recipientName} gets it as soon as you save: an email, and the letter on their MMK home page.</>
                   : form.release_on ? <>On {fmtDate(form.release_on)}, {recipientName} gets an email and the letter appears on their MMK home page.</> : null)
-                : <>{recipientName} can read it only after your death, as your legacy policy allows.</>}
+                : Number(form.days_after) > 0
+                  ? <>{recipientName} can read it {form.days_after} day{Number(form.days_after) === 1 ? '' : 's'} after your death, as your legacy policy allows.</>
+                  : <>{recipientName} can read it only after your death, as your legacy policy allows.</>}
             </p>
           )}
 
@@ -362,7 +373,7 @@ export default function CreateEntry() {
         <dl className="mb-4 grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1 text-sm">
           {isLetter && <><dt className="text-ink-400">To</dt><dd>{recipientName}</dd></>}
           <dt className="text-ink-400">Title</dt><dd>{form.title.trim() || <span className="text-ink-400">No title</span>}</dd>
-          {isLetter && <><dt className="text-ink-400">Opens</dt><dd>{opensOnDate ? (form.release_on === today() ? 'Today, as soon as you save' : fmtDate(form.release_on)) : 'After your death'}</dd></>}
+          {isLetter && <><dt className="text-ink-400">Opens</dt><dd>{opensOnDate ? (form.release_on === today() ? 'Today, as soon as you save' : fmtDate(form.release_on)) : Number(form.days_after) > 0 ? `${form.days_after} days after your death` : 'After your death'}</dd></>}
           {!isLetter && <><dt className="text-ink-400">Mode</dt><dd>{current.label}</dd></>}
           <dt className="text-ink-400">Length</dt><dd>{words} words</dd>
         </dl>

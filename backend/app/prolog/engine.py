@@ -17,7 +17,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Iterable
 
@@ -66,7 +66,7 @@ def _run_wasm(facts: list[str], goal: str) -> str:
 
 
 def build_facts(entries: Iterable[Entry], protocol: Protocol, beneficiaries: Iterable[str],
-                death_triggered: bool) -> list[str]:
+                death_triggered: bool, death_date: date | None = None) -> list[str]:
     facts: list[str] = []
     for handle in beneficiaries:
         facts.append(f"beneficiary({pl_atom(handle)}).")
@@ -80,7 +80,12 @@ def build_facts(entries: Iterable[Entry], protocol: Protocol, beneficiaries: Ite
             facts.append(f"letter_to({int(e.id)}, {pl_atom(e.recipient_handle)}).")
             if e.release_on is not None:
                 facts.append(f"letter_cond({int(e.id)}, date({pl_date(e.release_on)})).")
-            if e.release_on_death:
+            days = getattr(e, "release_days_after_death", None)
+            if days and death_triggered and death_date is not None:
+                # "N days after my death": once the death date is known, that date is the only condition
+                # (conditions are alternatives, so a plain `death` condition would open it at once).
+                facts.append(f"letter_cond({int(e.id)}, date({pl_date(death_date + timedelta(days=days))})).")
+            elif e.release_on_death:
                 facts.append(f"letter_cond({int(e.id)}, death).")
             if e.deliver_while_alive:
                 facts.append(f"deliver_while_alive({int(e.id)}).")
@@ -123,13 +128,14 @@ class AccessEngine:
     """Facade used by the service layer."""
 
     def __init__(self, entries: Iterable[Entry], protocol: Protocol, beneficiaries: Iterable[str],
-                 death_triggered: bool, assume_death: bool = False):
+                 death_triggered: bool, assume_death: bool = False, death_date: date | None = None):
         """``assume_death`` evaluates "as if after the owner's passing" - only for the owner's own
         previews (access matrix, assistant preview), never for a beneficiary's real access."""
         self._entries = tuple(entries)
-        self._facts = build_facts(self._entries, protocol, tuple(beneficiaries), death_triggered or assume_death)
+        self._facts = build_facts(self._entries, protocol, tuple(beneficiaries), death_triggered or assume_death,
+                                  death_date)
         self._real_facts = (self._facts if not assume_death or death_triggered
-                            else build_facts(self._entries, protocol, tuple(beneficiaries), death_triggered))
+                            else build_facts(self._entries, protocol, tuple(beneficiaries), death_triggered, death_date))
 
     @property
     def facts(self) -> tuple[str, ...]:

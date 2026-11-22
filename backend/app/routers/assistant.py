@@ -49,6 +49,9 @@ def info(user: User = Depends(current_user)):
 @router.post("/assistant/ask")
 def ask(body: AskIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     owner, handle = _owner_and_handle(db, user, body.as_handle)
+    if owner.allow_ai_answers is False:
+        raise HTTPException(403, f"{owner.display_name} chose not to let the AI assistant answer questions about their "
+                                 "diary. Letters and entries they shared can still be read directly.")
     try:
         answer = qa_service.ask(db, owner, user, handle, body.question, today())
     except PrologError as exc:

@@ -128,3 +128,15 @@ Then set `APP_URL` and `CORS_ORIGINS` on `mmk-api` to `https://YOUR-PROJECT-ID.w
 | No verification email | Spam folder; the sender in `SMTP_FROM` must be the one confirmed in Brevo; Brevo → **Transactional → Logs** shows each email. |
 | API logs show a database connection error | Re-copy the Neon connection string into `DATABASE_URL`. |
 | Everyone is signed out after a redeploy | `JWT_SECRET` was removed. The Blueprint generates it once; do not delete it. |
+
+
+## Reviewers for reports of death
+
+With `DEATH_REVIEW=admin` (the default), a report of an owner's passing waits until an MMK reviewer approves it.
+
+1. The reviewer creates an account on the website (Create account) with their own email, and verifies it.
+2. In Render → **mmk-api** → **Environment**, set `ADMIN_EMAILS` to that email (several: separate with commas). Save.
+3. After the redeploy the reviewer sees **Review reports** in the menu.
+
+Use someone who is not the diary owner (a teacher or a team member for the demo). For a quick demo you can set
+`DEATH_REPORT_WAIT_MINUTES` to a few minutes.

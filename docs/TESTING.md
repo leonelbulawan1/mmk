@@ -58,3 +58,18 @@ Run with `cd backend && python -m pytest`. There are 195 tests. Each test uses a
 | Another runner already claimed the email | not sent twice |
 | Same letter queued twice | refused by the unique `idempotency_key` |
 | `EMAIL_MODE=sandbox` | only `EMAIL_ALLOWLIST` addresses are emailed; others `sandboxed` |
+
+## Death verification, letter schedules, consent (`test_death_review.py`, `test_letter_days_after_death.py`, `test_settings_consent.py`)
+
+| Case | Expected |
+|---|---|
+| Report without review | never activates by itself |
+| Evidence → review → approve (password) → waiting period → activation | vault sealed only after the waiting period |
+| Approve without evidence | refused |
+| Beneficiary dispute | report cannot activate; reviewer rejects → nothing released |
+| Non-reviewer, owner, own case | refused |
+| Two decisions on one case | the second is refused |
+| Upload a non-PDF/JPEG/PNG or over 5 MB | refused; stored files are encrypted |
+| Letter "30 days after my death" | closed on day 29, open on day 30 |
+| Owner turns off AI answers | assistant refuses; change in audit log |
+| Beneficiary turns off letter emails | no email; letter still on the home page |

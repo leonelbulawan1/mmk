@@ -29,15 +29,15 @@ React (Vite, Tailwind) on Render static ──HTTPS/JSON──▶ FastAPI on Ren
 | Request | Status | Notes |
 |---|---|---|
 | Legacy preparation, per-beneficiary permissions, default deny, backend enforcement | **Exists** | Prolog decisions; "Access permissions" page shows what each person will get. |
-| Death reporting with evidence + administrator review (ACTIVE → DEATH_REPORTED → UNDER_REVIEW → VERIFIED → LEGACY_ACTIVE, DISPUTED/REJECTED) | **Partial** | Today: executor report + waiting period + owner can cancel. No evidence upload, no administrator role, no dispute. Needs a decision (§4). |
+| Death reporting with evidence + administrator review (ACTIVE → DEATH_REPORTED → UNDER_REVIEW → VERIFIED → LEGACY_ACTIVE, DISPUTED/REJECTED) | **Done** (§4) | `DEATH_REVIEW=admin`: reviewer accounts from `ADMIN_EMAILS`, encrypted evidence, dispute, owner cancel, race-safe steps. |
 | Gmail delivery with retries, idempotency, job locking, crash recovery | **Done in this phase** (§3) | Through the Gmail relay (sends from a real Gmail account) or Brevo. |
 | Gmail **API** with OAuth | **Not yet** | See §5: works, but has a token-expiry trap on Google's "Testing" apps. |
-| Letter schedules: N days after activation, anniversaries | **Missing** | Needs new release options; planned for phase 3. |
+| Letter schedules: N days after activation, anniversaries | **Done: N days after death.** Not done: yearly repeats | A letter opens once; a yearly repeat of the same letter was left out. |
 | Letter text inside the email | **By design not** | Only a link. Could become a per-letter choice the owner makes (with a warning). |
 | AI with retrieval limited to permitted content and citations | **Exists** | Tool-based retrieval over Prolog-authorized views (works like RAG without a vector store; the diary is small). A real model is used when `LLM_PROVIDER=anthropic` or `openai` and a key is set. |
 | Answering questions sent by email | **Kept disabled** | An email address is not proof of identity and email is easy to spoof; answers would leave the secure portal. Requirements to enable it safely are in §6. |
 | Separate test environment that never emails real people | **Done in this phase** | `EMAIL_MODE=sandbox` + `EMAIL_ALLOWLIST`. |
-| Consent screens (AI use, beneficiary access, posthumous release) | **Partial** | Disclaimers exist; an explicit consent record is planned for phase 3. Legal review is needed for the Data Privacy Act of 2012; nothing here claims compliance. |
+| Consent screens (AI use, beneficiary access, posthumous release) | **Partial** | Owner's consent for AI answers (Settings, recorded in the audit log); beneficiaries choose letter emails. Legal review is still needed for the Data Privacy Act of 2012; nothing here claims compliance. |
 
 ## 3. Phase completed now: reliable email outbox
 
@@ -50,9 +50,9 @@ React (Vite, Tailwind) on Render static ──HTTPS/JSON──▶ FastAPI on Ren
 * Database: two new nullable columns on `email_notices` (`next_attempt_at`, `idempotency_key`) and two indexes, added automatically at start-up. Nothing is dropped or rewritten.
 * Tests: `tests/test_outbox.py` (7 tests), on SQLite and PostgreSQL.
 
-## 4. Death verification: proposed design (needs your decision)
+## 4. Death verification (built)
 
-Proposed states, stored on a new `legacy_cases` table linked to the existing `death_reports`:
+States, stored on the existing `death_reports` table (new nullable columns: reviewer, decision note, dispute) with documents in `death_evidence`:
 
 ```
 ACTIVE ─report─▶ DEATH_REPORTED ─reviewer opens─▶ UNDER_REVIEW ─approve─▶ VERIFIED ─waiting period ends,
@@ -60,8 +60,8 @@ ACTIVE ─report─▶ DEATH_REPORTED ─reviewer opens─▶ UNDER_REVIEW ─ap
    └──── owner cancels ─┘                              └──dispute▶ DISPUTED ─resolve▶ UNDER_REVIEW
 ```
 
-* Evidence (death certificate scan) stored in the database as an encrypted blob, max 5 MB, PDF/JPEG/PNG only, never public; Render's free plan has no persistent disk.
-* Reviewer = a new `admin` role, created from the command line only (never from the website). Approval needs the reviewer's password again; every transition is one database transaction with a version check, and is written to the hash-chained audit log.
+* Evidence (death certificate scan) stored in the database encrypted (Fernet; key `EVIDENCE_KEY`, or derived from `JWT_SECRET`), max 5 MB, 5 files, PDF/JPEG/PNG judged by the file's bytes, never public. Every viewing is in the audit log.
+* Reviewer = an ordinary verified account whose email is in `ADMIN_EMAILS` (set on the server; Render's free plan has no shell for a command-line tool). A reviewer cannot decide on a case about their own account. Approval needs evidence and the reviewer's password again; every transition is one conditional update on the current status, written to the hash-chained audit log.
 * The owner is emailed at every step and can still cancel until LEGACY_ACTIVE; any beneficiary can dispute during the waiting period.
 * AI is never part of this decision.
 
@@ -84,11 +84,22 @@ To enable safely it would need: signed reply addresses per conversation (`reply+
 | `BREVO_API_KEY`, `SMTP_*`, `SMTP_FROM` | other email options |
 | `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL` | `offline` (default), `anthropic` or `openai` |
 | `APP_TIMEZONE` | default `Asia/Manila` |
+| `DEATH_REVIEW` | `admin` (default: a reviewer must approve) or `waiting_period` |
+| `ADMIN_EMAILS` | reviewer accounts' emails |
+| `EVIDENCE_KEY` | optional Fernet key for evidence (else derived from `JWT_SECRET`) |
 
-## 8. Next phases (in order)
+## 8. Status of the phases
 
-1. **Death verification with review** (§4), after your decisions.
-2. **Letter schedules**: "N days after activation", "every year on a date"; owner's per-letter choice "include the letter text in the email".
-3. **Consent records** for AI use and posthumous release, shown in Settings with a revoke option while alive.
-4. **Gmail API** sender (§5), optional.
-5. **Beneficiary portal polish**: suggested questions, conversation history, notification preferences.
+| Phase | Status |
+|---|---|
+| 1 Audit | Done |
+| 2 Design | Done (this document) |
+| 3 Legacy preparation and death verification | Done |
+| 4 Email delivery and schedules | Done with the Gmail relay / Brevo; letters "N days after my death". Not done: Gmail API sender (optional, §5), yearly repeats |
+| 5 Beneficiary portal | Done: letters, dispute, email preference, assistant |
+| 6 AI Legacy Assistant | Done in code (permission-checked, cited, consent setting, suggested questions). A real model needs `LLM_PROVIDER` and `LLM_API_KEY`; without them it runs offline |
+| 7 Questions by email | Kept off on purpose (§6) |
+| 8 UI/UX | Done |
+| 9 Testing | Done: full suite on SQLite and PostgreSQL, browser run of the review flow |
+
+Still a human task: legal review (Data Privacy Act of 2012), choosing reviewers, and the Google/AI accounts.
