@@ -4,13 +4,14 @@ import { reasonText } from './access'
 import { Card, LevelBadge, Spinner, useAsync } from './ui'
 
 /** For one entry: what each beneficiary will be able to read after the owner's passing (decided by Prolog). */
-export default function WhoCanRead({ entryId, sealed }) {
+export default function WhoCanRead({ entryId, sealed, bare = false }) {
   const access = useAsync(() => api(`/api/entries/${entryId}/access`), [entryId])
   const people = access.data?.people || []
+  const Wrap = bare ? 'div' : Card
   return (
-    <Card className="space-y-3 text-sm">
+    <Wrap className="space-y-3 text-sm">
       <div>
-        <h2 className="text-lg font-semibold">{sealed ? 'Who can read this' : 'Who can read this after you’re gone'}</h2>
+        <h2 className={bare ? 'text-sm font-semibold text-ink-700' : 'text-lg font-semibold'}>{sealed ? 'Who can read this' : 'Who can read this after you’re gone'}</h2>
         {!sealed && <p className="mt-1 text-xs text-ink-400">While you are alive, no one can read your diary.</p>}
       </div>
       {access.loading ? <Spinner label="Checking access" /> : access.error ? <p className="text-rose-600">{access.error}</p> : people.length === 0 ? (
@@ -34,6 +35,6 @@ export default function WhoCanRead({ entryId, sealed }) {
           <Link to="/access" className="text-bark-500 hover:underline">All permissions →</Link>
         </div>
       )}
-    </Card>
+    </Wrap>
   )
 }
