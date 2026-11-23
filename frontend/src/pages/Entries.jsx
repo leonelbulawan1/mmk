@@ -25,7 +25,7 @@ function DraftMenu({ editTo, onDelete, label }) {
         <NavIcon name="more" size={20} />
       </button>
       {open && (
-        <div role="menu" className="absolute left-0 top-11 z-20 w-40 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">
+        <div role="menu" className="absolute right-0 top-11 z-20 w-40 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">
           <Link role="menuitem" to={editTo} className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-ink-700 hover:bg-cream-200 focus:bg-cream-200 focus:outline-none">
             <NavIcon name="edit" size={16} />Edit
           </Link>
@@ -145,8 +145,6 @@ export default function Entries() {
                 const saved = d.saved_at ? new Date(d.saved_at) : null
                 return (
                   <li key={d.id} className="card flex items-center gap-3 border-dashed p-4 sm:gap-5 sm:p-5">
-                    <DraftMenu editTo={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} onDelete={() => setToDelete(d)}
-                      label={d.form.title?.trim() || 'Untitled draft'} />
                     <Link to={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} className="group min-w-0 flex-1">
                       <h3 className="text-lg font-semibold group-hover:text-bark-500 sm:text-xl">{d.form.title?.trim() || 'Untitled'}</h3>
                       <p className="mt-1 line-clamp-1 text-ink-500">{d.form.text?.trim() || '…'}</p>
@@ -155,6 +153,8 @@ export default function Entries() {
                         {saved && <>Saved {saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</>}
                       </p>
                     </Link>
+                    <DraftMenu editTo={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} onDelete={() => setToDelete(d)}
+                      label={d.form.title?.trim() || 'Untitled draft'} />
                   </li>
                 )
               })}
