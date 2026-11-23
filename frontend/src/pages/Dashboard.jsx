@@ -72,8 +72,8 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-2">
-        <Section className="min-w-0" title="Recent pages" bodyClassName="p-0"
-          actions={<Link to="/entries" className="link">All entries →</Link>}>
+        <Section className="min-w-0" title="Recent entries" bodyClassName="p-0"
+          actions={<Link to="/entries" className="link">View all →</Link>}>
           {data.recent.length === 0 ? (
             <div className="p-6">
               <Empty title="Your diary is empty" action={!sealed && <Link to="/entries/new" className="btn-primary">Write your first entry</Link>}>
