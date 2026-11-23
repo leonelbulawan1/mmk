@@ -84,8 +84,8 @@ export default function Dashboard() {
                         <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { month: 'short' })} {String(d.getFullYear()).slice(2)}</p>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-ink-700 group-hover:text-bark-500"><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</p>
-                        <p className="truncate text-sm text-ink-400">{e.snippet}</p>
+                        <p className="truncate font-semibold text-ink-700 group-hover:text-bark-500"><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title?.trim() || (e.snippet || '').split(/\s+/).slice(0, 7).join(' ') || 'Untitled'}</p>
+                        <p className="truncate text-sm text-ink-400">{e.title?.trim() ? e.snippet : (e.snippet || '').split(/\s+/).slice(7).join(' ')}</p>
                       </div>
                       {e.kind === 'letter' && <span className="hidden shrink-0 sm:inline"><Tag>Letter to {e.recipient_name || e.recipient}</Tag></span>}
                     </Link>
