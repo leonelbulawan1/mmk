@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from './auth'
 import Layout from './components/Layout'
 import { Spinner } from './components/ui'
@@ -37,6 +37,12 @@ function PublicOnly({ children }) {
   return children
 }
 
+// Writing now lives under Diary entries; old /write links (bookmarks, emails) keep working.
+function WriteRedirect() {
+  const { search } = useLocation()
+  return <Navigate to={`/entries/new${search}`} replace />
+}
+
 export default function App() {
   return (
     <Suspense fallback={<Spinner />}>
@@ -57,9 +63,9 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/review" element={<Review />} />
         <Route path="/entries" element={<Entries />} />
-        <Route path="/entries/new" element={<Navigate to="/write" replace />} />
+        <Route path="/entries/new" element={<CreateEntry />} />
         <Route path="/entries/:id" element={<EntryDetail />} />
-        <Route path="/write" element={<CreateEntry />} />
+        <Route path="/write" element={<WriteRedirect />} />
         <Route path="/beneficiaries" element={<Beneficiaries />} />
         <Route path="/policy" element={<PolicyEditor />} />
         <Route path="/access" element={<AccessPermissions />} />

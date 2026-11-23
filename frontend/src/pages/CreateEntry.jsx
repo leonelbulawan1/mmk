@@ -74,7 +74,12 @@ export default function CreateEntry() {
   const [mode, setMode] = useState(draft?.mode || initialMode)
   const [showPreview, setShowPreview] = useState(false)
   const beneficiaries = useAsync(() => api('/api/beneficiaries'))
-  const [form, setForm] = useState(draft ? { ...blank, ...draft.form } : blank)
+  // "New letter" on Diary entries opens the composer with ?kind=letter (a draft keeps its text either way).
+  const kindParam = params.get('kind') === 'letter' ? 'letter' : params.get('kind') === 'text' ? 'text' : null
+  const [form, setForm] = useState(() => {
+    const start = draft ? { ...blank, ...draft.form } : blank
+    return kindParam ? { ...start, kind: kindParam } : start
+  })
   const [restored, setRestored] = useState(!!draft)
   const [draftSaved, setDraftSaved] = useState(null)   // time the draft was last stored on this device
   const [confirming, setConfirming] = useState(false)   // final check before the permanent save
@@ -214,6 +219,7 @@ export default function CreateEntry() {
 
   return (
     <>
+      <Link to="/entries" className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-ink-400 hover:text-ink-700">← Diary entries</Link>
       <PageHeader title={isLetter ? 'New letter' : 'New entry'} />
       <form id="composer" onSubmit={askToSave} className={focus ? 'fixed inset-0 z-40 overflow-y-auto bg-cream-50 px-2 py-4 sm:px-6 sm:py-8' : 'mx-auto max-w-4xl'}>
         <div className={`card overflow-hidden p-0 ${focus ? 'mx-auto max-w-3xl' : ''}`}>

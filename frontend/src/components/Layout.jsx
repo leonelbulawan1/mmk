@@ -8,7 +8,6 @@ import NavIcon from './NavIcon'
 const OWNER_NAV = [
   ['/dashboard', 'Dashboard', 'dashboard'],
   ['/entries', 'Diary entries', 'entries'],
-  ['/write', 'Write', 'write'],
   ['/beneficiaries', 'Beneficiaries', 'people'],
   ['/policy', 'Legacy policy', 'policy'],
   ['/access', 'Access permissions', 'access'],

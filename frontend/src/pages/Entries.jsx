@@ -49,7 +49,10 @@ export default function Entries() {
   return (
     <>
       <PageHeader eyebrow="your pages" title="Diary entries" subtitle="Every entry is kept exactly as first written. Corrections are added as revisions."
-        actions={!user.death_triggered_at && <Link to="/write" className="btn-primary"><NavIcon name="write" size={16} />New entry</Link>} />
+        actions={!user.death_triggered_at && <>
+          <Link to="/entries/new?kind=letter" className="btn-secondary"><NavIcon name="letters" size={16} />New letter</Link>
+          <Link to="/entries/new" className="btn-primary"><NavIcon name="write" size={16} />New entry</Link>
+        </>} />
 
       <form role="search" className="card mb-4 flex flex-col gap-3 p-4 sm:flex-row" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
         <div className="relative flex-1">
@@ -96,7 +99,7 @@ export default function Entries() {
         </div>
       )}
       {state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner /> : shown.length === 0 ? (
-        <Empty title="Nothing here yet" action={!user.death_triggered_at && <Link to="/write" className="btn-primary">Write an entry</Link>}>
+        <Empty title="Nothing here yet" action={!user.death_triggered_at && <Link to="/entries/new" className="btn-primary">Write an entry</Link>}>
           {params.get('q') || topic || kind || reviewOnly ? 'No entries match these filters.' : 'Your first page is waiting.'}
         </Empty>
       ) : (

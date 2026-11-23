@@ -27,7 +27,7 @@ export default function Dashboard() {
     <>
       <PageHeader eyebrow={greeting + ','} title={data.owner}
         subtitle={data.death_triggered_at ? 'Your vault is sealed. Your legacy policy is now in effect.' : 'What would you like to remember today?'}
-        actions={!data.death_triggered_at && <Link to="/write" className="btn-primary"><NavIcon name="write" size={16} />New entry</Link>} />
+        actions={!data.death_triggered_at && <Link to="/entries/new" className="btn-primary"><NavIcon name="write" size={16} />New entry</Link>} />
 
       {hasDraft && !data.death_triggered_at && (
         <Card className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -36,7 +36,7 @@ export default function Dashboard() {
             <p className="truncate font-semibold">{draft.form.title?.trim() || draft.form.text.trim().slice(0, 80)}</p>
             {draft.saved_at && <p className="text-xs text-ink-400">Last saved {new Date(draft.saved_at).toLocaleString()}</p>}
           </div>
-          <Link to="/write" className="btn-primary"><NavIcon name="write" size={16} />Continue writing</Link>
+          <Link to="/entries/new" className="btn-primary"><NavIcon name="write" size={16} />Continue writing</Link>
         </Card>
       )}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -53,7 +53,7 @@ export default function Dashboard() {
             <Link to="/entries" className="text-sm text-bark-500 hover:underline">All entries →</Link>
           </div>
           {data.recent.length === 0 ? (
-            <Empty title="Your diary is empty" action={<Link to="/write" className="btn-primary">Write your first entry</Link>}>
+            <Empty title="Your diary is empty" action={<Link to="/entries/new" className="btn-primary">Write your first entry</Link>}>
               Start with something small: what you ate, who you saw, what you hope for.
             </Empty>
           ) : (
