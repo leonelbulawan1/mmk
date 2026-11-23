@@ -10,3 +10,5 @@ __pycache__/
 .firebaserc
 .firebase/
 frontend/dist-web/
+frontend/test-results/
+frontend/playwright-report/

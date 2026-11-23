@@ -2,7 +2,7 @@
 
 > **Team:** Leonel C. Bulawan (Project Manager) · Gabriel E. Liray (Lead Developer) · Kean Jayvee B. Gito (QA/Tester) · Robylyn U. Flores (UI/UX Designer)
 
-Run with `cd backend && python -m pytest`. There are 195 tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
+Run with `cd backend && python -m pytest`. There are 257 backend tests. Each test uses a fresh temporary SQLite database and fictional people (Ana Villanueva and beneficiaries Carla, Ben and Dina). The Prolog and AI tests need `swipl`.
 
 | Required area | File | What is covered |
 |---|---|---|
@@ -73,3 +73,41 @@ Run with `cd backend && python -m pytest`. There are 195 tests. Each test uses a
 | Letter "30 days after my death" | closed on day 29, open on day 30 |
 | Owner turns off AI answers | assistant refuses; change in audit log |
 | Beneficiary turns off letter emails | no email; letter still on the home page |
+
+
+## Drafts, your data and account deletion (`tests/test_drafts_and_account.py`, `tests/test_letter_no_edit.py`)
+
+| Case | Expected |
+|---|---|
+| Save a draft, then sign in on a second device | The draft is there |
+| An older copy of a draft arrives after a newer one | The newer one is kept |
+| Another owner lists drafts | They see none of yours |
+| Download my data | One JSON file with profile, entries with revisions, beneficiaries, policy versions, drafts and activity log |
+| Delete account with a wrong password or phrase | Refused; nothing erased |
+| Delete account with the password and `DELETE MY ACCOUNT` | Owner, beneficiaries, entries, drafts and logs erased; old sessions stop working; the erasure permit is gone |
+| A beneficiary tries to delete their account | Refused (the owner removes beneficiaries) |
+| Delete a diary entry | Hidden everywhere; Vault integrity still verifies; its title is hidden in the chain view |
+| Delete or edit a letter | Refused |
+
+## Frontend tests
+
+Unit tests (Vitest): `cd frontend && npm test`
+
+| File | What is covered |
+|---|---|
+| `src/validation.test.js` | Every form rule and its message (email, new password, 6-digit code, handle, typed phrase) |
+| `src/api.test.js` | Plain error messages (no connection, server error without internal text, MMK's own messages, field validation); drafts saved on the device at once and sent to the server shortly after; sync keeps the newer copy and drops drafts deleted on another device |
+
+End-to-end tests (Playwright): `cd frontend && npx playwright install chromium && npm run test:e2e`.
+They start the API on a fresh SQLite database with the fictional demo data and open the real app in Chrome (desktop and phone sizes).
+
+| File | Flow |
+|---|---|
+| `e2e/auth.spec.js` | Sign-in validation, wrong password, sign in to the dashboard, privacy notice |
+| `e2e/writing.spec.js` | Write and save a diary entry; Discard keeps a draft that appears on a second device and can be deleted; a letter needs a recipient |
+| `e2e/entries.spec.js` | Tabs; diary entry window with Edit; deleting an entry keeps the vault verified; letters have no Edit |
+| `e2e/settings.spec.js` | Add beneficiary validation; Download my data |
+| `e2e/zz-delete-account.spec.js` | Delete account needs the password and phrase, then the account can't sign in |
+| `e2e/mobile.spec.js` | On a phone the dashboard and entry tabs fit the screen |
+
+All of these run on every push and pull request (`.github/workflows/tests.yml`): backend on SQLite and PostgreSQL, frontend unit tests, build and end-to-end tests.
