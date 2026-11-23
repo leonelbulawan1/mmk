@@ -186,8 +186,9 @@ export default function Entries() {
   const shown = sorted.slice(0, limit)
   const monthName = (ym) => new Date(ym + '-01T00:00').toLocaleString('en', { month: 'long', year: 'numeric' })
 
-  const rowMenu = (e) => user.death_triggered_at ? null : <CardMenu label={e.title || 'Untitled'} items={[
-    { label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }]} />
+  // Diary entries can be edited (each edit is kept as a revision); a sent letter cannot.
+  const rowMenu = (e) => user.death_triggered_at || isLetter(e) ? null : <CardMenu label={e.title || 'Untitled'} items={[
+    { label: 'Edit', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }]} />
   const canWrite = !user.death_triggered_at
   const ColumnHead = ({ icon, label, count, note }) => (
     <h2 className="mb-3 flex items-baseline gap-2 px-1 text-lg font-semibold text-ink-700">

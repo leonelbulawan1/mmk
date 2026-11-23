@@ -33,7 +33,7 @@ export default function EntryDetail() {
   const sealed = !!user.death_triggered_at
   // "Add revision" from the ⋮ menu in All entries opens the revision form straight away.
   useEffect(() => {
-    if (e && location.state?.revise && !sealed) { setDraft(e.current_text); setEditing(true) }
+    if (e && location.state?.revise && !sealed && e.kind !== 'letter') { setDraft(e.current_text); setEditing(true) }
   }, [e?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <Spinner />
@@ -43,7 +43,7 @@ export default function EntryDetail() {
     setBusy(true)
     try {
       setData(await api(`/api/entries/${id}/revisions`, { method: 'POST', body: { text, source } }))
-      setEditing(false); setMsg({ kind: 'success', text: 'Revision appended. The original is unchanged.' })
+      setEditing(false); setMsg({ kind: 'success', text: 'Saved. Your original words are kept under Original and Revisions.' })
     } catch (err) { setMsg({ kind: 'error', text: err.message }) } finally { setBusy(false) }
   }
   const acceptReview = () => revise(e.review.suggestions.map((op) => (op.op === 'equal' ? op.before : op.after)).join(''), 'review')
@@ -59,7 +59,7 @@ export default function EntryDetail() {
         meta={e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}
         actions={<>
           <Link to="/entries" className="btn-ghost">← All entries</Link>
-          {!sealed && !editing && <button className="btn-primary" onClick={() => { setDraft(e.current_text); setEditing(true); setView('current') }}><NavIcon name="edit" size={16} />Add a revision</button>}
+          {!sealed && !editing && e.kind !== 'letter' && <button className="btn-primary" onClick={() => { setDraft(e.current_text); setEditing(true); setView('current') }}><NavIcon name="edit" size={16} />Edit</button>}
         </>} />
       {msg.text && <div className="mb-4"><Alert kind={msg.kind || 'success'} onClose={() => setMsg({})}>{msg.text}</Alert></div>}
 
@@ -90,9 +90,9 @@ export default function EntryDetail() {
             ) : <p className="mb-3 text-xs text-ink-400">Exactly as first written · no revisions</p>}
             {editing ? (
               <div>
-                <textarea className="input paper-lines min-h-72 text-lg" value={draft} onChange={(ev) => setDraft(ev.target.value)} aria-label="Revision text" />
+                <textarea className="input paper-lines min-h-72 text-lg" value={draft} onChange={(ev) => setDraft(ev.target.value)} aria-label="Edit entry text" />
                 <div className="mt-3 flex gap-2">
-                  <button className="btn-primary" disabled={busy || !draft.trim()} onClick={() => revise(draft, e.pending_review ? 'review' : 'edit')}>Append revision</button>
+                  <button className="btn-primary" disabled={busy || !draft.trim()} onClick={() => revise(draft, e.pending_review ? 'review' : 'edit')}>Save changes</button>
                   <button className="btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
                 </div>
               </div>

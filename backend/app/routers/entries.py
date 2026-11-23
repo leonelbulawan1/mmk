@@ -199,6 +199,9 @@ def get_entry(entry_id: int, owner: User = Depends(require_owner), db: Session =
 @router.post("/entries/{entry_id}/revisions", status_code=201)
 def add_revision(entry_id: int, body: RevisionIn, owner: User = Depends(require_living_owner),
                  db: Session = Depends(get_db)):
+    found = vault_service.load_vault(db, owner).get(entry_id)
+    if found is not None and found.kind == "letter":
+        raise HTTPException(400, "A letter can't be edited once it is sent.")
     try:
         vault_service.append_revision(db, owner, entry_id, body.text, body.source)
     except KeyError:
