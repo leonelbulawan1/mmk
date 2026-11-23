@@ -7,19 +7,21 @@ import NavIcon from './NavIcon'
 export default function NewMenu({ label = 'New', icon = 'plus' }) {
   const location = useLocation()
   const [open, setOpen] = useState(false)
+  // Opened with the keyboard? Then move focus into the menu; with a mouse, nothing looks pre-selected.
+  const byKeyboard = useRef(false)
   const ref = useRef(null)
   useEffect(() => {
     if (!open) return undefined
     const away = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
     const key = (e) => { if (e.key === 'Escape') { setOpen(false); ref.current?.querySelector('button')?.focus() } }
     document.addEventListener('mousedown', away); document.addEventListener('keydown', key)
-    ref.current?.querySelector('[role=menuitem]')?.focus()
+    if (byKeyboard.current) ref.current?.querySelector('[role=menuitem]')?.focus()
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', key) }
   }, [open])
-  const item = 'flex items-start gap-3 px-4 py-3 hover:bg-cream-200 focus:bg-cream-200 focus:outline-none'
+  const item = 'flex items-start gap-3 px-4 py-3 hover:bg-cream-200 focus:outline-none focus-visible:bg-cream-200'
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open}
+      <button type="button" onClick={(e) => { byKeyboard.current = e.detail === 0; setOpen(!open) }} aria-haspopup="menu" aria-expanded={open}
         className="btn-primary">
         {icon === 'write' ? <NavIcon name="write" size={16} /> : <span aria-hidden className="text-lg leading-none">+</span>}{label}
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
