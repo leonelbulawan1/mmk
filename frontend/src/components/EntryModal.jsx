@@ -79,7 +79,7 @@ export function DraftModal({ draft, onClose, onDelete }) {
   const edit = () => { onClose(); navigate(`/entries/new?draft=${draft.id}${letter ? '&kind=letter' : ''}`, { state: { background: location } }) }
   return (
     <Dialog open wide closeButton onClose={onClose} eyebrow={letter ? 'Letter draft' : 'Diary draft'} title={draft.form.title?.trim() || 'Untitled'}
-      meta={saved && <>Last saved {saved.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · {time(draft.saved_at)} · only on this device</>}
+      meta={saved && <>Last saved {saved.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · {time(draft.saved_at)}</>}
       footer={<Actions onClose={onClose} onDelete={onDelete} onEdit={edit} editLabel="Continue writing" />}>
       <div className="max-w-2xl whitespace-pre-wrap text-lg leading-[1.8] text-ink-600">{draft.form.text?.trim() || <span className="text-ink-400">Nothing written yet.</span>}</div>
     </Dialog>

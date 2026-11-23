@@ -57,6 +57,23 @@ const STATUS_TEXT = {
   504: 'MMK took too long to respond. Try again in a moment.',
 }
 
+// Save a file the API returns (e.g. "Download my data") with the browser's download.
+export async function download(path, filename) {
+  const token = tokenStore.get()
+  let res
+  try { res = await fetch(`${BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }) }
+  catch { throw new ApiError(0, STATUS_TEXT[0]) }
+  if (!res.ok) {
+    const data = await res.json().catch(() => null)
+    throw new ApiError(res.status, (res.status < 500 && typeof data?.detail === 'string' && data.detail) || STATUS_TEXT[res.status] || STATUS_TEXT[500])
+  }
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export async function api(path, { method = 'GET', body, signal } = {}) {
   const headers = { 'Content-Type': 'application/json' }
   const token = tokenStore.get()
@@ -90,11 +107,11 @@ export const today = () => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 }
 
-// Unsaved Write-page drafts, one per user. Kept where the session token is kept: in sessionStorage
-// (gone when the tab closes) unless "Keep me signed in" was ticked. Signing out removes them.
+// Unsaved drafts. On this device they are kept where the session token is kept: in sessionStorage
+// (gone when the tab closes) unless "Keep me signed in" was ticked. Signing out removes this
+// device's copy; the server keeps them, so they come back at the next sign-in.
 const DRAFT = 'mmk.draft.'
-// Unfinished writing, kept on this device only (never sent to the server until saved).
-// Several drafts per user: [{ id, form, mode, saved_at }], newest first.
+// Several drafts per user: [{ id, form, mode, saved_at, synced }], newest first.
 const readDrafts = (uid) => {
   const raw = safe(() => sessionStorage.getItem(DRAFT + uid)) || safe(() => localStorage.getItem(DRAFT + uid))
   let v = null
@@ -110,15 +127,53 @@ const writeDrafts = (uid, list) => {
   store.setItem(DRAFT + uid, JSON.stringify(list))  // may throw when storage is full or blocked
 }
 export const newDraftId = () => 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+// Drafts are kept on this device for instant saving and on the server so they follow you to other
+// devices and survive signing out. `synced` marks a copy the server already has: if such a copy is
+// missing from the server later, it was deleted on another device, so it is dropped here too.
+const pushTimers = {}
+const pushDraft = (uid, d) => {
+  clearTimeout(pushTimers[d.id])
+  pushTimers[d.id] = setTimeout(() => {
+    api(`/api/drafts/${d.id}`, { method: 'PUT', body: { form: d.form, mode: d.mode || '', saved_at: d.saved_at } })
+      .then(() => {
+        const list = readDrafts(uid)
+        const mine = list.find((x) => x.id === d.id)
+        if (mine && mine.saved_at === d.saved_at) safe(() => writeDrafts(uid, list.map((x) => (x.id === d.id ? { ...x, synced: true } : x))))
+      })
+      .catch(() => {})  // offline or signed out: it stays on this device and is sent at the next sync
+  }, 1200)
+}
 export const drafts = {
   list: (uid) => readDrafts(uid).sort((a, b) => (b.saved_at || '').localeCompare(a.saved_at || '')),
   get: (uid, id) => readDrafts(uid).find((d) => d.id === id) || null,
   put: (uid, draft) => {
     const list = readDrafts(uid).filter((d) => d.id !== draft.id)
-    writeDrafts(uid, [{ ...draft, saved_at: new Date().toISOString() }, ...list])
+    const saved = { ...draft, saved_at: new Date().toISOString(), synced: false }
+    writeDrafts(uid, [saved, ...list])
+    pushDraft(uid, saved)
   },
-  remove: (uid, id) => writeDrafts(uid, readDrafts(uid).filter((d) => d.id !== id)),
+  remove: (uid, id) => {
+    clearTimeout(pushTimers[id])
+    writeDrafts(uid, readDrafts(uid).filter((d) => d.id !== id))
+    api(`/api/drafts/${id}`, { method: 'DELETE' }).catch(() => {})
+  },
+  // Bring this device and the server together: the newer copy of each draft wins.
+  sync: async (uid) => {
+    let server
+    try { server = await api('/api/drafts') } catch { return drafts.list(uid) }
+    const local = readDrafts(uid)
+    const byId = new Map(server.map((d) => [d.id, { ...d, synced: true }]))
+    for (const d of local) {
+      const there = byId.get(d.id)
+      if (!there) { if (!d.synced) { byId.set(d.id, d); pushDraft(uid, d) } }  // new here: send it
+      else if ((d.saved_at || '') > (there.saved_at || '')) { byId.set(d.id, d); pushDraft(uid, d) }
+    }
+    const merged = [...byId.values()].filter((d) => d.form && (d.form.text?.trim() || d.form.title?.trim()))
+    safe(() => writeDrafts(uid, merged))
+    return drafts.list(uid)
+  },
   clearAll: () => {
+    Object.values(pushTimers).forEach(clearTimeout)
     for (const store of [safe(() => sessionStorage), safe(() => localStorage)]) {
       if (!store) continue
       safe(() => Object.keys(store).filter((k) => k.startsWith(DRAFT)).forEach((k) => store.removeItem(k)))

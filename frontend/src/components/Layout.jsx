@@ -110,7 +110,7 @@ export default function Layout() {
       )}
 
       <ConfirmDialog open={confirmOut} title="Sign out?" confirmLabel="Sign out" onConfirm={signOut} onCancel={() => setConfirmOut(false)}>
-        You will need your email and password to sign in again. Unsaved drafts on this device are removed when you sign out.
+        You will need your email and password to sign in again. Your drafts are saved to your account and will be here when you sign in again.
       </ConfirmDialog>
       <main id="main" className="min-w-0 flex-1">
         <PendingReportBanner />

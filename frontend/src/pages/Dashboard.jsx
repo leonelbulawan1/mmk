@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
@@ -29,7 +29,8 @@ export default function Dashboard() {
   const location = useLocation()
   const { data, error, loading, reload } = useAsync(() => api('/api/dashboard'))
   const [openEntry, setOpenEntry] = useState(null)
-  const draftList = drafts.list(user.id)
+  const [draftList, setDraftList] = useState(() => drafts.list(user.id))
+  useEffect(() => { if (!user.death_triggered_at) drafts.sync(user.id).then(setDraftList) }, [user.id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (loading) return <Spinner label="Loading your dashboard" />
   if (error) return <Alert>{error}</Alert>
   const sealed = !!data.death_triggered_at

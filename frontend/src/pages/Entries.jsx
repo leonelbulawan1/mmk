@@ -117,7 +117,7 @@ export default function Entries() {
   const both = kind === 'all' || reviewOnly
   const oldest = params.get('sort') === 'oldest'
   const [limit, setLimit] = useState(PAGE)
-  // Unfinished writing on this device (see api.js drafts); shown above the saved entries.
+  // Unfinished writing (see api.js drafts): on this device and on the server.
   const location = useLocation()
   const [draftList, setDraftList] = useState(() => drafts.list(user.id))
   const [toDelete, setToDelete] = useState(null)
@@ -135,6 +135,8 @@ export default function Entries() {
   }, [])
   // The floating composer saves drafts while it is open; read them again once it closes.
   useEffect(() => { setDraftList(drafts.list(user.id)) }, [location.key, user.id])
+  // Drafts from other devices (and ones deleted there) arrive from the server.
+  useEffect(() => { if (user.role === 'owner' && !user.death_triggered_at) drafts.sync(user.id).then(setDraftList) }, [user.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const toast = useToast()
   const deleteDraft = () => { drafts.remove(user.id, toDelete.id); setDraftList(drafts.list(user.id)); setToDelete(null); setOpenDraft(null); toast('Draft deleted.') }
   useEffect(() => setLimit(PAGE), [params])
@@ -293,7 +295,7 @@ export default function Entries() {
       <Alert>{state.error}</Alert>
       {kind === 'draft' ? (
         !draftShown.length ? (
-          <Empty title={ql ? 'No matches' : 'No drafts'}>{ql ? '' : 'When you close something you are writing, it waits here so you can finish it later. Drafts are kept on this device only.'}</Empty>
+          <Empty title={ql ? 'No matches' : 'No drafts'}>{ql ? '' : 'When you close something you are writing, it waits here so you can finish it later, on any device.'}</Empty>
         ) : (
           <div className="card overflow-hidden p-0">
             <ol>
@@ -338,7 +340,7 @@ export default function Entries() {
       <DraftModal draft={toDelete ? null : openDraft} onClose={() => setOpenDraft(null)} onDelete={() => setToDelete(openDraft)} />
       <ConfirmDialog open={!!toDelete} danger title="Delete this draft?" confirmLabel="Delete" cancelLabel="Keep it"
         onConfirm={deleteDraft} onCancel={() => setToDelete(null)}>
-        “{toDelete?.form.title?.trim() || 'Untitled'}” will be deleted from this device. This can’t be undone.
+        “{toDelete?.form.title?.trim() || 'Untitled'}” will be deleted from all your devices. This can’t be undone.
       </ConfirmDialog>
       {!state.loading && filtered.length > shown.length && (
         <div className="text-center">

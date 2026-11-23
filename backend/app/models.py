@@ -201,6 +201,32 @@ class QAMessage(Base):
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
+class DraftRow(Base):
+    """Something the owner started writing and has not saved yet. Kept on the server so it follows
+    them to other devices and survives signing out. Drafts are not part of the vault: they can be
+    changed and deleted, and nothing in them is shared with anyone."""
+
+    __tablename__ = "drafts"
+    __table_args__ = (UniqueConstraint("user_id", "client_id", name="uq_draft_client_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    client_id: Mapped[str] = mapped_column(String(40))  # the id the browser gave it
+    kind: Mapped[str] = mapped_column(String(10), default="text")  # text | letter
+    form_json: Mapped[str] = mapped_column(Text, default="{}")
+    mode: Mapped[str] = mapped_column(String(20), default="")
+    saved_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class ErasurePermit(Base):
+    """Present only during an account deletion: lets the database erase that owner's append-only rows."""
+
+    __tablename__ = "erasure_permits"
+
+    owner_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
 # ---- ORM-level append-only guards -------------------------------------------------------
 def _forbid(kind: str):
     def _listener(mapper, connection, target):

@@ -12,7 +12,7 @@ from .config import settings
 from .db import init_db
 from .errors import AccessDenied, PolicySyntaxError, TamperDetected
 from .prolog.engine import swipl_available
-from .routers import assistant, auth, beneficiaries, entries, executor, policy, review, settings as settings_router, vault
+from .routers import account, assistant, auth, beneficiaries, drafts, entries, executor, policy, review, settings as settings_router, vault
 
 
 async def _due_reports_loop() -> None:
@@ -76,7 +76,7 @@ async def _security_headers(request: Request, call_next):
 
 
 for r in (auth.router, entries.router, beneficiaries.router, policy.router, assistant.router, vault.router,
-          settings_router.router, executor.router, review.router):
+          settings_router.router, executor.router, review.router, drafts.router, account.router):
     app.include_router(r)
 
 
