@@ -172,19 +172,27 @@ export default function Beneficiaries() {
         </Section>
 
       </div>
-      <Dialog open={adding} title="Add beneficiary" onClose={busy ? undefined : () => { setAdding(false); setFields({}); setEmailError('') }}
-        footer={<>
-          <button type="button" className="btn-ghost" disabled={busy} onClick={() => { setAdding(false); setFields({}); setEmailError('') }}>Cancel</button>
-          <button type="submit" form="add-beneficiary" className="btn-primary" disabled={busy}>{busy ? 'Sending invite…' : 'Add and send invite'}</button>
-        </>}>
-        <p className="mb-4 text-sm text-ink-500">We'll email them an invitation to activate their account.</p>
-        <Alert onClose={() => setError('')}>{error}</Alert>
-        <form id="add-beneficiary" onSubmit={create} noValidate className="mt-3 space-y-4">
-          <Field label="Full name" error={fields.display_name}><input id="ben-name" data-autofocus className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={form.display_name} onChange={set('display_name')} /></Field>
-          <Field label="Email" hint="Any email works: Gmail, Yahoo, Outlook, school or work." error={fields.email || emailError}>
-            <input id="ben-email" className={`input ${fields.email || emailError ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} type="email" required value={form.email} onChange={set('email')} aria-invalid={!!(fields.email || emailError)} /></Field>
-          <Field label="Policy handle" hint="A short name used in your legacy policy, like maria (lowercase)." error={fields.handle}>
-            <input id="ben-handle" className={`input font-mono ${fields.handle ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.handle} value={form.handle} onChange={set('handle')} /></Field>
+      <Dialog open={adding} size="xl" icon={<NavIcon name="people" size={18} />} title="Add beneficiary"
+        onClose={busy ? undefined : () => { setAdding(false); setFields({}); setEmailError('') }}>
+        {/* Same card as the writing window: fields on top, actions in a bar at the bottom. */}
+        <form id="add-beneficiary" onSubmit={create} noValidate className="card flex flex-col overflow-hidden p-0 sm:min-h-[calc(40vh+231px)]">
+          <div className="flex-1 space-y-5 px-5 py-6 sm:px-6">
+            <p className="text-sm text-ink-500">We'll email them an invitation to activate their account. They can't see your diary while you're alive.</p>
+            <Alert onClose={() => setError('')}>{error}</Alert>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Full name" error={fields.display_name}><input id="ben-name" data-autofocus className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={form.display_name} onChange={set('display_name')} /></Field>
+              <Field label="Email" hint="Any email works: Gmail, Yahoo, Outlook, school or work." error={fields.email || emailError}>
+                <input id="ben-email" className={`input ${fields.email || emailError ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} type="email" required value={form.email} onChange={set('email')} aria-invalid={!!(fields.email || emailError)} /></Field>
+            </div>
+            <div className="sm:w-1/2 sm:pr-2.5">
+              <Field label="Policy handle" hint="A short name used in your legacy policy, like maria (lowercase)." error={fields.handle}>
+                <input id="ben-handle" className={`input font-mono ${fields.handle ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.handle} value={form.handle} onChange={set('handle')} /></Field>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-cream-300 bg-cream-100/70 px-4 py-3 sm:px-5">
+            <button type="button" className="btn-ghost" disabled={busy} onClick={() => { setAdding(false); setFields({}); setEmailError('') }}>Cancel</button>
+            <button type="submit" className="btn-primary px-5" disabled={busy}><NavIcon name="send" size={16} />{busy ? 'Sending invite…' : 'Add and send invite'}</button>
+          </div>
         </form>
       </Dialog>
     </>

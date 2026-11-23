@@ -204,7 +204,7 @@ export function LegalDisclaimer({ compact = false, className = '' }) {
  * Accessible modal dialog: role="dialog", aria-modal, Escape closes, focus moves into it on open and
  * returns to where it was on close, Tab stays inside. Fits small screens (scrolls inside).
  */
-export function Dialog({ open, title, onClose, children, footer, wide = false, eyebrow, meta, closeButton = false }) {
+export function Dialog({ open, title, onClose, children, footer, wide = false, eyebrow, meta, closeButton = false, size, icon }) {
   const ref = useRef(null)
   useEffect(() => {
     if (!open) return undefined
@@ -230,8 +230,14 @@ export function Dialog({ open, title, onClose, children, footer, wide = false, e
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-700/40 p-0 sm:items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabIndex={-1}
-        className={`flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-cream-50 shadow-paper sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}>
-        {eyebrow || meta || closeButton ? (
+        className={`flex max-h-[92vh] w-full flex-col rounded-t-2xl shadow-paper sm:rounded-2xl ${icon ? 'bg-cream-100' : 'bg-cream-50'} ${size === 'xl' ? 'sm:max-w-5xl' : wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}>
+        {icon ? (
+          /* Same header as the writing window (New diary / New letter). */
+          <div className="flex items-center gap-2.5 border-b border-cream-300 px-4 py-3 sm:px-6">
+            <span className="text-bark-500">{icon}</span>
+            <h2 id="dialog-title" className="text-lg font-semibold">{title}</h2>
+          </div>
+        ) : eyebrow || meta || closeButton ? (
           <div className="flex items-start justify-between gap-4 border-b border-cream-300 px-6 pb-4 pt-5 sm:px-8 sm:pt-6">
             <div className="min-w-0">
               {eyebrow && <p className="text-xs font-semibold uppercase tracking-[0.08em] text-bark-500">{eyebrow}</p>}
@@ -245,7 +251,7 @@ export function Dialog({ open, title, onClose, children, footer, wide = false, e
             )}
           </div>
         ) : <h2 id="dialog-title" className="px-6 pt-5 text-lg font-semibold">{title}</h2>}
-        <div className={`min-h-0 flex-1 overflow-y-auto ${eyebrow || meta ? 'px-6 py-6 sm:px-8' : 'px-6 py-4'}`}>{children}</div>
+        <div className={`min-h-0 flex-1 overflow-y-auto ${icon ? 'p-3 sm:p-5' : eyebrow || meta ? 'px-6 py-6 sm:px-8' : 'px-6 py-4'}`}>{children}</div>
         {footer && <div className={`flex flex-wrap justify-end gap-2 border-t border-cream-300 py-4 ${eyebrow || meta ? 'bg-cream-100/60 px-6 sm:rounded-b-2xl sm:px-8' : 'px-6'}`}>{footer}</div>}
       </div>
     </div>
