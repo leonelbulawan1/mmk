@@ -55,16 +55,31 @@ export const today = () => {
 // Unsaved Write-page drafts, one per user. Kept where the session token is kept: in sessionStorage
 // (gone when the tab closes) unless "Keep me signed in" was ticked. Signing out removes them.
 const DRAFT = 'mmk.draft.'
-export const draftStore = {
-  get: (uid) => {
-    const raw = safe(() => sessionStorage.getItem(DRAFT + uid)) || safe(() => localStorage.getItem(DRAFT + uid))
-    try { return raw ? JSON.parse(raw) : null } catch { return null }
+// Unfinished writing, kept on this device only (never sent to the server until saved).
+// Several drafts per user: [{ id, form, mode, saved_at }], newest first.
+const readDrafts = (uid) => {
+  const raw = safe(() => sessionStorage.getItem(DRAFT + uid)) || safe(() => localStorage.getItem(DRAFT + uid))
+  let v = null
+  try { v = raw ? JSON.parse(raw) : null } catch { v = null }
+  if (!v) return []
+  if (!Array.isArray(v)) v = v.form ? [{ id: 'd' + Date.now(), ...v }] : []  // older single-draft format
+  return v.filter((d) => d && d.id && d.form && (d.form.text?.trim() || d.form.title?.trim()))
+}
+const writeDrafts = (uid, list) => {
+  safe(() => sessionStorage.removeItem(DRAFT + uid)); safe(() => localStorage.removeItem(DRAFT + uid))
+  if (!list.length) return
+  const store = tokenStore.remembered() ? localStorage : sessionStorage
+  store.setItem(DRAFT + uid, JSON.stringify(list))  // may throw when storage is full or blocked
+}
+export const newDraftId = () => 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+export const drafts = {
+  list: (uid) => readDrafts(uid).sort((a, b) => (b.saved_at || '').localeCompare(a.saved_at || '')),
+  get: (uid, id) => readDrafts(uid).find((d) => d.id === id) || null,
+  put: (uid, draft) => {
+    const list = readDrafts(uid).filter((d) => d.id !== draft.id)
+    writeDrafts(uid, [{ ...draft, saved_at: new Date().toISOString() }, ...list])
   },
-  set: (uid, value) => {
-    draftStore.clear(uid)
-    safe(() => (tokenStore.remembered() ? localStorage : sessionStorage).setItem(DRAFT + uid, JSON.stringify(value)))
-  },
-  clear: (uid) => { safe(() => sessionStorage.removeItem(DRAFT + uid)); safe(() => localStorage.removeItem(DRAFT + uid)) },
+  remove: (uid, id) => writeDrafts(uid, readDrafts(uid).filter((d) => d.id !== id)),
   clearAll: () => {
     for (const store of [safe(() => sessionStorage), safe(() => localStorage)]) {
       if (!store) continue
@@ -72,3 +87,5 @@ export const draftStore = {
     }
   },
 }
+// Kept for older imports: the newest draft.
+export const draftStore = { get: (uid) => drafts.list(uid)[0] || null, clearAll: () => drafts.clearAll() }

@@ -36,7 +36,7 @@ export default function Dashboard() {
             <p className="truncate font-semibold">{draft.form.title?.trim() || draft.form.text.trim().slice(0, 80)}</p>
             {draft.saved_at && <p className="text-xs text-ink-400">Last saved {new Date(draft.saved_at).toLocaleString()}</p>}
           </div>
-          <Link to="/entries/new" className="btn-primary"><NavIcon name="write" size={16} />Continue writing</Link>
+          <Link to={`/entries/new?draft=${draft.id}${draft.form.kind === 'letter' ? '&kind=letter' : ''}`} className="btn-primary"><NavIcon name="write" size={16} />Continue writing</Link>
         </Card>
       )}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

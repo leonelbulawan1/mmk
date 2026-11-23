@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { api, fmtDate } from '../api'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, Empty, LetterBadge, PageHeader, Spinner, Tag } from '../components/ui'
+import { Alert, ConfirmDialog, Empty, LetterBadge, Spinner, Tag } from '../components/ui'
 import EntriesTabs from '../components/EntriesTabs'
 import NavIcon from '../components/NavIcon'
 
@@ -18,6 +18,11 @@ export default function Entries() {
   const reviewOnly = params.get('review') === '1'
   const oldest = params.get('sort') === 'oldest'
   const [limit, setLimit] = useState(PAGE)
+  // Unfinished writing on this device (see api.js drafts); shown above the saved entries.
+  const location = useLocation()
+  const [draftList, setDraftList] = useState(() => drafts.list(user.id))
+  const [toDelete, setToDelete] = useState(null)
+  const deleteDraft = () => { drafts.remove(user.id, toDelete.id); setDraftList(drafts.list(user.id)); setToDelete(null) }
   useEffect(() => setLimit(PAGE), [params])
 
   useEffect(() => {
@@ -51,6 +56,7 @@ export default function Entries() {
     <>
       <h1 className="sr-only">Diary entries</h1>
       <EntriesTabs active="list" canWrite={!user.death_triggered_at} />
+      {location.state?.draftSaved && <div className="mb-4"><Alert kind="success">Saved to Drafts.</Alert></div>}
 
       <form role="search" className="mb-3 grid gap-3 sm:grid-cols-[1fr_11rem_11rem]" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
         <div className="relative flex-1">
@@ -94,6 +100,40 @@ export default function Entries() {
           </button>
         </div>
       )}
+      {!user.death_triggered_at && !params.get('q') && !reviewOnly && (() => {
+        const list = draftList.filter((d) => !kind || (d.form.kind || 'text') === kind)
+        if (!list.length) return null
+        return (
+          <section className="mb-10" aria-labelledby="drafts-h">
+            <h2 id="drafts-h" className="mb-3 text-xl font-semibold text-bark-500">Drafts <span className="text-sm font-normal text-ink-400">({list.length})</span></h2>
+            <ol className="space-y-3">
+              {list.map((d) => {
+                const letter = d.form.kind === 'letter'
+                const saved = d.saved_at ? new Date(d.saved_at) : null
+                return (
+                  <li key={d.id} className="card flex items-center gap-4 border-dashed p-4 sm:gap-6 sm:p-5">
+                    <div className="w-12 shrink-0 text-center sm:w-14" aria-hidden>
+                      <NavIcon name={letter ? 'letters' : 'write'} size={22} />
+                    </div>
+                    <Link to={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} className="group min-w-0 flex-1">
+                      <h3 className="text-lg font-semibold group-hover:text-bark-500 sm:text-xl">{d.form.title?.trim() || 'Untitled'}</h3>
+                      <p className="mt-1 line-clamp-1 text-ink-500">{d.form.text?.trim() || '…'}</p>
+                      <p className="mt-2 text-xs text-ink-400">
+                        <span className="mr-2 rounded-full bg-cream-200 px-2 py-0.5 font-medium text-ink-500">Draft{letter ? ' · letter' : ''}</span>
+                        {saved && <>Saved {saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</>}
+                      </p>
+                    </Link>
+                    <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                      <Link to={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} className="btn-secondary px-3 py-1.5 text-sm">Continue</Link>
+                      <button type="button" onClick={() => setToDelete(d)} className="btn-ghost px-3 py-1.5 text-sm text-rose-600">Delete</button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          </section>
+        )
+      })()}
       {state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner /> : shown.length === 0 ? (
         <Empty title={params.get('q') || topic || kind || reviewOnly ? 'No matches' : 'No entries yet'}
           action={!user.death_triggered_at && !(params.get('q') || topic || kind || reviewOnly) && <Link to="/entries/new" className="btn-primary">New entry</Link>} />
@@ -130,6 +170,10 @@ export default function Entries() {
           </section>
         ))
       )}
+      <ConfirmDialog open={!!toDelete} danger title="Delete this draft?" confirmLabel="Delete" cancelLabel="Keep it"
+        onConfirm={deleteDraft} onCancel={() => setToDelete(null)}>
+        “{toDelete?.form.title?.trim() || 'Untitled'}” will be deleted from this device. This can’t be undone.
+      </ConfirmDialog>
       {!state.loading && filtered.length > shown.length && (
         <div className="text-center">
           <button type="button" className="btn-secondary" onClick={() => setLimit((n) => n + PAGE)}>

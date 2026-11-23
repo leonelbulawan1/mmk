@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { api, draftStore, fmtDate, today, tokenStore } from '../api'
+import { api, drafts, fmtDate, newDraftId, today, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
 import { Alert, Card, ConfirmDialog, Dialog, Field, LegalDisclaimer, PageHeader, useAsync } from '../components/ui'
@@ -67,11 +67,9 @@ export default function CreateEntry() {
   const [params] = useSearchParams()
   const initialMode = MODES.some((m) => m.key === params.get('mode')) ? params.get('mode') : user.default_writing_mode || 'verbatim'
   const blank = { title: '', text: '', entry_date: today(), kind: 'text', recipient: '', release_on: '', release_on_death: false, opens: 'date', days_after: '' }
-  // A draft left from earlier (navigated away, refreshed, browser closed while "Keep me signed in").
-  const [draft] = useState(() => {
-    const d = draftStore.get(user.id)
-    return d && (d.form?.text?.trim() || d.form?.title?.trim()) ? d : null
-  })
+  // ?draft=<id> continues a draft from the Drafts list; otherwise this is a new draft.
+  const [draft] = useState(() => (params.get('draft') ? drafts.get(user.id, params.get('draft')) : null))
+  const draftId = useRef(draft?.id || newDraftId())
   const [mode, setMode] = useState(draft?.mode || initialMode)
   const [showPreview, setShowPreview] = useState(false)
   const beneficiaries = useAsync(() => api('/api/beneficiaries'))
@@ -93,7 +91,6 @@ export default function CreateEntry() {
   const [draftSaved, setDraftSaved] = useState(null)   // time the draft was last stored on this device
   const [confirming, setConfirming] = useState(false)   // final check before the permanent save
   const [focus, setFocus] = useState(false)             // distraction-free full-screen writing
-  const [confirmDiscard, setConfirmDiscard] = useState(false)
   // Automatic spelling and grammar correction while typing (on by default, remembered per browser).
   const [autoFix, setAutoFix] = useState(() => { try { return localStorage.getItem('mmk.autocorrect') !== 'off' } catch { return true } })
   const [lastFix, setLastFix] = useState(null)   // { from, to, before } for the Undo link
@@ -134,9 +131,9 @@ export default function CreateEntry() {
   useEffect(() => {
     const t = setTimeout(() => {
       if (hasContent) {
-        try { draftStore.set(user.id, { form, mode, saved_at: new Date().toISOString() }); setDraftSaved(new Date()) }
+        try { drafts.put(user.id, { id: draftId.current, form, mode }); setDraftSaved(new Date()) }
         catch { setDraftSaved('failed') }
-      } else { draftStore.clear(user.id); setDraftSaved(null) }
+      } else { drafts.remove(user.id, draftId.current); setDraftSaved(null) }
     }, 800)
     return () => clearTimeout(t)
   }, [form, mode, hasContent, user.id])
@@ -165,7 +162,11 @@ export default function CreateEntry() {
     catch (err) { setError(err.message) }
     setAddingRelease(false)
   }
-  const discardDraft = () => { draftStore.clear(user.id); setForm({ ...blank, kind: form.kind }); setRestored(false); setDraftSaved(null); setLastFix(null); setConfirmDiscard(false) }
+  // Leave the page but keep the writing: it waits under Drafts in All entries.
+  const saveDraft = () => {
+    try { drafts.put(user.id, { id: draftId.current, form, mode }) } catch { setDraftSaved('failed'); return }
+    navigate('/entries', { state: { draftSaved: true } })
+  }
 
   // Keyboard: Ctrl/Cmd+S opens the final check; Esc leaves focus mode.
   useEffect(() => {
@@ -203,7 +204,7 @@ export default function CreateEntry() {
             release_days_after_death: Number(form.days_after) > 0 ? Number(form.days_after) : null }
         : { recipient: form.recipient, release_on: form.release_on || null, release_on_death: false, deliver_while_alive: true })
       const res = await api('/api/entries', { method: 'POST', body })
-      draftStore.clear(user.id)
+      drafts.remove(user.id, draftId.current)
       navigate(`/entries/${res.entry.id}`, { state: { justCreated: true, delivery: res.delivery } })
     } catch (err) {
       setError(err.status ? err.message : 'Could not reach MMK. Check your connection; your draft is still on this device.')
@@ -343,7 +344,7 @@ export default function CreateEntry() {
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:bg-cream-200">
                   <NavIcon name={focus ? 'close' : 'focus'} size={16} />
                 </button>
-                <button type="button" className="btn-ghost px-4 py-2.5" disabled={!hasContent || busy} onClick={() => setConfirmDiscard(true)}>Discard</button>
+                <button type="button" className="btn-ghost px-4 py-2.5" disabled={!hasContent || busy} onClick={saveDraft} title="Keep it under Drafts in All entries">Save draft</button>
                 <button className="btn-primary px-5 py-2.5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title={`${isLetter ? 'Send' : 'Save'} (Ctrl+S)`}>
                   <NavIcon name={isLetter ? 'send' : 'write'} size={16} />{busy ? (isLetter ? 'Sending…' : 'Saving…') : (isLetter ? 'Send' : 'Save')}
                 </button>
@@ -355,10 +356,6 @@ export default function CreateEntry() {
         </div>
       </form>
 
-      <ConfirmDialog open={confirmDiscard} danger title={isLetter ? 'Discard this letter?' : 'Discard this entry?'} confirmLabel="Discard"
-        cancelLabel="Keep writing" onConfirm={discardDraft} onCancel={() => setConfirmDiscard(false)}>
-        What you wrote here will be deleted from this device. This can’t be undone.
-      </ConfirmDialog>
 
       <Dialog open={confirming} wide title={isLetter ? 'Send this letter?' : 'Save this entry?'} onClose={busy ? undefined : () => setConfirming(false)}
         footer={<>
