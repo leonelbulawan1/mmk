@@ -12,6 +12,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Entries = lazy(() => import('./pages/Entries'))
 const CreateEntry = lazy(() => import('./pages/CreateEntry'))
 const EntryDetail = lazy(() => import('./pages/EntryDetail'))
+const Privacy = lazy(() => import('./pages/Privacy'))
 const Beneficiaries = lazy(() => import('./pages/Beneficiaries'))
 const PolicyEditor = lazy(() => import('./pages/PolicyEditor'))
 const AccessPermissions = lazy(() => import('./pages/AccessPermissions'))
@@ -58,6 +59,7 @@ export default function App() {
     <Routes location={background || location}>
       {/* No landing page: visitors go straight to Sign in; signed-in users to their home. */}
       <Route path="/" element={<PublicOnly><Navigate to="/login" replace /></PublicOnly>} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
       <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
       <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />

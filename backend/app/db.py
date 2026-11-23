@@ -54,18 +54,28 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 
 
 def install_append_only_triggers(bind) -> None:
+    """UPDATE is always refused. DELETE is refused too, except while an erasure permit exists for
+    the row's owner: the account-deletion code writes one, erases that owner's diary, and removes
+    it in the same transaction (the person's right to have their data erased)."""
     dialect = bind.dialect.name
     with bind.begin() as conn:
         for table in APPEND_ONLY_TABLES:
             if dialect == "sqlite":
-                for op in ("UPDATE", "DELETE"):
-                    conn.execute(text(
-                        f"CREATE TRIGGER IF NOT EXISTS {table}_no_{op.lower()} BEFORE {op} ON {table} "
-                        f"BEGIN SELECT RAISE(ABORT, '{table} is append-only'); END;"))
+                conn.execute(text(
+                    f"CREATE TRIGGER IF NOT EXISTS {table}_no_update BEFORE UPDATE ON {table} "
+                    f"BEGIN SELECT RAISE(ABORT, '{table} is append-only'); END;"))
+                conn.execute(text(f"DROP TRIGGER IF EXISTS {table}_no_delete"))
+                conn.execute(text(
+                    f"CREATE TRIGGER {table}_no_delete BEFORE DELETE ON {table} "
+                    f"WHEN NOT EXISTS (SELECT 1 FROM erasure_permits WHERE owner_id = OLD.owner_id) "
+                    f"BEGIN SELECT RAISE(ABORT, '{table} is append-only'); END;"))
             elif dialect == "postgresql":
                 conn.execute(text(
                     "CREATE OR REPLACE FUNCTION alaala_append_only() RETURNS trigger AS $$ "
-                    "BEGIN RAISE EXCEPTION '% is append-only', TG_TABLE_NAME; END; $$ LANGUAGE plpgsql;"))
+                    "BEGIN "
+                    "IF TG_OP = 'DELETE' AND EXISTS (SELECT 1 FROM erasure_permits WHERE owner_id = OLD.owner_id) "
+                    "THEN RETURN OLD; END IF; "
+                    "RAISE EXCEPTION '% is append-only', TG_TABLE_NAME; END; $$ LANGUAGE plpgsql;"))
                 conn.execute(text(f"DROP TRIGGER IF EXISTS {table}_append_only ON {table}"))
                 conn.execute(text(
                     f"CREATE TRIGGER {table}_append_only BEFORE UPDATE OR DELETE ON {table} "

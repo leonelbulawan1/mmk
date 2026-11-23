@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { api, fmtDate, tokenStore } from '../api'
+import { Link, useNavigate } from 'react-router-dom'
+import { api, download, fmtDate, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import PasswordInput from '../components/PasswordInput'
 import EmailNotices from '../components/EmailNotices'
@@ -71,7 +72,7 @@ export default function Settings() {
       <div className="grid items-start gap-8 lg:grid-cols-[200px_minmax(0,1fr)]">
         <nav aria-label="Settings sections" className="hidden lg:sticky lg:top-8 lg:block">
           <ul className="space-y-1 text-sm">
-            {[['profile', 'Profile'], ['password', 'Password'], ...(isOwner ? [['executor', 'Executor'], ['seal', 'Seal vault']] : [])].map(([id, l]) => (
+            {[['profile', 'Profile'], ['password', 'Password'], ...(isOwner ? [['executor', 'Executor']] : []), ['data', 'Your data'], ...(isOwner ? [['seal', 'Seal vault'], ['delete', 'Delete account']] : [])].map(([id, l]) => (
               <li key={id}><a href={`#${id}`} className="block rounded-lg px-3 py-2 font-medium text-ink-600 hover:bg-cream-200 hover:text-ink-700">{l}</a></li>
             ))}
           </ul>
@@ -122,6 +123,8 @@ export default function Settings() {
 
         {isOwner && <ExecutorSettings />}
 
+        <YourData isOwner={isOwner} />
+
         {isOwner && (
           <Section id="seal" className="border-rose-600/30" title={<h2 id="seal-h" className="text-lg font-semibold text-rose-600">Seal vault (death trigger)</h2>}
             description="Permanent. Use only if you want to seal your diary now.">
@@ -148,8 +151,77 @@ export default function Settings() {
             )}
           </Section>
         )}
+
+        {isOwner && !user.death_triggered_at && <DeleteAccount />}
         </div>
       </div>
     </>
+  )
+}
+
+// Download everything MMK keeps about you.
+function YourData({ isOwner }) {
+  const toast = useToast()
+  const [busy, setBusy] = useState(false)
+  const get = async () => {
+    setBusy(true)
+    try { await download('/api/account/export', `mmk-my-data-${new Date().toISOString().slice(0, 10)}.json`); toast('Your data was downloaded.') }
+    catch (e) { toast(e.message, 'error') } finally { setBusy(false) }
+  }
+  return (
+    <Section id="data" title="Your data" description="A copy of everything MMK keeps about you">
+      <p className="max-w-3xl text-sm text-ink-500">
+        {isOwner
+          ? 'One file (JSON) with your profile, every entry and letter with all its revisions, your beneficiaries, every version of your legacy policy, your drafts and your activity log.'
+          : 'One file (JSON) with your profile and the questions you asked.'}
+        {' '}Read how MMK handles your data in the <Link to="/privacy" className="link">privacy notice</Link>.
+      </p>
+      <div className="mt-4 flex justify-end border-t border-cream-300/80 pt-4">
+        <button type="button" className="btn-secondary" disabled={busy} onClick={get}>{busy ? 'Preparing your file…' : 'Download my data'}</button>
+      </div>
+    </Section>
+  )
+}
+
+// Erase the account and the whole diary. Needs the password and a typed phrase.
+const DELETE_PHRASE = 'DELETE MY ACCOUNT'
+function DeleteAccount() {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+  const [form, setForm] = useState({ password: '', confirmation: '' })
+  const [fields, setFields] = useState({})
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async (e) => {
+    e.preventDefault()
+    const bad = check(form, { password: rules.password, confirmation: rules.phrase(DELETE_PHRASE) })
+    setFields(bad); setError('')
+    if (Object.keys(bad).length) return
+    setBusy(true)
+    try {
+      await api('/api/account/delete', { method: 'POST', body: form })
+      try { sessionStorage.setItem('mmk.notice', 'account-deleted') } catch { /* private mode */ }
+      logout()
+      navigate('/login', { replace: true })
+    } catch (err) { setError(err.message) } finally { setBusy(false) }
+  }
+  return (
+    <Section id="delete" className="border-rose-600/30" title={<h2 id="delete-h" className="text-lg font-semibold text-rose-600">Delete account</h2>}
+      description="Permanent. Erases your diary and everything in it.">
+      <p className="max-w-3xl text-sm text-ink-500">
+        This erases your account and your whole diary: every entry and letter (including letters not yet delivered), your legacy policy,
+        your drafts, your activity log, and your beneficiaries' accounts. It can't be undone, and nothing will be released after your passing.
+        Download your data first if you want a copy.
+      </p>
+      {error && <div className="mt-4"><Alert onClose={() => setError('')}>{error}</Alert></div>}
+      <form onSubmit={submit} noValidate className="mt-5 grid gap-4 border-t border-cream-300/80 pt-5 sm:grid-cols-3 sm:items-end">
+        <Field label="Your password"><PasswordInput autoComplete="current-password" value={form.password} error={fields.password} onChange={(e) => { setFields({}); setForm({ ...form, password: e.target.value }) }} /></Field>
+        <Field label={<>Type <b>{DELETE_PHRASE}</b></>} error={fields.confirmation}>
+          <input className={`input font-mono ${fields.confirmation ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} aria-invalid={!!fields.confirmation}
+            value={form.confirmation} onChange={(e) => { setFields({}); setForm({ ...form, confirmation: e.target.value }) }} />
+        </Field>
+        <button className="btn-danger" disabled={busy}>{busy ? 'Deleting account…' : 'Delete my account'}</button>
+      </form>
+    </Section>
   )
 }
