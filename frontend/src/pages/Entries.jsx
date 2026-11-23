@@ -43,14 +43,14 @@ function Row({ to, lead, title, snippet, meta, menu, stack, linkState, onOpen })
 
 // All · Diary · Letters, with how many of each.
 function KindTabs({ value, counts, onChange, review }) {
-  const tabs = [['text', 'Diary'], ['letter', 'Letters'], ['draft', 'Drafts'], ...(review ? [['review', 'Needs review']] : [])]
+  const tabs = [['all', 'All'], ['text', 'Diary'], ['letter', 'Letters'], ['draft', 'Drafts'], ...(review ? [['review', 'Needs review']] : [])]
   return (
-    <div role="tablist" aria-label="Show" className="flex h-[42px] flex-1 rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
+    <div role="tablist" aria-label="Show" className="flex h-[42px] min-w-0 flex-1 overflow-x-auto rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
       {tabs.map(([v, label]) => {
         const on = value === v
         return (
           <button key={v} type="button" role="tab" aria-selected={on} onClick={() => onChange(v)}
-            className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors sm:flex-none ${on ? 'bg-ink-700 text-cream-50' : v === 'review' ? 'text-bark-600 hover:bg-[#FBF0D9]' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
+            className={`flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2 text-sm sm:gap-1.5 sm:px-3 font-medium transition-colors sm:flex-none ${on ? 'bg-ink-700 text-cream-50' : v === 'review' ? 'text-bark-600 hover:bg-[#FBF0D9]' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
             {v === 'review' && !on && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />}
             {v === 'review' ? <><span className="sm:hidden">Review</span><span className="hidden sm:inline">Needs review</span></> : label}{counts && <span className={`text-xs ${on ? 'text-cream-200' : 'text-ink-400'}`}>{counts[v]}</span>}
           </button>
@@ -112,7 +112,9 @@ export default function Entries() {
   const topic = params.get('topic') || ''
   const reviewOnly = params.get('review') === '1'
   // Tabs: Diary (the default), Letters, Drafts; "Needs review" shows both kinds that need review.
-  const kind = reviewOnly ? '' : ['letter', 'draft'].includes(params.get('kind')) ? params.get('kind') : 'text'
+  // Tabs: All (the default: diary and letters side by side), Diary, Letters, Drafts; "Needs review" shows both kinds that need review.
+  const kind = reviewOnly ? '' : ['text', 'letter', 'draft'].includes(params.get('kind')) ? params.get('kind') : 'all'
+  const both = kind === 'all' || reviewOnly
   const oldest = params.get('sort') === 'oldest'
   const [limit, setLimit] = useState(PAGE)
   // Unfinished writing on this device (see api.js drafts); shown above the saved entries.
@@ -157,8 +159,8 @@ export default function Entries() {
 
   const needReview = state.data.filter((e) => e.pending_review).length
   const isLetter = (e) => e.kind === 'letter'
-  const counts = { text: state.data.filter((e) => !isLetter(e)).length, letter: state.data.filter(isLetter).length, draft: draftList.length, review: needReview }
-  const filtered = kind === 'draft' ? [] : state.data.filter((e) => (!kind || (isLetter(e) ? 'letter' : 'text') === kind) && (!reviewOnly || e.pending_review))
+  const counts = { all: state.data.length, text: state.data.filter((e) => !isLetter(e)).length, letter: state.data.filter(isLetter).length, draft: draftList.length, review: needReview }
+  const filtered = kind === 'draft' ? [] : state.data.filter((e) => (both || (isLetter(e) ? 'letter' : 'text') === kind) && (!reviewOnly || e.pending_review))
   const ql = (params.get('q') || '').toLowerCase()
   const draftShown = draftList.filter((d) => !ql || `${d.form.title || ''} ${d.form.text || ''}`.toLowerCase().includes(ql))
   const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
@@ -273,7 +275,7 @@ export default function Entries() {
         </div>
         <div className="flex gap-2 sm:gap-3">
           <KindTabs value={reviewOnly ? 'review' : kind} counts={state.loading ? null : counts} review={needReview > 0 || reviewOnly}
-            onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); if (v === 'review') p.set('review', '1'); else if (v !== 'text') p.set('kind', v); setParams(p, { replace: true }) }} />
+            onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); if (v === 'review') p.set('review', '1'); else if (v !== 'all') p.set('kind', v); setParams(p, { replace: true }) }} />
         </div>
       </div>
       </div>
@@ -312,11 +314,11 @@ export default function Entries() {
           </div>
         )
       ) : state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner label={kind === 'letter' ? 'Loading letters' : 'Loading entries'} /> : shown.length === 0 ? (
-        <Empty title={params.get('q') || topic || reviewOnly ? 'No matches' : kind === 'letter' ? 'No letters yet' : 'No diary entries yet'}
+        <Empty title={params.get('q') || topic || reviewOnly ? 'No matches' : kind === 'letter' ? 'No letters yet' : kind === 'all' ? 'Nothing written yet' : 'No diary entries yet'}
           action={!user.death_triggered_at && !(params.get('q') || topic || reviewOnly) && <Link to={kind === 'letter' ? '/entries/new?kind=letter' : '/entries/new'} state={{ background: location }} className="btn-primary">{kind === 'letter' ? 'Write a letter' : 'Write an entry'}</Link>} />
       ) : (
         <>
-        {kind === 'text' && years.length > 1 && (
+        {(kind === 'text' || kind === 'all') && years.length > 1 && (
           <nav aria-label="Jump to year" className="-mx-1 mb-3 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap px-1 pb-1 text-sm sm:flex-wrap">
             <span className="mr-1 shrink-0 text-xs font-medium uppercase tracking-wider text-ink-400">Jump to</span>
             {years.map((y) => (
@@ -325,9 +327,9 @@ export default function Entries() {
             ))}
           </nav>
         )}
-        <div>
-          {(!kind || kind === 'text') && (!reviewOnly || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: reviewOnly })}
-          {(kind === 'letter' || (reviewOnly && shown.some(isLetter))) && LetterColumn({ list: shown.filter(isLetter), heading: false })}
+        <div className={kind === 'all' ? 'grid items-start gap-x-6 xl:grid-cols-2' : ''}>
+          {(both || kind === 'text') && (!reviewOnly || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: both })}
+          {(both || kind === 'letter') && (!reviewOnly || shown.some(isLetter)) && LetterColumn({ list: shown.filter(isLetter), heading: both })}
         </div>
         </>
       )}
