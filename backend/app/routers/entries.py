@@ -245,6 +245,6 @@ def dashboard(owner: User = Depends(require_owner), db: Session = Depends(get_db
         "integrity": {"ok": report.ok, "length": report.length, "head": report.head},
         "pending_reviews": sum(1 for e in entries if entry_summary(e)["pending_review"]),
         "topics": topics.most_common(8),
-        "recent": [with_recipient_name(entry_summary(e), names) for e in entries[:5]],
+        "recent": [with_recipient_name(entry_summary(e), names) for e in entries[:20]],
         "death_triggered_at": owner.death_triggered_at,
     }
