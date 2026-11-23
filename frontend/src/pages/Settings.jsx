@@ -64,7 +64,7 @@ export default function Settings() {
             ))}
           </ul>
         </nav>
-        <div className="max-w-3xl space-y-6">
+        <div className="min-w-0 space-y-6">
         <Section id="profile" title="Profile" description="How you appear in MMK">
           {note('profile')}
           <form onSubmit={saveProfile} className="space-y-4">

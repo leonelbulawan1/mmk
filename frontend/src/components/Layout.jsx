@@ -1,5 +1,5 @@
 import { Suspense, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { PendingReportBanner } from './Executor'
 import { ConfirmDialog, Spinner } from './ui'
@@ -30,9 +30,6 @@ export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  // Diary entries (list and composer) use the full width of the window; other pages keep a reading width.
-  const { pathname } = useLocation()
-  const wide = pathname === '/entries' || pathname === '/entries/new'
   const [compact, setCompact] = useState(() => { try { return localStorage.getItem('mmk.sidebar') === 'compact' } catch { return false } })
   const [confirmOut, setConfirmOut] = useState(false)
   const toggleCompact = () => setCompact((c) => { try { localStorage.setItem('mmk.sidebar', c ? 'full' : 'compact') } catch { /* private mode */ } return !c })
@@ -124,7 +121,7 @@ export default function Layout() {
               : 'This diary has been sealed and its legacy releases are now active.'}
           </div>
         )}
-        <div className={`mx-auto py-8 lg:py-10 ${wide ? 'max-w-none px-4 sm:px-6 lg:px-8' : 'max-w-7xl px-4 sm:px-6 lg:px-10'}`}><Suspense fallback={<Spinner />}><Outlet /></Suspense></div>
+        <div className="px-4 py-8 sm:px-6 lg:px-8 lg:py-10"><Suspense fallback={<Spinner />}><Outlet /></Suspense></div>
       </main>
     </div>
   )
