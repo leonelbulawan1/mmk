@@ -279,7 +279,7 @@ export default function Entries() {
       <h1 className="sr-only">Entry</h1>
       {/* Tabs, search and filters stay at the top while the list scrolls under them. */}
       <div ref={stickyTop} aria-hidden className="h-px" />
-      <div className={`sticky top-0 z-30 -mx-3 -mt-3 mb-4 bg-cream-100/95 px-3 pb-3 pt-3 backdrop-blur transition-shadow sm:-mx-4 sm:-mt-4 sm:px-4 sm:pt-4 lg:-mx-5 lg:-mt-5 lg:px-5 lg:pt-5 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
+      <div className={`sticky top-0 z-30 -mx-3 -mt-3 mb-3 bg-cream-100/95 px-3 py-3 backdrop-blur transition-shadow sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
         <div className="flex flex-1 gap-2">
           <form role="search" className="relative flex-1" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
@@ -351,7 +351,7 @@ export default function Entries() {
       ) : (
         <>
         {kind === 'text' && years.length > 1 && (
-          <nav aria-label="Jump to year" className="-mx-1 mb-4 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap px-1 pb-1 text-sm sm:flex-wrap">
+          <nav aria-label="Jump to year" className="-mx-1 mb-3 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap px-1 pb-1 text-sm sm:flex-wrap">
             <span className="mr-1 shrink-0 text-xs font-medium uppercase tracking-wider text-ink-400">Jump to</span>
             {years.map((y) => (
               <button key={y} type="button" onClick={() => jump(y)}

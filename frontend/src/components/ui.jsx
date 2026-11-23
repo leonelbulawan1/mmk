@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 // Title of a page: name, one short line about it, and the page's main actions on the right.
 export function PageHeader({ eyebrow, title, subtitle, actions, meta }) {
   return (
-    <header className="mb-8 flex flex-col gap-4 border-b border-cream-300 pb-6 sm:flex-row sm:items-end sm:justify-between fade-in">
+    <header className="mb-4 flex flex-col gap-3 border-b border-cream-300 pb-3 sm:flex-row sm:items-end sm:justify-between fade-in">
       <div className="min-w-0">
         {eyebrow && <div className="mb-1 text-sm text-ink-400">{eyebrow}</div>}
         <div className="flex flex-wrap items-center gap-3">
