@@ -9,7 +9,7 @@ import NewMenu from '../components/NewMenu'
 // One column of the summary strip: label over a number (not a link).
 function Stat({ label, value, highlight, className = '' }) {
   return (
-    <div className={`border-cream-300 px-5 py-4 sm:px-6 ${className}`}>
+    <div className={`border-cream-300 px-5 py-4 text-center sm:px-6 ${className}`}>
       <p className="text-sm font-medium text-ink-500">{label}</p>
       <p className={`mt-1 text-3xl font-semibold leading-none ${highlight ? 'text-bark-500' : 'text-ink-700'}`}>{value}</p>
     </div>
