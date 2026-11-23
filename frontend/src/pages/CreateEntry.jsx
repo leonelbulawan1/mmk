@@ -241,11 +241,11 @@ export default function CreateEntry({ modal = false }) {
   const chars = form.text.length
   const minutes = Math.max(1, Math.round(words / 200))
   canSaveRef.current = canSave
-  const saveHint = !form.text.trim() ? 'Write something first.' : noRecipient ? 'Choose who the letter is for.'
-    : noRelease ? 'Choose when the letter opens.' : ''
+  const saveHint = !form.text.trim() ? 'Write something first.' : noRecipient ? 'Choose a recipient.'
+    : noRelease ? 'Choose when the letter is delivered.' : ''
 
 
-  const heading = isLetter ? 'New letter' : 'New entry'
+  const heading = isLetter ? 'New letter' : 'New diary entry'
   const composer = (
     <>
       <form id="composer" onSubmit={askToSave}>
@@ -266,7 +266,7 @@ export default function CreateEntry({ modal = false }) {
                 <span className="text-sm text-bark-600">No beneficiaries yet. <Link className="underline" to="/beneficiaries">Add one</Link></span>
               ) : (
                 <select id="to" required value={form.recipient} onChange={set('recipient')} className={`${bare} cursor-pointer appearance-none`}>
-                  <option value="">Choose a beneficiary…</option>
+                  <option value="">Choose a recipient…</option>
                   {active.map((b) => <option key={b.id} value={b.handle}>{b.display_name}{b.relationship ? ` · ${b.relationship}` : ''}</option>)}
                 </select>
               )}
@@ -279,22 +279,22 @@ export default function CreateEntry({ modal = false }) {
               </div>
               <div className="border-t border-cream-300 px-5 py-2.5 sm:px-6 lg:border-l lg:border-t-0">
                 <div className="flex min-h-[2.25rem] flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="w-16 shrink-0 text-sm text-ink-400">Opens</span>
+                  <span className="w-16 shrink-0 text-sm text-ink-400">Deliver</span>
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <label className="flex items-center gap-2 text-sm text-ink-600">
-                  <input type="radio" name="opens" checked={opensOnDate} onChange={() => setForm({ ...form, opens: 'date' })} /> On
-                  <input type="date" min={today()} value={form.release_on} aria-label="Opening date"
+                  <input type="radio" name="opens" checked={opensOnDate} onChange={() => setForm({ ...form, opens: 'date' })} /> On a date
+                  <input type="date" min={today()} value={form.release_on} aria-label="Delivery date"
                     onChange={(e) => setForm({ ...form, opens: 'date', release_on: e.target.value })}
                     className="rounded-lg border border-cream-300 bg-white/80 px-2 py-1 text-sm text-ink-700 focus:border-gold-500 focus:outline-none" />
                 </label>
                 {opensOnDate && <button type="button" className="text-xs font-medium text-bark-500 hover:underline" onClick={() => setForm({ ...form, opens: 'date', release_on: today() })}>Today</button>}
                 <label className="flex items-center gap-2 text-sm text-ink-600">
-                  <input type="radio" name="opens" checked={!opensOnDate} onChange={() => setForm({ ...form, opens: 'death' })} /> After my death
+                  <input type="radio" name="opens" checked={!opensOnDate} onChange={() => setForm({ ...form, opens: 'death' })} /> After my passing
                 </label>
                 {!opensOnDate && (
                   <label className="flex items-center gap-2 text-sm text-ink-600">
-                    <input type="number" min="0" max="36500" inputMode="numeric" value={form.days_after} placeholder="0" aria-label="Days after my death"
+                    <input type="number" min="0" max="36500" inputMode="numeric" value={form.days_after} placeholder="0" aria-label="Days after my passing"
                       onChange={(e) => setForm({ ...form, days_after: e.target.value.replace(/\D/g, '').slice(0, 5) })}
                       className="w-20 rounded-lg border border-cream-300 bg-white/80 px-2 py-1 text-sm text-ink-700 focus:border-gold-500 focus:outline-none" />
                     days after
@@ -315,14 +315,14 @@ export default function CreateEntry({ modal = false }) {
               </button>
             </div>
           )}
-          <Row label="Subject" htmlFor="subject">
-            <input id="subject" className={`${bare} text-lg font-semibold`} placeholder={isLetter ? 'Title' : 'Title (optional)'}
+          <Row label="Title" htmlFor="subject">
+            <input id="subject" className={`${bare} text-lg font-semibold`} placeholder={isLetter ? 'Letter title' : 'Entry title (optional)'}
               value={form.title} onChange={set('title')} maxLength={200} />
           </Row>
 
           {/* Body */}
           <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${modal ? (isLetter ? 'min-h-[260px] sm:min-h-[40vh]' : 'min-h-[320px] sm:min-h-[48vh]') : isLetter ? 'min-h-[386px] lg:min-h-[443px]' : 'min-h-[500px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
-            placeholder={isLetter ? 'Dear…' : 'Start writing…'} value={form.text} onChange={onText} ref={textRef} spellCheck autoCorrect="on" autoCapitalize="sentences"
+            placeholder={isLetter ? 'Dear…' : 'Write about your day…'} value={form.text} onChange={onText} ref={textRef} spellCheck autoCorrect="on" autoCapitalize="sentences"
             aria-label={isLetter ? 'Letter text' : 'Entry text'} aria-describedby="autofix-status" />
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2 text-xs text-ink-400 sm:px-6">
             <label className="inline-flex items-center gap-2">
@@ -359,8 +359,8 @@ export default function CreateEntry({ modal = false }) {
                     : draftSaved ? <> · saved {clock(draftSaved)}</> : restored ? ' · draft restored' : ''}
                 </span>
                 <button type="button" className="btn-ghost px-4 py-2.5" disabled={busy || (!modal && !hasContent)} onClick={modal ? close : saveDraft} title={hasContent ? 'Close it; it waits under Drafts' : 'Close'}>Discard</button>
-                <button className="btn-primary px-5 py-2.5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title={`${isLetter ? 'Send' : 'Save'} (Ctrl+S)`}>
-                  <NavIcon name={isLetter ? 'send' : 'write'} size={16} />{busy ? (isLetter ? 'Sending…' : 'Saving…') : (isLetter ? 'Send' : 'Save')}
+                <button className="btn-primary px-5 py-2.5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title={`${isLetter ? 'Send letter' : 'Save entry'} (Ctrl+S)`}>
+                  <NavIcon name={isLetter ? 'send' : 'write'} size={16} />{busy ? (isLetter ? 'Sending…' : 'Saving…') : (isLetter ? 'Send letter' : 'Save entry')}
                 </button>
               </div>
             </div>
@@ -382,7 +382,7 @@ export default function CreateEntry({ modal = false }) {
         <dl className="mb-4 grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1 text-sm">
           {isLetter && <><dt className="text-ink-400">To</dt><dd>{recipientName}</dd></>}
           <dt className="text-ink-400">Title</dt><dd>{form.title.trim() || <span className="text-ink-400">No title</span>}</dd>
-          {isLetter && <><dt className="text-ink-400">Opens</dt><dd>{opensOnDate ? (form.release_on === today() ? 'Today, as soon as you save' : fmtDate(form.release_on)) : Number(form.days_after) > 0 ? `${form.days_after} days after your death` : 'After your death'}</dd></>}
+          {isLetter && <><dt className="text-ink-400">Delivery</dt><dd>{opensOnDate ? (form.release_on === today() ? 'Today, as soon as you send it' : fmtDate(form.release_on)) : Number(form.days_after) > 0 ? `${form.days_after} days after your passing` : 'After your passing'}</dd></>}
           {!isLetter && <><dt className="text-ink-400">Mode</dt><dd>{current.label}</dd></>}
           <dt className="text-ink-400">Length</dt><dd>{words} words</dd>
         </dl>

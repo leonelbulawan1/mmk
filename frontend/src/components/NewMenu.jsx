@@ -28,11 +28,11 @@ export default function NewMenu({ label = 'New', icon = 'plus' }) {
         <div role="menu" className="absolute right-0 top-full z-40 mt-2 w-60 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">
           <Link role="menuitem" to="/entries/new" state={{ background: location }} onClick={() => setOpen(false)} className={item}>
             <span className="mt-0.5 text-ink-500"><NavIcon name="write" size={18} /></span>
-            <span><span className="block text-sm font-medium text-ink-700">Diary entry</span><span className="block text-xs text-ink-400">Private, for your diary</span></span>
+            <span><span className="block text-sm font-medium text-ink-700">Diary entry</span><span className="block text-xs text-ink-400">Only you can read it</span></span>
           </Link>
           <Link role="menuitem" to="/entries/new?kind=letter" state={{ background: location }} onClick={() => setOpen(false)} className={item}>
             <span className="mt-0.5 text-ink-500"><NavIcon name="letters" size={18} /></span>
-            <span><span className="block text-sm font-medium text-ink-700">Letter</span><span className="block text-xs text-ink-400">To one of your beneficiaries</span></span>
+            <span><span className="block text-sm font-medium text-ink-700">Letter</span><span className="block text-xs text-ink-400">For a beneficiary you choose</span></span>
           </Link>
         </div>
       )}
