@@ -5,18 +5,19 @@ import { Alert, Empty, PageHeader, Section, Spinner, Tag, useAsync } from '../co
 import NavIcon from '../components/NavIcon'
 import NewMenu from '../components/NewMenu'
 
-function Stat({ label, value, to, icon, note, highlight }) {
+// A number at a glance (not a link).
+function Stat({ label, value, icon, note, highlight }) {
   return (
-    <Link to={to} className={`card group flex items-start justify-between gap-3 p-5 transition hover:-translate-y-0.5 ${highlight ? 'ring-1 ring-gold-500/40' : ''}`}>
+    <div className={`card flex items-start justify-between gap-3 p-5 ${highlight ? 'ring-1 ring-gold-500/40' : ''}`}>
       <div>
         <p className="text-sm font-medium text-ink-500">{label}</p>
         <p className="mt-2 text-4xl font-semibold leading-none text-ink-700">{value}</p>
         {note && <p className={`mt-2 text-xs ${highlight ? 'text-bark-600' : 'text-ink-400'}`}>{note}</p>}
       </div>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cream-200 text-bark-500 transition group-hover:bg-ink-700 group-hover:text-cream-50">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cream-200 text-bark-500">
         <NavIcon name={icon} size={20} />
       </span>
-    </Link>
+    </div>
   )
 }
 
@@ -56,10 +57,10 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat label="Diary entries" value={data.entry_count} to="/entries?kind=text" icon="entries" note="Private to you" />
-        <Stat label="Letters" value={data.letter_count} to="/entries?kind=letter" icon="letters" note="For your beneficiaries" />
-        <Stat label="Beneficiaries" value={data.beneficiary_count} to="/beneficiaries" icon="people" note={`Policy v${data.policy_version} · ${data.policy_rules} rules`} />
-        <Stat label="Needs review" value={data.pending_reviews} to={data.pending_reviews ? '/entries?review=1' : '/entries'} icon="edit"
+        <Stat label="Diary entries" value={data.entry_count} icon="entries" note="Private to you" />
+        <Stat label="Letters" value={data.letter_count} icon="letters" note="For your beneficiaries" />
+        <Stat label="Beneficiaries" value={data.beneficiary_count} icon="people" note={`Policy v${data.policy_version} · ${data.policy_rules} rule${data.policy_rules === 1 ? '' : 's'}`} />
+        <Stat label="Needs review" value={data.pending_reviews} icon="edit"
           note={data.pending_reviews ? 'Suggestions waiting' : 'All caught up'} highlight={data.pending_reviews > 0} />
       </div>
 
