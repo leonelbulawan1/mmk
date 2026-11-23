@@ -96,6 +96,9 @@ export default function Dashboard() {
                         <p className="truncate text-sm text-ink-400">{e.title?.trim() ? e.snippet : (e.snippet || '').split(/\s+/).slice(7).join(' ')}</p>
                       </div>
                       {e.kind === 'letter' && <span className="hidden shrink-0 sm:inline"><Tag>Letter to {e.recipient_name || e.recipient}</Tag></span>}
+                      {e.created_at && <time dateTime={e.created_at} title={new Date(e.created_at).toLocaleString()} className="shrink-0 whitespace-nowrap text-xs text-ink-400">
+                        {new Date(e.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      </time>}
                     </Link>
                   </li>
                 )
