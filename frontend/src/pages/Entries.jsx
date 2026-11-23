@@ -5,37 +5,6 @@ import { useAuth } from '../auth'
 import { Alert, ConfirmDialog, Empty, Spinner, Tag, useToast } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
-// "⋮" menu on a card. items: [{ label, icon, to } | { label, icon, onClick, danger }].
-// Closes on Escape, on a click outside, or after a choice.
-function CardMenu({ items, label }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-  useEffect(() => {
-    if (!open) return undefined
-    const away = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
-    const key = (e) => { if (e.key === 'Escape') { setOpen(false); ref.current?.querySelector('button')?.focus() } }
-    document.addEventListener('mousedown', away); document.addEventListener('keydown', key)
-    ref.current?.querySelector('[role=menuitem]')?.focus()
-    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', key) }
-  }, [open])
-  const cls = (danger) => `flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm hover:bg-cream-200 focus:bg-cream-200 focus:outline-none ${danger ? 'text-rose-600' : 'text-ink-700'}`
-  return (
-    <div ref={ref} className="relative shrink-0">
-      <button type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Options for ${label}`}
-        className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-500 hover:bg-cream-200">
-        <NavIcon name="more" size={20} />
-      </button>
-      {open && (
-        <div role="menu" className="absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">
-          {items.map((it) => it.to
-            ? <Link key={it.label} role="menuitem" to={it.to} state={it.state} className={cls(it.danger)}><NavIcon name={it.icon} size={16} />{it.label}</Link>
-            : <button key={it.label} role="menuitem" type="button" onClick={() => { setOpen(false); it.onClick() }} className={cls(it.danger)}><NavIcon name={it.icon} size={16} />{it.label}</button>)}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function GroupHeader({ id, title, count, note, sub }) {
   const H = sub ? 'h3' : 'h2'
   return (
@@ -126,6 +95,10 @@ function Divider({ id, title }) {
 // The line under the title; for an untitled entry, the words after the ones used as its title.
 const snippetOf = (e) => e.title?.trim() ? e.snippet : (e.snippet || '').split(/\s+/).slice(7).join(' ')
 
+// When it was written, as a time of day (the date is already on the left of the row).
+const timeOf = (iso) => (iso ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '')
+const Time = ({ iso, title }) => iso ? <time dateTime={iso} title={title || new Date(iso).toLocaleString()} className="whitespace-nowrap text-xs text-ink-400">{timeOf(iso)}</time> : null
+
 const PAGE = 30  // entries shown at a time; "Show more" adds the next batch
 
 export default function Entries() {
@@ -187,9 +160,6 @@ export default function Entries() {
   const shown = sorted.slice(0, limit)
   const monthName = (ym) => new Date(ym + '-01T00:00').toLocaleString('en', { month: 'long', year: 'numeric' })
 
-  // Diary entries can be edited (each edit is kept as a revision); a sent letter cannot.
-  const rowMenu = (e) => user.death_triggered_at || isLetter(e) ? null : <CardMenu label={e.title || 'Untitled'} items={[
-    { label: 'Edit', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }]} />
   const canWrite = !user.death_triggered_at
   const ColumnHead = ({ icon, label, count, note }) => (
     <h2 className="mb-3 flex items-baseline gap-2 px-1 text-lg font-semibold text-ink-700">
@@ -226,8 +196,8 @@ export default function Entries() {
                       snippet={snippetOf(e)}
                       meta={<>
                         {e.pending_review && <Pill tone="gold">Needs review</Pill>}
-                      </>}
-                      menu={rowMenu(e)} />
+                        <Time iso={e.created_at} />
+                      </>} />
                   )),
                 ]
               })}
@@ -259,8 +229,8 @@ export default function Entries() {
                       meta={<>
                         {e.pending_review && <Pill tone="gold">Needs review</Pill>}
                         <Pill tone={st.tone}>{st.label}</Pill>
-                      </>}
-                      menu={rowMenu(e)} stack={heading} />
+                        <Time iso={e.created_at} />
+                      </>} stack={heading} />
                   )
                 }),
               ])}
@@ -332,9 +302,8 @@ export default function Entries() {
                       <Pill>{letter ? 'Letter' : 'Diary'}</Pill>
                       {saved && <span className="whitespace-nowrap text-xs text-ink-400">{saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
                     </>}
-                    menu={<CardMenu label={d.form.title?.trim() || 'Untitled draft'} items={[
-                      { label: 'Edit', icon: 'edit', to, state: { background: location } },
-                      { label: 'Delete', icon: 'trash', danger: true, onClick: () => setToDelete(d) }]} />} />
+                    menu={<button type="button" onClick={() => setToDelete(d)} aria-label={`Delete draft ${d.form.title?.trim() || 'Untitled'}`} title="Delete draft"
+                      className="btn-ghost btn-icon text-ink-400 hover:text-rose-600"><NavIcon name="trash" size={18} /></button>} />
                 )
               })}
             </ol>
