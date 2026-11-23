@@ -6,18 +6,12 @@ import { Alert, Empty, PageHeader, Section, Spinner, Tag, useAsync } from '../co
 import NavIcon from '../components/NavIcon'
 import NewMenu from '../components/NewMenu'
 
-// A number at a glance (not a link).
-function Stat({ label, value, icon, note, highlight }) {
+// One column of the summary strip: label over a number (not a link).
+function Stat({ label, value, highlight, className = '' }) {
   return (
-    <div className={`card flex items-start justify-between gap-3 p-5 ${highlight ? 'ring-1 ring-gold-500/40' : ''}`}>
-      <div>
-        <p className="text-sm font-medium text-ink-500">{label}</p>
-        <p className="mt-2 text-4xl font-semibold leading-none text-ink-700">{value}</p>
-        {note && <p className={`mt-2 text-xs ${highlight ? 'text-bark-600' : 'text-ink-400'}`}>{note}</p>}
-      </div>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cream-200 text-bark-500">
-        <NavIcon name={icon} size={20} />
-      </span>
+    <div className={`border-cream-300 px-5 py-4 sm:px-6 ${className}`}>
+      <p className="text-sm font-medium text-ink-500">{label}</p>
+      <p className={`mt-1 text-3xl font-semibold leading-none ${highlight ? 'text-bark-500' : 'text-ink-700'}`}>{value}</p>
     </div>
   )
 }
@@ -69,12 +63,11 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat label="Diary entries" value={data.entry_count} icon="entries" note="Private to you" />
-        <Stat label="Letters" value={data.letter_count} icon="letters" note="For your beneficiaries" />
-        <Stat label="Beneficiaries" value={data.beneficiary_count} icon="people" note={`Policy v${data.policy_version} · ${data.policy_rules} rule${data.policy_rules === 1 ? '' : 's'}`} />
-        <Stat label="Needs review" value={data.pending_reviews} icon="edit"
-          note={data.pending_reviews ? 'Suggestions waiting' : 'All caught up'} highlight={data.pending_reviews > 0} />
+      <div className="card grid grid-cols-2 overflow-hidden p-0 lg:grid-cols-4">
+        <Stat label="Diary entries" value={data.entry_count} className="border-b border-r lg:border-b-0" />
+        <Stat label="Letters" value={data.letter_count} className="border-b lg:border-b-0 lg:border-r" />
+        <Stat label="Beneficiaries" value={data.beneficiary_count} className="border-r" />
+        <Stat label="Needs review" value={data.pending_reviews} highlight={data.pending_reviews > 0} />
       </div>
       </div>
 
