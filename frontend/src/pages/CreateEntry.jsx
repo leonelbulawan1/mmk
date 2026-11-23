@@ -302,7 +302,7 @@ export default function CreateEntry() {
           </Row>
 
           {/* Body */}
-          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${focus ? 'min-h-[65vh]' : isLetter ? 'min-h-[266px] lg:min-h-[323px]' : 'min-h-[380px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
+          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${focus ? 'min-h-[65vh]' : isLetter ? 'min-h-[386px] lg:min-h-[443px]' : 'min-h-[500px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
             placeholder={isLetter ? 'Dear…' : 'Start writing…'} value={form.text} onChange={onText} ref={textRef} spellCheck autoCorrect="on" autoCapitalize="sentences"
             aria-label={isLetter ? 'Letter text' : 'Entry text'} aria-describedby="autofix-status" />
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2 text-xs text-ink-400 sm:px-6">
