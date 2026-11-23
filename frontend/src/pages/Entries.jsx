@@ -70,16 +70,17 @@ function Row({ to, lead, title, snippet, meta, menu, stack }) {
 }
 
 // All · Diary · Letters, with how many of each.
-function KindTabs({ value, counts, onChange }) {
-  const tabs = [['', 'All'], ['text', 'Diary'], ['letter', 'Letters']]
+function KindTabs({ value, counts, onChange, review }) {
+  const tabs = [['', 'All'], ['text', 'Diary'], ['letter', 'Letters'], ...(review ? [['review', 'Needs review']] : [])]
   return (
     <div role="tablist" aria-label="Show" className="flex min-h-[46px] flex-1 rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
       {tabs.map(([v, label]) => {
         const on = value === v
         return (
           <button key={v || 'all'} type="button" role="tab" aria-selected={on} onClick={() => onChange(v)}
-            className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors sm:flex-none ${on ? 'bg-ink-700 text-cream-50' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
-            {label}{counts && <span className={`text-xs ${on ? 'text-cream-200' : 'text-ink-400'}`}>{counts[v]}</span>}
+            className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors sm:flex-none ${on ? 'bg-ink-700 text-cream-50' : v === 'review' ? 'text-bark-600 hover:bg-[#FBF0D9]' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
+            {v === 'review' && !on && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />}
+            {v === 'review' ? <><span className="sm:hidden">Review</span><span className="hidden sm:inline">Needs review</span></> : label}{counts && <span className={`text-xs ${on ? 'text-cream-200' : 'text-ink-400'}`}>{counts[v]}</span>}
           </button>
         )
       })}
@@ -107,6 +108,19 @@ function DateLead({ iso, month }) {
       <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
       <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', month ? { month: 'short' } : { weekday: 'short' })}</p>
     </div>
+  )
+}
+
+// An entry without a title is shown by its first words.
+const titleOf = (e) => e.title?.trim() || (e.snippet || '').split(/\s+/).slice(0, 7).join(' ') + ((e.snippet || '').split(/\s+/).length > 7 ? '…' : '') || 'Untitled'
+
+// A light divider inside a card: month or recipient, with a count.
+function Divider({ id, title, count }) {
+  return (
+    <li id={id} className="flex scroll-mt-36 items-center justify-between gap-3 border-y border-cream-200 bg-cream-100/80 px-4 py-2 first:border-t-0 sm:px-5">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">{title}</h3>
+      <span className="text-xs text-ink-400">{count}</span>
+    </li>
   )
 }
 
@@ -161,7 +175,7 @@ export default function Entries() {
 
   const needReview = state.data.filter((e) => e.pending_review).length
   const isLetter = (e) => e.kind === 'letter'
-  const counts = { '': state.data.length, text: state.data.filter((e) => !isLetter(e)).length, letter: state.data.filter(isLetter).length }
+  const counts = { '': state.data.length, text: state.data.filter((e) => !isLetter(e)).length, letter: state.data.filter(isLetter).length, review: needReview }
   const filtered = state.data.filter((e) => (!kind || (isLetter(e) ? 'letter' : 'text') === kind) && (!reviewOnly || e.pending_review))
   const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
   const shown = sorted.slice(0, limit)
@@ -183,74 +197,86 @@ export default function Entries() {
     </div>
   )
 
-  // Diary entries, grouped by month.
+  // Diary entries: one card, a divider for each month.
   const DiaryColumn = ({ list, heading }) => {
     const groups = list.reduce((acc, e) => { (acc[e.entry_date.slice(0, 7)] ||= []).push(e); return acc }, {})
     const ms = Object.keys(groups).sort()
     if (!oldest) ms.reverse()
+    const seenYear = new Set()
     return (
       <div className="min-w-0">
-        {heading && <ColumnHead icon="entries" label="Diary entries" count={counts.text} note="Private" />}
-        {!list.length && <Blank text="No diary entries here" to="/entries/new" action="Write an entry" />}
-        {ms.map((ym) => (
-          <section key={ym} className="card mb-6 p-0" aria-labelledby={`m-${ym}`}>
-            <GroupHeader id={`m-${ym}`} title={monthName(ym)} count={groups[ym].length} sub={heading} />
-            <ol className="divide-y divide-cream-200">
-              {groups[ym].map((e) => (
-                <Row key={e.id} to={`/entries/${e.id}`} lead={<DateLead iso={e.entry_date} />}
-                  title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</>}
-                  snippet={e.snippet}
-                  meta={<>
-                    {e.pending_review && <Pill tone="gold">Needs review</Pill>}
-                    {e.revisions > 0 && <span className="text-xs text-ink-400">{e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
-                  </>}
-                  menu={rowMenu(e)} />
-              ))}
+        {heading && <ColumnHead icon="entries" label="Diary entries" count={list.length} note="Private" />}
+        {!list.length ? <Blank text="No diary entries here" to="/entries/new" action="Write an entry" /> : (
+          <div className="card mb-6 overflow-hidden p-0">
+            <ol>
+              {ms.map((ym) => {
+                const y = ym.slice(0, 4)
+                const first = !seenYear.has(y); seenYear.add(y)
+                return [
+                  <Divider key={`d-${ym}`} id={first ? `year-${y}` : undefined} title={monthName(ym)} count={`${groups[ym].length} ${groups[ym].length === 1 ? 'entry' : 'entries'}`} />,
+                  ...groups[ym].map((e) => (
+                    <Row key={e.id} to={`/entries/${e.id}`} lead={<DateLead iso={e.entry_date} />}
+                      title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{titleOf(e)}</>}
+                      snippet={e.snippet}
+                      meta={<>
+                        {e.pending_review && <Pill tone="gold">Needs review</Pill>}
+                        {e.revisions > 0 && <span className="whitespace-nowrap text-xs text-ink-400">{e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
+                      </>}
+                      menu={rowMenu(e)} />
+                  )),
+                ]
+              })}
             </ol>
-          </section>
-        ))}
+          </div>
+        )}
       </div>
     )
   }
 
-  // Letters, grouped by who they are for, each with where it stands.
+  // Letters: one card, a divider for each recipient; stays in view beside a long diary.
   const LetterColumn = ({ list, heading }) => {
     const groups = list.reduce((acc, e) => { const k = e.recipient_name || e.recipient || 'Unknown'; (acc[k] ||= []).push(e); return acc }, {})
     const people = Object.keys(groups).sort((a, b) => a.localeCompare(b))
     return (
-      <div className="min-w-0">
-        {heading && <ColumnHead icon="letters" label="Letters" count={counts.letter} note="For your beneficiaries" />}
-        {!list.length && <Blank text="No letters here" to="/entries/new?kind=letter" action="Write a letter" />}
-        {people.map((who) => (
-          <section key={who} className="card mb-6 p-0" aria-labelledby={`to-${who}`}>
-            <GroupHeader id={`to-${who}`} title={`To ${who}`} count={groups[who].length} sub={heading} />
-            <ol className="divide-y divide-cream-200">
-              {groups[who].map((e) => {
-                const st = letterStatus(e)
-                return (
-                  <Row key={e.id} to={`/entries/${e.id}`} lead={<DateLead iso={e.entry_date} month />}
-                    title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</>}
-                    snippet={e.snippet}
-                    meta={<>
-                      {e.pending_review && <Pill tone="gold">Needs review</Pill>}
-                      <Pill tone={st.tone}>{st.label}</Pill>
-                    </>}
-                    menu={rowMenu(e)} stack={heading} />
-                )
-              })}
+      <div className={`min-w-0 ${heading ? 'xl:sticky xl:top-28' : ''}`}>
+        {heading && <ColumnHead icon="letters" label="Letters" count={list.length} note="For your beneficiaries" />}
+        {!list.length ? <Blank text="No letters here" to="/entries/new?kind=letter" action="Write a letter" /> : (
+          <div className={`card mb-6 overflow-hidden p-0 ${heading ? 'xl:max-h-[calc(100vh-10rem)] xl:overflow-y-auto' : ''}`}>
+            <ol>
+              {people.map((who) => [
+                <Divider key={`p-${who}`} title={`To ${who}`} count={`${groups[who].length} ${groups[who].length === 1 ? 'letter' : 'letters'}`} />,
+                ...groups[who].map((e) => {
+                  const st = letterStatus(e)
+                  return (
+                    <Row key={e.id} to={`/entries/${e.id}`} lead={<DateLead iso={e.entry_date} month />}
+                      title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{titleOf(e)}</>}
+                      snippet={e.snippet}
+                      meta={<>
+                        {e.pending_review && <Pill tone="gold">Needs review</Pill>}
+                        <Pill tone={st.tone}>{st.label}</Pill>
+                      </>}
+                      menu={rowMenu(e)} stack={heading} />
+                  )
+                }),
+              ])}
             </ol>
-          </section>
-        ))}
+          </div>
+        )}
       </div>
     )
   }
+
+  // Years with diary entries, for the "Jump to" bar.
+  const years = [...new Set(shown.filter((e) => !isLetter(e)).map((e) => e.entry_date.slice(0, 4)))].sort()
+  if (!oldest) years.reverse()
+  const jump = (y) => document.getElementById(`year-${y}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   return (
     <>
       <h1 className="sr-only">Entry</h1>
       {/* Tabs, search and filters stay at the top while the list scrolls under them. */}
       <div ref={stickyTop} aria-hidden className="h-px" />
-      <div className={`sticky top-0 z-30 -mx-4 -mt-8 mb-5 bg-cream-100/95 px-4 pb-3 pt-4 backdrop-blur transition-shadow sm:-mx-6 sm:px-6 lg:-mx-8 lg:-mt-12 lg:px-8 lg:pt-6 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
+      <div className={`sticky top-0 z-30 -mx-4 -mt-8 mb-5 bg-cream-100/95 px-4 pb-3 pt-4 backdrop-blur transition-shadow sm:-mx-6 sm:px-6 lg:-mx-8 lg:-mt-10 lg:px-8 lg:pt-6 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
         <div className="flex flex-1 gap-2">
           <form role="search" className="relative flex-1" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
@@ -264,17 +290,21 @@ export default function Entries() {
               </button>
             )}
           </form>
+          <select className="input w-auto shrink-0 sm:hidden" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
+            <option value="">Newest</option><option value="oldest">Oldest</option>
+          </select>
         </div>
         <div className="flex gap-2 sm:gap-3">
-          <KindTabs value={kind} counts={state.loading ? null : counts} onChange={(v) => update('kind', v)} />
-          <select className="input w-auto shrink-0 sm:w-36" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
+          <KindTabs value={reviewOnly ? 'review' : kind} counts={state.loading ? null : counts} review={needReview > 0 || reviewOnly}
+            onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); if (v === 'review') p.set('review', '1'); else if (v) p.set('kind', v); setParams(p, { replace: true }) }} />
+          <select className="input hidden w-36 shrink-0 sm:block" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
             <option value="">Newest</option><option value="oldest">Oldest</option>
           </select>
         </div>
       </div>
       </div>
       {location.state?.draftSaved && <div className="mb-4"><Alert kind="success">Moved to Drafts. You can continue it any time.</Alert></div>}
-      <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400" aria-live="polite">
+      <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400 ${params.get('q') || topic ? 'mb-5' : ''}`} aria-live="polite">
         {!state.loading && (params.get('q') || topic) && (
           <span>
             {filtered.length} {filtered.length === 1 ? (kind === 'letter' ? 'letter' : 'entry') : (kind === 'letter' ? 'letters' : 'entries')}
@@ -286,17 +316,6 @@ export default function Entries() {
       </div>
 
       <Alert>{state.error}</Alert>
-      {!state.loading && (needReview > 0 || reviewOnly) && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold-500/30 bg-[#FBF0D9] px-4 py-3 text-sm text-bark-600">
-          <span className="flex items-center gap-2">
-            <span aria-hidden className="h-2 w-2 rounded-full bg-gold-500" />
-            {reviewOnly ? 'Needs review' : <>{needReview} need{needReview === 1 ? 's' : ''} review</>}
-          </span>
-          <button type="button" onClick={() => update('review', reviewOnly ? '' : '1')} className="font-medium underline-offset-2 hover:underline">
-            {reviewOnly ? 'Show all' : 'Show'}
-          </button>
-        </div>
-      )}
       {!user.death_triggered_at && !params.get('q') && !reviewOnly && (() => {
         const list = draftList.filter((d) => !kind || (d.form.kind || 'text') === kind)
         if (!list.length) return null
@@ -333,10 +352,21 @@ export default function Entries() {
         <Empty title={params.get('q') || topic || kind || reviewOnly ? 'No matches' : 'No entries yet'}
           action={!user.death_triggered_at && !(params.get('q') || topic || kind || reviewOnly) && <Link to="/entries/new" className="btn-primary">New entry</Link>} />
       ) : (
-        <div className={!kind ? 'grid items-start gap-x-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]' : ''}>
-          {(!kind || kind === 'text') && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: !kind })}
-          {(!kind || kind === 'letter') && LetterColumn({ list: shown.filter(isLetter), heading: !kind })}
+        <>
+        {kind !== 'letter' && years.length > 1 && (
+          <nav aria-label="Jump to year" className="-mx-1 mb-4 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap px-1 pb-1 text-sm sm:flex-wrap">
+            <span className="mr-1 shrink-0 text-xs font-medium uppercase tracking-wider text-ink-400">Jump to</span>
+            {years.map((y) => (
+              <button key={y} type="button" onClick={() => jump(y)}
+                className="rounded-lg border border-transparent px-2.5 py-1 font-medium text-ink-500 hover:border-cream-300 hover:bg-cream-50 hover:text-ink-700">{y}</button>
+            ))}
+          </nav>
+        )}
+        <div className={!kind && !reviewOnly ? 'grid items-start gap-x-6 xl:grid-cols-2' : ''}>
+          {(!kind || kind === 'text') && (!reviewOnly || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: !kind })}
+          {(!kind || kind === 'letter') && (!reviewOnly || shown.some(isLetter)) && LetterColumn({ list: shown.filter(isLetter), heading: !kind })}
         </div>
+        </>
       )}
       <ConfirmDialog open={!!toDelete} danger title="Delete this draft?" confirmLabel="Delete" cancelLabel="Keep it"
         onConfirm={deleteDraft} onCancel={() => setToDelete(null)}>
