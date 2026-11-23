@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, Empty, Field, PageHeader, Section, Spinner, Tag, useAsync, useToast } from '../components/ui'
+import { Alert, Empty, Field, PageHeader, Section, Spinner, Tag, useAsync, useToast, Dialog } from '../components/ui'
 import { check, focusFirst, rules } from '../validation'
+import NavIcon from '../components/NavIcon'
 
 // In the browser edition links cannot open a specific page, so only the code is shown there.
 const WEB = import.meta.env.VITE_WEB_RUNTIME === '1'
@@ -54,6 +55,7 @@ export default function Beneficiaries() {
   const [busy, setBusy] = useState(false)
   const [emailError, setEmailError] = useState('')
   const [fields, setFields] = useState({})
+  const [adding, setAdding] = useState(false)
   const toast = useToast()
   const set = (k) => (e) => {
     const v = e.target.value
@@ -72,7 +74,7 @@ export default function Beneficiaries() {
       const { _handleTouched, ...body } = form
       const res = await api('/api/beneficiaries', { method: 'POST', body })
       setInvite({ name: res.beneficiary.display_name, email: res.beneficiary.email, code: res.invite_code, link: res.invite_link, emailed: res.invitation?.status === 'sent' })
-      setForm(blank); list.reload()
+      setForm(blank); setAdding(false); list.reload()
     } catch (err) {
       const msg = plainEmailError(err.message)
       if (/email/i.test(msg)) setEmailError(msg); else setError(msg)
@@ -97,10 +99,11 @@ export default function Beneficiaries() {
   return (
     <>
       <PageHeader title="Beneficiaries"
-        subtitle="The people who may remember you through your diary. They see nothing while you are alive; after your passing, only what your legacy policy allows."
-        meta={list.data?.length ? <Tag>{list.data.length}</Tag> : null} />
+        subtitle="People you trust with your letters and memories. They can't see your diary while you're alive. After your passing, they see only what your legacy policy allows."
+        meta={list.data?.length ? <Tag>{list.data.length}</Tag> : null}
+        actions={!sealed && <button type="button" className="btn-primary" onClick={() => setAdding(true)}><NavIcon name="people" size={16} />Add beneficiary</button>} />
       <div className="mb-4 space-y-3">
-        <Alert onClose={() => setError('')}>{error}</Alert>
+        {!adding && <Alert onClose={() => setError('')}>{error}</Alert>}
         {invite && (invite.emailed ? (
           <Alert kind="success" onClose={() => setInvite(null)}>
             Invitation sent to <b>{invite.email}</b>. {invite.name} can activate their account from the link in the email.
@@ -127,10 +130,10 @@ export default function Beneficiaries() {
         ))}
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-3">
-        <Section className="min-w-0 lg:col-span-2" title="Your beneficiaries" description="Invite status, executor and quick actions" bodyClassName="p-0">
+      <div>
+        <Section className="min-w-0" title="Your beneficiaries" description="Invite status, executor and quick actions" bodyClassName="p-0">
           {list.loading ? <div className="px-6"><Spinner label="Loading beneficiaries" /></div> : !list.data?.length ? (
-            <div className="p-6"><Empty title="No beneficiaries yet">Register someone with the form, then write a policy for them.</Empty></div>
+            <div className="p-6"><Empty title="No beneficiaries yet" action={!sealed && <button type="button" className="btn-primary" onClick={() => setAdding(true)}>Add beneficiary</button>}>Add the people you trust, then choose what they may see in your legacy policy.</Empty></div>
           ) : (
             <ul className="divide-y divide-cream-200">
               {list.data.map((b) => (
@@ -168,19 +171,22 @@ export default function Beneficiaries() {
           )}
         </Section>
 
-        {!sealed && (
-          <Section className="lg:sticky lg:top-6" title="Register someone" description="They get an email invitation to activate their account.">
-            <form onSubmit={create} noValidate className="space-y-4">
-              <Field label="Full name" error={fields.display_name}><input id="ben-name" className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={form.display_name} onChange={set('display_name')} /></Field>
-              <Field label="Email" hint="Any email works: Gmail, Yahoo, Outlook, school or work." error={fields.email || emailError}>
-                <input id="ben-email" className={`input ${fields.email || emailError ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} type="email" required value={form.email} onChange={set('email')} aria-invalid={!!(fields.email || emailError)} /></Field>
-              <Field label="Policy handle" hint="Used in your policy, like allow maria … (lowercase)" error={fields.handle}>
-                <input id="ben-handle" className={`input font-mono ${fields.handle ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.handle} value={form.handle} onChange={set('handle')} /></Field>
-              <button className="btn-primary w-full" disabled={busy}>{busy ? 'Sending invite…' : 'Add and send invite'}</button>
-            </form>
-          </Section>
-        )}
       </div>
+      <Dialog open={adding} title="Add beneficiary" onClose={busy ? undefined : () => { setAdding(false); setFields({}); setEmailError('') }}
+        footer={<>
+          <button type="button" className="btn-ghost" disabled={busy} onClick={() => { setAdding(false); setFields({}); setEmailError('') }}>Cancel</button>
+          <button type="submit" form="add-beneficiary" className="btn-primary" disabled={busy}>{busy ? 'Sending invite…' : 'Add and send invite'}</button>
+        </>}>
+        <p className="mb-4 text-sm text-ink-500">We'll email them an invitation to activate their account.</p>
+        <Alert onClose={() => setError('')}>{error}</Alert>
+        <form id="add-beneficiary" onSubmit={create} noValidate className="mt-3 space-y-4">
+          <Field label="Full name" error={fields.display_name}><input id="ben-name" data-autofocus className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={form.display_name} onChange={set('display_name')} /></Field>
+          <Field label="Email" hint="Any email works: Gmail, Yahoo, Outlook, school or work." error={fields.email || emailError}>
+            <input id="ben-email" className={`input ${fields.email || emailError ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} type="email" required value={form.email} onChange={set('email')} aria-invalid={!!(fields.email || emailError)} /></Field>
+          <Field label="Policy handle" hint="A short name used in your legacy policy, like maria (lowercase)." error={fields.handle}>
+            <input id="ben-handle" className={`input font-mono ${fields.handle ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.handle} value={form.handle} onChange={set('handle')} /></Field>
+        </form>
+      </Dialog>
     </>
   )
 }
