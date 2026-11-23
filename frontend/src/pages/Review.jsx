@@ -84,7 +84,7 @@ function CaseView({ id, onChanged }) {
 
       <Dialog open={!!dialog} title={dialog === 'approve' ? 'Approve this report?' : 'Reject this report?'} onClose={busy ? undefined : () => setDialog(null)}
         footer={<>
-          <button className="btn-ghost" onClick={() => setDialog(null)} disabled={busy}>Cancel</button>
+          <button className="btn-secondary" onClick={() => setDialog(null)} disabled={busy}>Cancel</button>
           <button className={dialog === 'approve' ? 'btn-primary' : 'btn-danger'} disabled={busy || (dialog === 'approve' ? !form.password : !form.note.trim())}
             onClick={() => act(dialog, form)}>{busy ? 'Please wait…' : dialog === 'approve' ? 'Approve' : 'Reject'}</button>
         </>}>

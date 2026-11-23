@@ -190,7 +190,7 @@ export default function Beneficiaries() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3 border-t border-cream-300 bg-cream-100/70 px-4 py-3 sm:px-5">
-            <button type="button" className="btn-ghost" disabled={busy} onClick={() => { setAdding(false); setFields({}); setEmailError('') }}>Cancel</button>
+            <button type="button" className="btn-secondary" disabled={busy} onClick={() => { setAdding(false); setFields({}); setEmailError('') }}>Cancel</button>
             <button type="submit" className="btn-primary px-5" disabled={busy}><NavIcon name="send" size={16} />{busy ? 'Sending invite…' : 'Add and send invite'}</button>
           </div>
         </form>

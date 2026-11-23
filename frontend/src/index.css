@@ -26,9 +26,12 @@
   .btn-icon { @apply w-[42px] px-0; }
   .link { @apply text-sm font-medium text-bark-500 hover:underline; }
   .btn-primary { @apply btn bg-ink-700 text-cream-50 hover:bg-ink-600 active:scale-[.98]; }
-  .btn-secondary { @apply btn bg-cream-200 text-ink-700 hover:bg-cream-300 border border-cream-300; }
+  /* Dismiss actions (Close, Cancel, Discard, Keep editing) all use .btn-secondary. */
+  .btn-secondary { @apply btn border border-cream-300 bg-cream-200 text-ink-700 hover:bg-cream-300; }
   .btn-ghost { @apply btn text-ink-600 hover:bg-cream-200; }
   .btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-600/90; }
+  /* Destructive action that opens a confirmation (Delete): outlined; the final confirm is .btn-danger. */
+  .btn-danger-outline { @apply btn border border-rose-600/30 bg-white/80 text-rose-600 hover:border-rose-600/50 hover:bg-rose-100; }
   .input { @apply w-full rounded-xl border border-cream-300 bg-white/80 px-3.5 py-2 text-ink-700 placeholder:text-ink-400/60 focus:border-gold-500 focus:ring-2 focus:ring-gold-400/30 outline-none transition; }
   /* Same border, background and focus ring as .input; checked state fills with the primary ink colour. */
   .checkbox {

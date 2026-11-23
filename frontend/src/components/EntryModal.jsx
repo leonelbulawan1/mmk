@@ -14,7 +14,7 @@ const MODE = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Review' }
 
 const Actions = ({ onDelete, onClose, onEdit, editLabel = 'Edit' }) => (
   <>
-    <button type="button" className="btn-ghost mr-auto text-rose-600 hover:bg-rose-100" onClick={onDelete}><NavIcon name="trash" size={16} />Delete</button>
+    <button type="button" className="btn-danger-outline mr-auto" onClick={onDelete}><NavIcon name="trash" size={16} />Delete</button>
     <button type="button" className="btn-secondary" onClick={onClose}>Close</button>
     <button type="button" data-autofocus className="btn-primary" onClick={onEdit}><NavIcon name="edit" size={16} />{editLabel}</button>
   </>

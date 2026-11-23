@@ -358,7 +358,7 @@ export default function CreateEntry({ modal = false }) {
                   {draftSaved === 'failed' ? <span className="text-rose-600"> · draft not saved</span>
                     : draftSaved ? <> · saved {clock(draftSaved)}</> : restored ? ' · draft restored' : ''}
                 </span>
-                <button type="button" className="btn-ghost" disabled={busy || (!modal && !hasContent)} onClick={modal ? close : saveDraft} title={hasContent ? 'Close it; it waits under Drafts' : 'Close'}>Discard</button>
+                <button type="button" className="btn-secondary" disabled={busy || (!modal && !hasContent)} onClick={modal ? close : saveDraft} title={hasContent ? 'Close it; it waits under Drafts' : 'Close'}>Discard</button>
                 <button className="btn-primary px-5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title={`${isLetter ? 'Send letter' : 'Save entry'} (Ctrl+S)`}>
                   <NavIcon name={isLetter ? 'send' : 'write'} size={16} />{busy ? (isLetter ? 'Sending…' : 'Saving…') : (isLetter ? 'Send letter' : 'Save entry')}
                 </button>
@@ -373,7 +373,7 @@ export default function CreateEntry({ modal = false }) {
 
       <Dialog open={confirming} wide title={isLetter ? 'Send this letter?' : 'Save this entry?'} onClose={busy ? undefined : () => setConfirming(false)}
         footer={<>
-          <button type="button" className="btn-ghost" onClick={() => setConfirming(false)} disabled={busy}>Keep editing</button>
+          <button type="button" className="btn-secondary" onClick={() => setConfirming(false)} disabled={busy}>Keep editing</button>
           <button type="button" data-autofocus className="btn-primary" onClick={submit} disabled={busy}>
             {busy ? (isLetter ? 'Sending…' : 'Saving…') : error ? 'Try again' : isLetter ? 'Send letter' : 'Save permanently'}
           </button>

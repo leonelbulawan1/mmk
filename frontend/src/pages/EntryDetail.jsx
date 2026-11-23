@@ -160,7 +160,7 @@ export default function EntryDetail() {
                 <div>
                   <textarea className="input paper-lines min-h-[50vh] text-lg" value={draft} onChange={(ev) => setDraft(ev.target.value)} aria-label="Edit entry text" autoFocus />
                   <div className="mt-4 flex justify-end gap-2">
-                    <button className="btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
+                    <button className="btn-secondary" onClick={() => setEditing(false)}>Cancel</button>
                     <button className="btn-primary" disabled={busy || !draft.trim()} onClick={() => revise(draft, e.pending_review ? 'review' : 'edit')}>{busy ? 'Saving…' : 'Save changes'}</button>
                   </div>
                 </div>

@@ -263,7 +263,7 @@ export function ConfirmDialog({ open, title, children, confirmLabel = 'Confirm',
   return (
     <Dialog open={open} title={title} onClose={busy ? undefined : onCancel}
       footer={<>
-        <button type="button" className="btn-ghost" onClick={onCancel} disabled={busy}>{cancelLabel}</button>
+        <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>{cancelLabel}</button>
         <button type="button" data-autofocus className={danger ? 'btn-danger' : 'btn-primary'} onClick={onConfirm} disabled={busy}>{busy ? 'Please wait…' : confirmLabel}</button>
       </>}>
       <div className="text-sm text-ink-600">{children}</div>
