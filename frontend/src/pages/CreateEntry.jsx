@@ -245,7 +245,7 @@ export default function CreateEntry({ modal = false }) {
     : noRelease ? 'Choose when the letter is delivered.' : ''
 
 
-  const heading = isLetter ? 'New letter' : 'New diary entry'
+  const heading = isLetter ? 'New letter' : 'New diary'
   const composer = (
     <>
       <form id="composer" onSubmit={askToSave}>
