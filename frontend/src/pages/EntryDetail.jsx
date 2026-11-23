@@ -51,6 +51,63 @@ export default function EntryDetail() {
   }
   const acceptReview = () => revise(e.review.suggestions.map((op) => (op.op === 'equal' ? op.before : op.after)).join(''), 'review')
 
+  // A letter reads like a letter: one centred card with who it is for and when it is delivered.
+  if (e.kind === 'letter') {
+    const d = e.delivery
+    const status = d?.status === 'delivered' ? { label: 'Delivered', cls: 'bg-sage-100 text-sage-600' }
+      : d?.after_death || e.release_on_death ? { label: 'Waiting', cls: 'bg-[#FBF0D9] text-bark-600' }
+      : { label: 'Scheduled', cls: 'bg-[#FBF0D9] text-bark-600' }
+    const delivery = e.release_on_death
+      ? (e.release_days_after_death ? `${e.release_days_after_death} days after your passing` : 'After your passing')
+      : fmtDate(e.release_on)
+    return (
+      <>
+        <div className="flex h-[42px] items-center justify-between gap-3">
+          <Link to="/entries?kind=letter" className="inline-flex items-center gap-2 text-sm font-medium text-ink-500 hover:text-ink-700">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
+            Letters
+          </Link>
+          <p className="hidden text-xs text-ink-400 sm:block">Letters can't be edited once they are sent.</p>
+        </div>
+        {msg.text && <div className="mx-auto mt-4 max-w-[760px]"><Alert kind={msg.kind || 'success'} onClose={() => setMsg({})}>{msg.text}</Alert></div>}
+
+        <article className="card mx-auto mt-6 max-w-[760px] overflow-hidden p-0 sm:mt-10 fade-in">
+          <header className="grid grid-cols-2 gap-4 border-b border-cream-200 px-6 py-6 text-sm sm:px-14">
+            <div>
+              <p className="text-ink-400">To</p>
+              <p className="mt-1 text-[15px] font-semibold text-ink-700">{e.recipient_name || e.recipient}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-ink-400">Delivery</p>
+              <p className="mt-1 inline-flex flex-wrap items-center justify-end gap-2 text-[15px] font-semibold text-ink-700">
+                {delivery}
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${status.cls}`}>{status.label}</span>
+              </p>
+            </div>
+          </header>
+
+          <div className="px-6 pt-8 sm:px-14 sm:pt-9">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-bark-500">{fmtDate(e.entry_date)}</p>
+            <h1 className="mt-2.5 text-3xl font-semibold leading-tight sm:text-[34px]">{e.title || 'Untitled'}</h1>
+          </div>
+
+          <div className="whitespace-pre-wrap px-6 pb-10 pt-6 text-lg leading-[1.8] text-ink-600 sm:px-14">{e.current_text}</div>
+
+          <footer className="flex flex-wrap justify-between gap-3 border-t border-cream-200 px-6 py-4 text-xs text-ink-400 sm:px-14">
+            <span>Sent {new Date(e.created_at).toLocaleString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+            <span className="inline-flex items-center gap-1.5 font-medium text-sage-600" title={`Record #${e.seq}`}>
+              <NavIcon name="access" size={14} />Sealed in your vault
+            </span>
+          </footer>
+        </article>
+
+        <p className="mx-auto mt-4 max-w-[760px] text-xs leading-relaxed text-ink-400">
+          <b className="font-semibold text-ink-500">Not a legal will.</b> This letter is a personal message and has no legal effect.
+        </p>
+      </>
+    )
+  }
+
   return (
     <>
       <PageHeader
