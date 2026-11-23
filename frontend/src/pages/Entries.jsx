@@ -3,7 +3,6 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, ConfirmDialog, Empty, LetterBadge, Spinner, Tag } from '../components/ui'
-import EntriesTabs from '../components/EntriesTabs'
 import NavIcon from '../components/NavIcon'
 
 // "⋮" menu on a card. items: [{ label, icon, to } | { label, icon, onClick, danger }].
@@ -65,6 +64,42 @@ function Row({ to, lead, title, snippet, meta, menu }) {
       </Link>
       {menu}
     </li>
+  )
+}
+
+// "+ New" button with a small menu: Diary entry or Letter.
+function NewMenu() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return undefined
+    const away = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    const key = (e) => { if (e.key === 'Escape') { setOpen(false); ref.current?.querySelector('button')?.focus() } }
+    document.addEventListener('mousedown', away); document.addEventListener('keydown', key)
+    ref.current?.querySelector('[role=menuitem]')?.focus()
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', key) }
+  }, [open])
+  const item = 'flex items-start gap-3 px-4 py-3 hover:bg-cream-200 focus:bg-cream-200 focus:outline-none'
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open}
+        className="btn-primary h-full min-h-[46px] whitespace-nowrap px-4">
+        <span aria-hidden className="text-lg leading-none">+</span>New
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-full z-40 mt-2 w-60 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">
+          <Link role="menuitem" to="/entries/new" className={item}>
+            <span className="mt-0.5 text-ink-500"><NavIcon name="write" size={18} /></span>
+            <span><span className="block text-sm font-medium text-ink-700">Diary entry</span><span className="block text-xs text-ink-400">Private, for your diary</span></span>
+          </Link>
+          <Link role="menuitem" to="/entries/new?kind=letter" className={item}>
+            <span className="mt-0.5 text-ink-500"><NavIcon name="letters" size={18} /></span>
+            <span><span className="block text-sm font-medium text-ink-700">Letter</span><span className="block text-xs text-ink-400">To one of your beneficiaries</span></span>
+          </Link>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -131,26 +166,31 @@ export default function Entries() {
       {/* Tabs, search and filters stay at the top while the list scrolls under them. */}
       <div ref={stickyTop} aria-hidden className="h-px" />
       <div className={`sticky top-0 z-30 -mx-4 -mt-8 mb-5 bg-cream-100/95 px-4 pb-3 pt-4 backdrop-blur transition-shadow sm:-mx-6 sm:px-6 lg:-mx-8 lg:-mt-12 lg:px-8 lg:pt-6 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
-      <EntriesTabs active="list" canWrite={!user.death_triggered_at} className="mb-3" />
-      <form role="search" className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_11rem_11rem] sm:gap-3" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
-        <div className="relative col-span-2 sm:col-span-1">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-          <input className="input pl-10 pr-10" type="search" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entries" />
-          {q && (
-            <button type="button" onClick={() => { setQ(''); update('q', '') }} aria-label="Clear search"
-              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-400 hover:bg-cream-200 hover:text-ink-600">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-            </button>
-          )}
+      <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+        <div className="flex flex-1 gap-2">
+          <form role="search" className="relative flex-1" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            <input className="input pl-10 pr-10" type="search" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entries" />
+            {q && (
+              <button type="button" onClick={() => { setQ(''); update('q', '') }} aria-label="Clear search"
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-400 hover:bg-cream-200 hover:text-ink-600">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+            )}
+          </form>
+          {!user.death_triggered_at && <div className="sm:hidden"><NewMenu /></div>}
         </div>
-        <select className="input" value={kind} onChange={(e) => update('kind', e.target.value)} aria-label="Show">
-          <option value="">All</option><option value="text">Entries</option><option value="letter">Letters</option>
-        </select>
-        <select className="input" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
-          <option value="">Newest</option><option value="oldest">Oldest</option>
-        </select>
-      </form>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
+          <select className="input sm:w-40" value={kind} onChange={(e) => update('kind', e.target.value)} aria-label="Show">
+            <option value="">All</option><option value="text">Entries</option><option value="letter">Letters</option>
+          </select>
+          <select className="input sm:w-40" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
+            <option value="">Newest</option><option value="oldest">Oldest</option>
+          </select>
+          {!user.death_triggered_at && <div className="hidden sm:block"><NewMenu /></div>}
+        </div>
+      </div>
       </div>
       {location.state?.draftSaved && <div className="mb-4"><Alert kind="success">Moved to Drafts. You can continue it any time.</Alert></div>}
       <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400" aria-live="polite">

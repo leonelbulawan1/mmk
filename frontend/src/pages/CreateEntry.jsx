@@ -5,7 +5,6 @@ import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
 import { Alert, Card, ConfirmDialog, Dialog, Field, LegalDisclaimer, PageHeader, useAsync } from '../components/ui'
 import { correctAll, correctAtCaret, nameMap } from '../autocorrect'
-import EntriesTabs from '../components/EntriesTabs'
 import NavIcon from '../components/NavIcon'
 
 const MODES = [
@@ -227,7 +226,7 @@ export default function CreateEntry() {
   return (
     <>
       <h1 className="sr-only">Diary entries</h1>
-      <EntriesTabs active={isLetter ? 'letter' : 'text'} />
+      <h2 className="mb-4 text-2xl font-semibold">{isLetter ? 'New letter' : 'New entry'}</h2>
       <form id="composer" onSubmit={askToSave}>
         <div className="card overflow-hidden p-0">
           {/* Window bar: what you are writing, and the draft status */}
