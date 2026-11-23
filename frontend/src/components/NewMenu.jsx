@@ -20,7 +20,7 @@ export default function NewMenu({ label = 'New', icon = 'plus' }) {
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open}
-        className="btn-primary h-full min-h-[46px] whitespace-nowrap px-4">
+        className="btn-primary">
         {icon === 'write' ? <NavIcon name="write" size={16} /> : <span aria-hidden className="text-lg leading-none">+</span>}{label}
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>

@@ -59,7 +59,7 @@ function DemoBar() {
             <li>Owner: elena@example.com</li>
             <li>Beneficiaries: maria@ · jose@ · lina@example.com</li>
           </ul>
-          <button className="btn-secondary mt-3 w-full py-1.5 text-xs" onClick={async () => { const m = await import('./webRuntime'); m.resetDemo() }}>
+          <button className="btn-secondary btn-sm mt-3 w-full" onClick={async () => { const m = await import('./webRuntime'); m.resetDemo() }}>
             Reset demo data
           </button>
         </div>

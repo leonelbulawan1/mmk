@@ -80,7 +80,7 @@ export default function Dashboard() {
 
       <div className="mt-2">
         <Section className="min-w-0" title="Recent pages" bodyClassName="p-0"
-          actions={<Link to="/entries" className="text-sm font-medium text-bark-500 hover:underline">All entries →</Link>}>
+          actions={<Link to="/entries" className="link">All entries →</Link>}>
           {data.recent.length === 0 ? (
             <div className="p-6">
               <Empty title="Your diary is empty" action={!sealed && <Link to="/entries/new" className="btn-primary">Write your first entry</Link>}>
@@ -95,7 +95,7 @@ export default function Dashboard() {
                   <li key={e.id}>
                     <Link to={`/entries/${e.id}`} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-cream-100/60 sm:px-6">
                       <div className="w-14 shrink-0 whitespace-nowrap text-center" aria-hidden>
-                        <p className="text-xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
+                        <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
                         <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { month: 'short' })} {String(d.getFullYear()).slice(2)}</p>
                       </div>
                       <div className="min-w-0 flex-1">

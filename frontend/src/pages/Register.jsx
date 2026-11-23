@@ -39,7 +39,7 @@ export default function Register() {
         <IconInput id="reg-email" icon={MailIcon} type="email" required autoComplete="email" placeholder="Email address" aria-label="Email address" value={form.email} onChange={set('email')} error={fields.email} />
         <PasswordInput id="reg-password" icon={LockIcon} required minLength={8} autoComplete="new-password" placeholder="Password" aria-label="Password" value={form.password} onChange={set('password')}
           error={fields.password} hint="At least 8 characters, with letters and numbers." />
-        <button className="btn-primary w-full py-3" disabled={busy}>{busy ? <><Spinner /> Creating your account…</> : 'Create my account'}</button>
+        <button className="btn-primary btn-lg w-full" disabled={busy}>{busy ? <><Spinner /> Creating your account…</> : 'Create my account'}</button>
       </form>
     </AuthShell>
   )

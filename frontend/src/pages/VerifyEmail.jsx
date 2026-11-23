@@ -81,7 +81,7 @@ export default function VerifyEmail() {
           className="font-mono text-lg tracking-[0.4em] placeholder:font-sans placeholder:text-base placeholder:tracking-normal"
           placeholder="6-digit code" aria-label="6-digit code" value={code}
           onChange={(e) => { setError(''); setFields({}); setCode(e.target.value.replace(/\D/g, '').slice(0, 6)) }} />
-        <button className="btn-primary w-full py-3" disabled={busy}>
+        <button className="btn-primary btn-lg w-full" disabled={busy}>
           {busy ? <><Spinner /> Verifying your email…</> : 'Verify email'}
         </button>
         <p className="text-center text-sm text-ink-400">Wrong email? <Link to="/register" className="font-medium text-bark-500 hover:underline">Start again</Link></p>

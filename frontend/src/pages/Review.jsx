@@ -48,7 +48,7 @@ function CaseView({ id, onChanged }) {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold">{d.owner_name}</h2>
+          <h2 className="text-lg font-semibold">{d.owner_name}</h2>
           <p className="text-sm text-ink-400">Reported by {d.reported_by} ({d.reported_by_relationship}) on {when(d.reported_at)}</p>
         </div>
         <Pill status={d.status} />
@@ -63,7 +63,7 @@ function CaseView({ id, onChanged }) {
         <ul className="mt-2 space-y-2">{d.evidence.map((ev) => (
           <li key={ev.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-cream-300 px-3 py-2 text-sm">
             <span>{ev.filename} <span className="text-xs text-ink-400">· {Math.ceil(ev.size / 1024)} KB · {fmtDate(ev.created_at)}</span></span>
-            <button className="btn-secondary px-3 py-1 text-xs" onClick={() => open(ev)}>Open</button>
+            <button className="btn-secondary btn-sm" onClick={() => open(ev)}>Open</button>
           </li>))}
         </ul>
       ) : <p className="mt-2 text-sm text-ink-400">No documents yet. The executor is asked to upload one.</p>}

@@ -91,7 +91,7 @@ export default function Login() {
           </label>
           <Link to="/forgot-password" className="font-medium text-bark-500 hover:underline">Forgot password?</Link>
         </div>
-        <button className="btn-primary w-full py-3" disabled={busy}>
+        <button className="btn-primary btn-lg w-full" disabled={busy}>
           {busy ? <><Spinner /> Signing in…</> : 'Sign in'}
         </button>
       </form>

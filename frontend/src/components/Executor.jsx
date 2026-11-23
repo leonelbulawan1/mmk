@@ -142,7 +142,7 @@ export function ExecutorPanel() {
 
   return (
     <Card className="mt-6 border-gold-500/40">
-      <h2 className="text-xl font-semibold">You are {first}'s executor</h2>
+      <h2 className="text-lg font-semibold">You are {first}'s executor</h2>
       {rep ? (
         <>
           <p className="mt-2 text-sm text-ink-500">
@@ -207,7 +207,7 @@ export function DisputePanel() {
   }
   return (
     <Card className="mt-6 border-rose-600/30">
-      <h2 className="text-xl font-semibold">{first}'s passing was reported</h2>
+      <h2 className="text-lg font-semibold">{first}'s passing was reported</h2>
       <p className="mt-2 text-sm text-ink-500">The report is {STATE_TEXT[rep.status] || rep.status}.
         {rep.activates_at && <> If no one disputes it, {first}'s diary opens as {first} wished on {fmtWhen(rep.activates_at)}.</>}</p>
       {rep.can_dispute ? (

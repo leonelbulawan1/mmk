@@ -56,7 +56,7 @@ export default function ForgotPassword() {
           <ErrorSlot error={error} />
           <IconInput id="fp-email" icon={MailIcon} type="email" required autoComplete="email" placeholder="Email address" aria-label="Email address"
             value={email} onChange={(e) => { setError(''); setFields({}); setEmail(e.target.value) }} error={fields.email} />
-          <button className="btn-primary w-full py-3" disabled={busy}>{busy ? <><Spinner /> Sending code…</> : 'Send code'}</button>
+          <button className="btn-primary btn-lg w-full" disabled={busy}>{busy ? <><Spinner /> Sending code…</> : 'Send code'}</button>
         </form>
       </AuthShell>
     )
@@ -81,7 +81,7 @@ export default function ForgotPassword() {
         <PasswordInput id="fp-password" icon={LockIcon} required minLength={8} autoComplete="new-password" placeholder="New password" aria-label="New password"
           value={password} onChange={(e) => { setError(''); setFields((f) => ({ ...f, password: '' })); setPassword(e.target.value) }}
           error={fields.password} hint="At least 8 characters, with letters and numbers." />
-        <button className="btn-primary w-full py-3" disabled={busy}>{busy ? <><Spinner /> Resetting password…</> : 'Reset password'}</button>
+        <button className="btn-primary btn-lg w-full" disabled={busy}>{busy ? <><Spinner /> Resetting password…</> : 'Reset password'}</button>
         <p className="text-center text-sm text-ink-400">Wrong email? <button type="button" className="font-medium text-bark-500 hover:underline" onClick={() => { setStep('email'); setError(''); setInfo('') }}>Change it</button></p>
       </form>
     </AuthShell>

@@ -20,11 +20,11 @@ export default function BeneficiaryHome() {
           subtitle={`${d.owner} named you as someone who may remember them through their diary.`} />
         {letters.data?.length > 0 && (
           <div className="mb-6 space-y-6">
-            <h2 className="text-xl font-semibold">Letters from {first}</h2>
+            <h2 className="text-lg font-semibold">Letters from {first}</h2>
             {letters.data.map((l) => (
               <article key={l.entry_id} className="card p-6 sm:p-10 fade-in">
                 <p className="text-sm font-medium text-bark-500">{fmtDate(l.date)}</p>
-                <h3 className="mt-1 text-2xl font-semibold">{l.title || 'A letter'}</h3>
+                <h3 className="mt-1 text-xl font-semibold">{l.title || 'A letter'}</h3>
                 <p className="paper-lines mt-4 whitespace-pre-wrap text-lg text-ink-600">{l.text}</p>
               </article>
             ))}

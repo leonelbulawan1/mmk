@@ -123,7 +123,7 @@ export function ToastProvider({ children }) {
 export function Empty({ title, children, action }) {
   return (
     <div className="rounded-2xl border border-dashed border-cream-300 bg-cream-50/60 px-6 py-12 text-center">
-      <p className="text-xl font-semibold text-ink-600">{title}</p>
+      <p className="text-lg font-semibold text-ink-600">{title}</p>
       {children && <p className="mx-auto mt-2 max-w-md text-sm text-ink-400">{children}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -231,7 +231,7 @@ export function Dialog({ open, title, onClose, children, footer, wide = false })
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-700/40 p-0 sm:items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabIndex={-1}
         className={`flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-cream-50 shadow-paper sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}>
-        <h2 id="dialog-title" className="px-6 pt-5 text-xl font-semibold">{title}</h2>
+        <h2 id="dialog-title" className="px-6 pt-5 text-lg font-semibold">{title}</h2>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
         {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-cream-300 px-6 py-4">{footer}</div>}
       </div>
@@ -245,7 +245,7 @@ export function ConfirmDialog({ open, title, children, confirmLabel = 'Confirm',
     <Dialog open={open} title={title} onClose={busy ? undefined : onCancel}
       footer={<>
         <button type="button" className="btn-ghost" onClick={onCancel} disabled={busy}>{cancelLabel}</button>
-        <button type="button" data-autofocus className={danger ? 'btn-primary bg-rose-600 hover:bg-rose-600/90' : 'btn-primary'} onClick={onConfirm} disabled={busy}>{busy ? 'Please wait…' : confirmLabel}</button>
+        <button type="button" data-autofocus className={danger ? 'btn-danger' : 'btn-primary'} onClick={onConfirm} disabled={busy}>{busy ? 'Please wait…' : confirmLabel}</button>
       </>}>
       <div className="text-sm text-ink-600">{children}</div>
     </Dialog>

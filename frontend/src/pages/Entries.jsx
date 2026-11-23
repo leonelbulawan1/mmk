@@ -73,7 +73,7 @@ function Row({ to, lead, title, snippet, meta, menu, stack, linkState }) {
 function KindTabs({ value, counts, onChange, review }) {
   const tabs = [['text', 'Diary'], ['letter', 'Letters'], ['draft', 'Drafts'], ...(review ? [['review', 'Needs review']] : [])]
   return (
-    <div role="tablist" aria-label="Show" className="flex min-h-[46px] flex-1 rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
+    <div role="tablist" aria-label="Show" className="flex h-[42px] flex-1 rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
       {tabs.map(([v, label]) => {
         const on = value === v
         return (

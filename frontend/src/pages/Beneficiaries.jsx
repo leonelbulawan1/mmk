@@ -37,7 +37,7 @@ function FixEmail({ b, onSaved }) {
       <p className="text-rose-600">The invitation to <b>{b.email}</b> bounced. This email address doesn't exist or can't receive mail. Correct it and we'll send a new invitation.</p>
       <div className="mt-2 flex gap-2">
         <input className="input py-1.5 text-sm" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        <button className="btn-primary px-3 py-1.5 text-xs" disabled={busy || email.trim().toLowerCase() === b.email}>{busy ? 'Sending…' : 'Save and resend'}</button>
+        <button className="btn-primary btn-sm" disabled={busy || email.trim().toLowerCase() === b.email}>{busy ? 'Sending…' : 'Save and resend'}</button>
       </div>
       {err && <p className="mt-1 text-xs text-rose-600">{err}</p>}
     </form>
@@ -106,7 +106,7 @@ export default function Beneficiaries() {
             Invitation sent to <b>{invite.email}</b>. {invite.name} can activate their account from the link in the email.
             <span className="mt-1 block text-xs">Not in their inbox? Ask them to check Spam, or send them the link yourself (it works once).</span>
             {invite.link && !WEB && (
-              <button type="button" className="btn-secondary mt-2 px-2.5 py-1 text-xs"
+              <button type="button" className="btn-secondary btn-sm mt-2"
                 onClick={() => navigator.clipboard?.writeText(invite.link).catch(() => {})}>Copy invite link</button>
             )}
           </Alert>
@@ -119,7 +119,7 @@ export default function Beneficiaries() {
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span>Or send this link:</span>
                 <code className="max-w-full truncate rounded bg-white/70 px-2 py-0.5 text-xs">{invite.link}</code>
-                <button type="button" className="btn-secondary px-2.5 py-1 text-xs"
+                <button type="button" className="btn-secondary btn-sm"
                   onClick={() => navigator.clipboard?.writeText(invite.link).catch(() => {})}>Copy link</button>
               </div>
             )}
@@ -155,9 +155,9 @@ export default function Beneficiaries() {
                     </div>
                     {!sealed && (
                       <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-                        <Link className="btn-secondary px-3 py-1.5 text-xs" to={`/assistant?as=${b.handle}`}>Preview as {b.display_name.split(' ')[0]}</Link>
-                        {!b.activated && <button className="btn-secondary px-3 py-1.5 text-xs" onClick={() => reissue(b)}>Send invite again</button>}
-                        <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => toggle(b)}>{b.active ? 'Deactivate' : 'Reactivate'}</button>
+                        <Link className="btn-secondary btn-sm" to={`/assistant?as=${b.handle}`}>Preview as {b.display_name.split(' ')[0]}</Link>
+                        {!b.activated && <button className="btn-secondary btn-sm" onClick={() => reissue(b)}>Send invite again</button>}
+                        <button className="btn-ghost btn-sm" onClick={() => toggle(b)}>{b.active ? 'Deactivate' : 'Reactivate'}</button>
                       </div>
                     )}
                   </div>

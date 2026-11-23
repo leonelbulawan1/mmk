@@ -70,7 +70,7 @@ export default function EntryDetail() {
         <div className="min-w-0 space-y-6 lg:col-span-2">
           {e.pending_review && e.review && (
             <Card className="border-gold-500/40">
-              <h2 className="text-xl font-semibold">Suggestions to review</h2>
+              <h2 className="text-lg font-semibold">Suggestions to review</h2>
               <p className="mb-4 text-sm text-ink-400">Accepting adds a revision; your original words stay in the vault.</p>
               <div className="rounded-xl bg-cream-100 p-4"><DiffView ops={e.review.suggestions} /></div>
               {!sealed && (

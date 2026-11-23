@@ -72,13 +72,13 @@ export default function Layout() {
         <p className="truncate text-sm font-semibold text-ink-700">{user?.display_name}</p>
         <p className="truncate text-xs text-ink-400">{user?.role === 'owner' ? 'Diary owner' : `Beneficiary of ${user?.owner?.display_name || ''}`}</p>
       </div>
-      <button className="btn-ghost h-10 w-10 shrink-0 justify-center px-0 text-ink-500" onClick={() => setConfirmOut(true)} aria-label="Sign out" title="Sign out"><NavIcon name="signout" size={18} /></button>
+      <button className="btn-ghost btn-icon text-ink-500" onClick={() => setConfirmOut(true)} aria-label="Sign out" title="Sign out"><NavIcon name="signout" size={18} /></button>
     </div>
   )
   const compactFooter = (
     <div className="flex flex-col items-center gap-1 border-t border-cream-300 pt-4">
       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-sm font-semibold text-cream-50" title={user?.display_name}>{initial}</span>
-      <button className="btn-ghost h-11 w-11 justify-center px-0" onClick={() => setConfirmOut(true)} aria-label="Sign out" title="Sign out"><NavIcon name="signout" /></button>
+      <button className="btn-ghost btn-icon" onClick={() => setConfirmOut(true)} aria-label="Sign out" title="Sign out"><NavIcon name="signout" /></button>
     </div>
   )
 
@@ -91,7 +91,7 @@ export default function Layout() {
             {compact
               ? <Link to="/" aria-label="MMK home"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-9 w-9" /></Link>
               : <Logo />}
-            <button className="btn-ghost h-9 w-9 justify-center px-0 text-ink-400" onClick={toggleCompact}
+            <button className="btn-ghost btn-icon h-9 w-9 text-ink-400" onClick={toggleCompact}
               aria-label={compact ? 'Expand sidebar' : 'Collapse sidebar'} title={compact ? 'Expand sidebar' : 'Collapse sidebar'} aria-pressed={compact}>
               <NavIcon name={compact ? 'expand' : 'collapse'} />
             </button>

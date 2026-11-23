@@ -18,7 +18,7 @@ export default function Letters() {
           {letters.data.map((l) => (
             <article key={l.entry_id} className="card mx-auto max-w-3xl p-8 sm:p-12 fade-in">
               <p className="text-sm font-medium text-bark-500">{fmtDate(l.date)}</p>
-              <h2 className="mt-1 text-3xl font-semibold">{l.title}</h2>
+              <h2 className="mt-1 text-xl font-semibold">{l.title}</h2>
               <p className="paper-lines mt-6 whitespace-pre-wrap text-lg text-ink-600">{l.text}</p>
             </article>
           ))}

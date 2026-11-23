@@ -56,9 +56,9 @@ export default function EmailNotices() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>{label}</span>
-                    <button className="btn-ghost px-3 py-1 text-xs" onClick={() => setOpen(open === x.id ? null : x.id)}>{open === x.id ? 'Hide' : 'View email'}</button>
+                    <button className="btn-ghost btn-sm" onClick={() => setOpen(open === x.id ? null : x.id)}>{open === x.id ? 'Hide' : 'View email'}</button>
                     {!['sent', 'delivered', 'sending'].includes(x.status) && (
-                      <button className="btn-secondary px-3 py-1 text-xs" disabled={!configured || busy === x.id} onClick={() => retry(x.id)}
+                      <button className="btn-secondary btn-sm" disabled={!configured || busy === x.id} onClick={() => retry(x.id)}
                         title={configured ? 'Send again' : 'Set up email on the server first'}>{busy === x.id ? 'Sending…' : x.status === 'unknown' ? 'Send anyway' : 'Retry now'}</button>
                     )}
                   </div>

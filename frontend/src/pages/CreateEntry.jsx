@@ -310,7 +310,7 @@ export default function CreateEntry({ modal = false }) {
           {isLetter && !opensOnDate && release && !release.released && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gold-500/30 bg-[#FBF0D9] px-5 py-3 text-sm text-bark-600 sm:px-6">
               <span className="min-w-0 flex-1">{recipientName} can't receive letters yet. Add them to your legacy policy.</span>
-              <button type="button" onClick={addRelease} disabled={addingRelease} className="btn-secondary py-1.5 text-sm">
+              <button type="button" onClick={addRelease} disabled={addingRelease} className="btn-secondary">
                 {addingRelease ? 'Adding…' : 'Add to policy'}
               </button>
             </div>
@@ -339,16 +339,16 @@ export default function CreateEntry({ modal = false }) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               {isLetter ? <p className="text-xs text-ink-400" title="This letter is a personal message. It has no legal effect."><b className="font-semibold text-ink-500">Not a legal will.</b> It has no legal effect.</p> : <div className="flex flex-wrap items-center gap-2">
                 <span id="mode-label" className="sr-only">Writing mode</span>
-                <div role="radiogroup" aria-labelledby="mode-label" className="inline-flex rounded-xl bg-cream-200 p-1">
+                <div role="radiogroup" aria-labelledby="mode-label" className="inline-flex h-[42px] rounded-xl border border-cream-300 bg-cream-100 p-1">
                   {MODES.map((m) => (
                     <button key={m.key} type="button" role="radio" aria-checked={mode === m.key} onClick={() => setMode(m.key)} title={m.short}
-                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${mode === m.key ? 'bg-white text-ink-700 shadow-paper' : 'text-ink-500 hover:text-ink-700'}`}>
+                      className={`rounded-lg px-3 text-sm font-medium transition ${mode === m.key ? 'bg-ink-700 text-cream-50' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
                       {m.label}
                     </button>
                   ))}
                 </div>
                 <button type="button" onClick={() => setShowPreview(!showPreview)} aria-expanded={showPreview}
-                  className="rounded-lg px-2 py-1.5 text-sm font-medium text-bark-500 hover:bg-cream-200">
+                  className="btn-ghost px-3 text-bark-500">
                   {showPreview ? 'Hide preview' : 'Preview'}
                 </button>
               </div>}
@@ -358,8 +358,8 @@ export default function CreateEntry({ modal = false }) {
                   {draftSaved === 'failed' ? <span className="text-rose-600"> · draft not saved</span>
                     : draftSaved ? <> · saved {clock(draftSaved)}</> : restored ? ' · draft restored' : ''}
                 </span>
-                <button type="button" className="btn-ghost px-4 py-2.5" disabled={busy || (!modal && !hasContent)} onClick={modal ? close : saveDraft} title={hasContent ? 'Close it; it waits under Drafts' : 'Close'}>Discard</button>
-                <button className="btn-primary px-5 py-2.5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title={`${isLetter ? 'Send letter' : 'Save entry'} (Ctrl+S)`}>
+                <button type="button" className="btn-ghost" disabled={busy || (!modal && !hasContent)} onClick={modal ? close : saveDraft} title={hasContent ? 'Close it; it waits under Drafts' : 'Close'}>Discard</button>
+                <button className="btn-primary px-5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title={`${isLetter ? 'Send letter' : 'Save entry'} (Ctrl+S)`}>
                   <NavIcon name={isLetter ? 'send' : 'write'} size={16} />{busy ? (isLetter ? 'Sending…' : 'Saving…') : (isLetter ? 'Send letter' : 'Save entry')}
                 </button>
               </div>
@@ -401,7 +401,7 @@ export default function CreateEntry({ modal = false }) {
     return (
       <>
         <h1 className="sr-only">Entry</h1>
-        <h2 className="mb-4 text-2xl font-semibold">{heading}</h2>
+        <h2 className="mb-4 text-3xl font-semibold leading-tight">{heading}</h2>
         {composer}
       </>
     )
