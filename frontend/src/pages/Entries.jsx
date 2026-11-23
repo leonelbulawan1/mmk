@@ -54,7 +54,7 @@ function Pill({ children, tone }) {
 // One line in a group: date or icon, title and first line, details on the right, ⋮ menu.
 function Row({ to, lead, title, snippet, meta, menu, stack, linkState }) {
   return (
-    <li className="group flex items-center gap-3 px-4 py-3.5 transition-colors last:rounded-b-2xl hover:bg-cream-100/60 sm:gap-5 sm:px-5">
+    <li className="group flex items-center gap-3 border-b border-cream-300 px-4 py-3.5 transition-colors last:rounded-b-2xl last:border-b-0 hover:bg-cream-100/60 sm:gap-5 sm:px-5">
       <Link to={to} state={linkState} className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
         <div className="shrink-0">{lead}</div>
         <div className="min-w-0 flex-1">
@@ -117,7 +117,7 @@ const titleOf = (e) => e.title?.trim() || (e.snippet || '').split(/\s+/).slice(0
 // A light divider inside a card: month or recipient, with a count.
 function Divider({ id, title }) {
   return (
-    <li id={id} className="flex scroll-mt-36 items-center justify-between gap-3 border-y border-cream-200 bg-cream-100/80 px-4 py-2 first:border-t-0 sm:px-5">
+    <li id={id} className="flex scroll-mt-36 items-center justify-between gap-3 border-b border-cream-300 bg-cream-100/80 px-4 py-2 sm:px-5">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">{title}</h3>
     </li>
   )
@@ -319,7 +319,7 @@ export default function Entries() {
           <Empty title={ql ? 'No matches' : 'No drafts'}>{ql ? '' : 'When you close something you are writing, it waits here so you can finish it later. Drafts are kept on this device only.'}</Empty>
         ) : (
           <div className="card overflow-hidden p-0">
-            <ol className="divide-y divide-cream-200">
+            <ol>
               {draftShown.map((d) => {
                 const letter = d.form.kind === 'letter'
                 const saved = d.saved_at ? new Date(d.saved_at) : null
