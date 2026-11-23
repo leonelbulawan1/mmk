@@ -21,7 +21,7 @@ function CardMenu({ items, label }) {
   }, [open])
   const cls = (danger) => `flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm hover:bg-cream-200 focus:bg-cream-200 focus:outline-none ${danger ? 'text-rose-600' : 'text-ink-700'}`
   return (
-    <div ref={ref} className="relative shrink-0 self-start">
+    <div ref={ref} className="relative shrink-0">
       <button type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Options for ${label}`}
         className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-500 hover:bg-cream-200">
         <NavIcon name="more" size={20} />
@@ -34,6 +34,37 @@ function CardMenu({ items, label }) {
         </div>
       )}
     </div>
+  )
+}
+
+function GroupHeader({ id, title, count, note }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-t-2xl border-b border-cream-300 bg-cream-100/70 px-4 py-2.5 sm:px-5">
+      <h2 id={id} className="text-sm font-semibold uppercase tracking-wider text-ink-600">{title}</h2>
+      <span className="text-xs text-ink-400">{note ? `${note} · ` : ''}{count} {count === 1 ? 'item' : 'items'}</span>
+    </div>
+  )
+}
+
+function Pill({ children, tone }) {
+  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${tone === 'gold' ? 'bg-[#FBF0D9] text-bark-600' : 'bg-cream-200 text-ink-500'}`}>{children}</span>
+}
+
+// One line in a group: date or icon, title and first line, details on the right, ⋮ menu.
+function Row({ to, lead, title, snippet, meta, menu }) {
+  return (
+    <li className="group flex items-center gap-3 px-4 py-3.5 transition-colors last:rounded-b-2xl hover:bg-cream-100/60 sm:gap-5 sm:px-5">
+      <Link to={to} className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
+        <div className="shrink-0">{lead}</div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-semibold text-ink-700 group-hover:text-bark-500">{title}</h3>
+          <p className="truncate text-sm text-ink-500">{snippet}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 md:hidden">{meta}</div>
+        </div>
+        <div className="hidden shrink-0 flex-wrap items-center justify-end gap-2 md:flex">{meta}</div>
+      </Link>
+      {menu}
+    </li>
   )
 }
 
@@ -78,10 +109,11 @@ export default function Entries() {
   const filtered = reviewOnly ? state.data.filter((e) => e.pending_review) : state.data
   const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
   const shown = sorted.slice(0, limit)
-  // group entries by year for a journal feel
-  const byYear = shown.reduce((acc, e) => { (acc[e.entry_date.slice(0, 4)] ||= []).push(e); return acc }, {})
-  const years = Object.keys(byYear).sort()
-  if (!oldest) years.reverse()
+  // Group by month ("November 2026"), in the chosen order.
+  const byMonth = shown.reduce((acc, e) => { (acc[e.entry_date.slice(0, 7)] ||= []).push(e); return acc }, {})
+  const months = Object.keys(byMonth).sort()
+  if (!oldest) months.reverse()
+  const monthName = (ym) => new Date(ym + '-01T00:00').toLocaleString('en', { month: 'long', year: 'numeric' })
 
   return (
     <>
@@ -109,7 +141,7 @@ export default function Entries() {
         </select>
       </form>
       <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400" aria-live="polite">
-        {!state.loading && (
+        {!state.loading && (params.get('q') || topic) && (
           <span>
             {filtered.length} {filtered.length === 1 ? (kind === 'letter' ? 'letter' : 'entry') : (kind === 'letter' ? 'letters' : 'entries')}
             {params.get('q') && <> matching <b className="font-medium text-ink-600">“{params.get('q')}”</b></>}
@@ -135,26 +167,24 @@ export default function Entries() {
         const list = draftList.filter((d) => !kind || (d.form.kind || 'text') === kind)
         if (!list.length) return null
         return (
-          <section className="mb-10" aria-labelledby="drafts-h">
-            <h2 id="drafts-h" className="mb-3 text-xl font-semibold text-bark-500">Drafts <span className="text-sm font-normal text-ink-400">({list.length})</span></h2>
-            <ol className="space-y-3">
+          <section className="card mb-8 p-0" aria-labelledby="drafts-h">
+            <GroupHeader id="drafts-h" title="Drafts" count={list.length} note="Only on this device" />
+            <ol className="divide-y divide-cream-200">
               {list.map((d) => {
                 const letter = d.form.kind === 'letter'
                 const saved = d.saved_at ? new Date(d.saved_at) : null
+                const to = `/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`
                 return (
-                  <li key={d.id} className="card flex items-center gap-3 border-dashed p-4 sm:gap-5 sm:p-5">
-                    <Link to={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} className="group min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold group-hover:text-bark-500 sm:text-xl">{d.form.title?.trim() || 'Untitled'}</h3>
-                      <p className="mt-1 line-clamp-1 text-ink-500">{d.form.text?.trim() || '…'}</p>
-                      <p className="mt-2 text-xs text-ink-400">
-                        <span className="mr-2 rounded-full bg-cream-200 px-2 py-0.5 font-medium text-ink-500">Draft{letter ? ' · letter' : ''}</span>
-                        {saved && <>Saved {saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</>}
-                      </p>
-                    </Link>
-                    <CardMenu label={d.form.title?.trim() || 'Untitled draft'} items={[
-                      { label: 'Edit', icon: 'edit', to: `/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}` },
-                      { label: 'Delete', icon: 'trash', danger: true, onClick: () => setToDelete(d) }]} />
-                  </li>
+                  <Row key={d.id} to={to}
+                    lead={<span className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-cream-300 text-ink-400"><NavIcon name={letter ? 'letters' : 'write'} size={18} /></span>}
+                    title={d.form.title?.trim() || 'Untitled'} snippet={d.form.text?.trim() || '…'}
+                    meta={<>
+                      <Pill>{letter ? 'Letter draft' : 'Draft'}</Pill>
+                      {saved && <span className="text-xs text-ink-400">{saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
+                    </>}
+                    menu={<CardMenu label={d.form.title?.trim() || 'Untitled draft'} items={[
+                      { label: 'Edit', icon: 'edit', to },
+                      { label: 'Delete', icon: 'trash', danger: true, onClick: () => setToDelete(d) }]} />} />
                 )
               })}
             </ol>
@@ -165,39 +195,30 @@ export default function Entries() {
         <Empty title={params.get('q') || topic || kind || reviewOnly ? 'No matches' : 'No entries yet'}
           action={!user.death_triggered_at && !(params.get('q') || topic || kind || reviewOnly) && <Link to="/entries/new" className="btn-primary">New entry</Link>} />
       ) : (
-        years.map((year) => (
-          <section key={year} className="mb-10">
-            <h2 className="mb-3 text-xl font-semibold text-bark-500">{year}</h2>
-            <ol className="space-y-3">
-              {byYear[year].map((e) => (
-                <li key={e.id}>
-                  <div className="card flex items-center gap-3 p-4 transition hover:-translate-y-0.5 sm:gap-5 sm:p-5">
-                  <Link to={`/entries/${e.id}`} className="group flex min-w-0 flex-1 gap-4 sm:gap-6">
-                    <div className="w-12 shrink-0 text-center sm:w-14" aria-hidden>
-                      <p className="text-xs font-medium uppercase tracking-wider text-bark-500">{new Date(e.entry_date + 'T00:00').toLocaleString('en', { month: 'short' })}</p>
-                      <p className="text-2xl font-semibold leading-tight text-ink-700 sm:text-3xl">{Number(e.entry_date.slice(8, 10))}</p>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                        <h3 className="text-lg font-semibold group-hover:text-bark-500 sm:text-xl">
-                          <span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}
-                        </h3>
-                        {e.pending_review && (
-                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gold-500/40 bg-[#FBF0D9] px-2.5 py-0.5 text-xs font-medium text-bark-600">
-                            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />Needs review
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 line-clamp-1 text-ink-500">{e.snippet}</p>
-                      {e.kind === 'letter' && <div className="mt-2"><LetterBadge to={e.recipient_name || e.recipient} /></div>}
-                    </div>
-                  </Link>
-                  <CardMenu label={e.title || 'Untitled'} items={[
-                    { label: 'View', icon: e.kind === 'letter' ? 'letters' : 'entries', to: `/entries/${e.id}` },
-                    ...(user.death_triggered_at ? [] : [{ label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }])]} />
-                  </div>
-                </li>
-              ))}
+        months.map((ym) => (
+          <section key={ym} className="card mb-6 p-0" aria-labelledby={`m-${ym}`}>
+            <GroupHeader id={`m-${ym}`} title={monthName(ym)} count={byMonth[ym].length} />
+            <ol className="divide-y divide-cream-200">
+              {byMonth[ym].map((e) => {
+                const d = new Date(e.entry_date + 'T00:00')
+                return (
+                  <Row key={e.id} to={`/entries/${e.id}`}
+                    lead={<div className="w-10 text-center" aria-hidden>
+                      <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
+                      <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { weekday: 'short' })}</p>
+                    </div>}
+                    title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</>}
+                    snippet={e.snippet}
+                    meta={<>
+                      {e.pending_review && <Pill tone="gold">Needs review</Pill>}
+                      {e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}
+                      {e.revisions > 0 && <span className="text-xs text-ink-400">{e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
+                    </>}
+                    menu={<CardMenu label={e.title || 'Untitled'} items={[
+                      { label: 'View', icon: e.kind === 'letter' ? 'letters' : 'entries', to: `/entries/${e.id}` },
+                      ...(user.death_triggered_at ? [] : [{ label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }])]} />} />
+                )
+              })}
             </ol>
           </section>
         ))
