@@ -166,7 +166,7 @@ export default function CreateEntry({ modal = false }) {
   const saveDraft = () => {
     try { drafts.put(user.id, { id: draftId.current, form, mode }) } catch { setDraftSaved('failed'); return }
     if (modal && background) navigate(background.pathname + (background.search || ''), { replace: true, state: { draftSaved: true } })
-    else navigate('/entries', { state: { draftSaved: true } })
+    else navigate('/entries?kind=draft', { state: { draftSaved: true } })
   }
   // Floating window: X or Escape closes it. Any writing is kept under Drafts, so nothing is lost.
   const close = () => {

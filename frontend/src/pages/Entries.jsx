@@ -52,10 +52,10 @@ function Pill({ children, tone }) {
 }
 
 // One line in a group: date or icon, title and first line, details on the right, ⋮ menu.
-function Row({ to, lead, title, snippet, meta, menu, stack }) {
+function Row({ to, lead, title, snippet, meta, menu, stack, linkState }) {
   return (
     <li className="group flex items-center gap-3 px-4 py-3.5 transition-colors last:rounded-b-2xl hover:bg-cream-100/60 sm:gap-5 sm:px-5">
-      <Link to={to} className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
+      <Link to={to} state={linkState} className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
         <div className="shrink-0">{lead}</div>
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-semibold text-ink-700 group-hover:text-bark-500">{title}</h3>
@@ -71,13 +71,13 @@ function Row({ to, lead, title, snippet, meta, menu, stack }) {
 
 // All · Diary · Letters, with how many of each.
 function KindTabs({ value, counts, onChange, review }) {
-  const tabs = [['', 'All'], ['text', 'Diary'], ['letter', 'Letters'], ...(review ? [['review', 'Needs review']] : [])]
+  const tabs = [['text', 'Diary'], ['letter', 'Letters'], ['draft', 'Drafts'], ...(review ? [['review', 'Needs review']] : [])]
   return (
     <div role="tablist" aria-label="Show" className="flex min-h-[46px] flex-1 rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
       {tabs.map(([v, label]) => {
         const on = value === v
         return (
-          <button key={v || 'all'} type="button" role="tab" aria-selected={on} onClick={() => onChange(v)}
+          <button key={v} type="button" role="tab" aria-selected={on} onClick={() => onChange(v)}
             className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors sm:flex-none ${on ? 'bg-ink-700 text-cream-50' : v === 'review' ? 'text-bark-600 hover:bg-[#FBF0D9]' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
             {v === 'review' && !on && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />}
             {v === 'review' ? <><span className="sm:hidden">Review</span><span className="hidden sm:inline">Needs review</span></> : label}{counts && <span className={`text-xs ${on ? 'text-cream-200' : 'text-ink-400'}`}>{counts[v]}</span>}
@@ -134,8 +134,9 @@ export default function Entries() {
   const [q, setQ] = useState(params.get('q') || '')
   const [state, setState] = useState({ loading: true, data: [], error: '' })
   const topic = params.get('topic') || ''
-  const kind = params.get('kind') || ''
   const reviewOnly = params.get('review') === '1'
+  // Tabs: Diary (the default), Letters, Drafts; "Needs review" shows both kinds that need review.
+  const kind = reviewOnly ? '' : ['letter', 'draft'].includes(params.get('kind')) ? params.get('kind') : 'text'
   const oldest = params.get('sort') === 'oldest'
   const [limit, setLimit] = useState(PAGE)
   // Unfinished writing on this device (see api.js drafts); shown above the saved entries.
@@ -177,8 +178,10 @@ export default function Entries() {
 
   const needReview = state.data.filter((e) => e.pending_review).length
   const isLetter = (e) => e.kind === 'letter'
-  const counts = { '': state.data.length, text: state.data.filter((e) => !isLetter(e)).length, letter: state.data.filter(isLetter).length, review: needReview }
-  const filtered = state.data.filter((e) => (!kind || (isLetter(e) ? 'letter' : 'text') === kind) && (!reviewOnly || e.pending_review))
+  const counts = { text: state.data.filter((e) => !isLetter(e)).length, letter: state.data.filter(isLetter).length, draft: draftList.length, review: needReview }
+  const filtered = kind === 'draft' ? [] : state.data.filter((e) => (!kind || (isLetter(e) ? 'letter' : 'text') === kind) && (!reviewOnly || e.pending_review))
+  const ql = (params.get('q') || '').toLowerCase()
+  const draftShown = draftList.filter((d) => !ql || `${d.form.title || ''} ${d.form.text || ''}`.toLowerCase().includes(ql))
   const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
   const shown = sorted.slice(0, limit)
   const monthName = (ym) => new Date(ym + '-01T00:00').toLocaleString('en', { month: 'long', year: 'numeric' })
@@ -296,7 +299,7 @@ export default function Entries() {
         </div>
         <div className="flex gap-2 sm:gap-3">
           <KindTabs value={reviewOnly ? 'review' : kind} counts={state.loading ? null : counts} review={needReview > 0 || reviewOnly}
-            onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); if (v === 'review') p.set('review', '1'); else if (v) p.set('kind', v); setParams(p, { replace: true }) }} />
+            onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); if (v === 'review') p.set('review', '1'); else if (v !== 'text') p.set('kind', v); setParams(p, { replace: true }) }} />
           <select className="input hidden w-36 shrink-0 sm:block" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
             <option value="">Newest</option><option value="oldest">Oldest</option>
           </select>
@@ -316,43 +319,38 @@ export default function Entries() {
       </div>
 
       <Alert>{state.error}</Alert>
-      {!user.death_triggered_at && !params.get('q') && !reviewOnly && (() => {
-        const list = draftList.filter((d) => !kind || (d.form.kind || 'text') === kind)
-        if (!list.length) return null
-        return (
-          <section className="card mb-6 p-0" aria-labelledby="drafts-h">
-            <GroupHeader id="drafts-h" title="Drafts" count={list.length} />
-            <ul className="divide-y divide-cream-200">
-              {list.map((d) => {
+      {kind === 'draft' ? (
+        !draftShown.length ? (
+          <Empty title={ql ? 'No matches' : 'No drafts'}>{ql ? '' : 'When you close something you are writing, it waits here so you can finish it later. Drafts are kept on this device only.'}</Empty>
+        ) : (
+          <div className="card overflow-hidden p-0">
+            <ol className="divide-y divide-cream-200">
+              {draftShown.map((d) => {
                 const letter = d.form.kind === 'letter'
                 const saved = d.saved_at ? new Date(d.saved_at) : null
                 const to = `/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`
                 return (
-                  <li key={d.id} className="group flex items-center gap-3 px-4 py-1.5 transition-colors last:rounded-b-2xl hover:bg-cream-100/60 sm:px-5">
-                    <Link to={to} state={{ background: location }} className="flex min-w-0 flex-1 items-center gap-3 py-1.5">
-                      <span className="shrink-0 text-ink-400"><NavIcon name={letter ? 'letters' : 'write'} size={18} /></span>
-                      <span className="min-w-0 flex-1 truncate text-sm">
-                        <span className="font-semibold text-ink-700 group-hover:text-bark-500">{d.form.title?.trim() || 'Untitled'}</span>
-                        <span className="text-ink-400"> · {d.form.text?.trim() || '…'}</span>
-                      </span>
-                      {saved && <span className="hidden shrink-0 text-xs text-ink-400 md:inline">{saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
-                    </Link>
-                    <CardMenu label={d.form.title?.trim() || 'Untitled draft'} items={[
-                      { label: 'Edit', icon: 'edit', to },
-                      { label: 'Delete', icon: 'trash', danger: true, onClick: () => setToDelete(d) }]} />
-                  </li>
+                  <Row key={d.id} to={to} linkState={{ background: location }}
+                    lead={<span className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-cream-300 text-ink-400"><NavIcon name={letter ? 'letters' : 'write'} size={18} /></span>}
+                    title={d.form.title?.trim() || 'Untitled'} snippet={d.form.text?.trim() || '…'}
+                    meta={<>
+                      <Pill>{letter ? 'Letter' : 'Diary'}</Pill>
+                      {saved && <span className="whitespace-nowrap text-xs text-ink-400">{saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
+                    </>}
+                    menu={<CardMenu label={d.form.title?.trim() || 'Untitled draft'} items={[
+                      { label: 'Edit', icon: 'edit', to, state: { background: location } },
+                      { label: 'Delete', icon: 'trash', danger: true, onClick: () => setToDelete(d) }]} />} />
                 )
               })}
-            </ul>
-          </section>
+            </ol>
+          </div>
         )
-      })()}
-      {state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner /> : shown.length === 0 ? (
-        <Empty title={params.get('q') || topic || kind || reviewOnly ? 'No matches' : 'No entries yet'}
-          action={!user.death_triggered_at && !(params.get('q') || topic || kind || reviewOnly) && <Link to="/entries/new" className="btn-primary">New entry</Link>} />
+      ) : state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner /> : shown.length === 0 ? (
+        <Empty title={params.get('q') || topic || reviewOnly ? 'No matches' : kind === 'letter' ? 'No letters yet' : 'No diary entries yet'}
+          action={!user.death_triggered_at && !(params.get('q') || topic || reviewOnly) && <Link to={kind === 'letter' ? '/entries/new?kind=letter' : '/entries/new'} state={{ background: location }} className="btn-primary">{kind === 'letter' ? 'Write a letter' : 'Write an entry'}</Link>} />
       ) : (
         <>
-        {kind !== 'letter' && years.length > 1 && (
+        {kind === 'text' && years.length > 1 && (
           <nav aria-label="Jump to year" className="-mx-1 mb-4 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap px-1 pb-1 text-sm sm:flex-wrap">
             <span className="mr-1 shrink-0 text-xs font-medium uppercase tracking-wider text-ink-400">Jump to</span>
             {years.map((y) => (
@@ -361,9 +359,9 @@ export default function Entries() {
             ))}
           </nav>
         )}
-        <div className={!kind && !reviewOnly ? 'grid items-start gap-x-6 xl:grid-cols-2' : ''}>
-          {(!kind || kind === 'text') && (!reviewOnly || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: !kind })}
-          {(!kind || kind === 'letter') && (!reviewOnly || shown.some(isLetter)) && LetterColumn({ list: shown.filter(isLetter), heading: !kind })}
+        <div>
+          {(!kind || kind === 'text') && (!reviewOnly || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: reviewOnly })}
+          {(kind === 'letter' || (reviewOnly && shown.some(isLetter))) && LetterColumn({ list: shown.filter(isLetter), heading: false })}
         </div>
         </>
       )}
