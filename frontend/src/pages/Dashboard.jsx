@@ -63,8 +63,8 @@ export default function Dashboard() {
           note={data.pending_reviews ? 'Suggestions waiting' : 'All caught up'} highlight={data.pending_reviews > 0} />
       </div>
 
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-3">
-        <Section className="min-w-0 lg:col-span-2" title="Recent pages" bodyClassName="p-0"
+      <div className="mt-6">
+        <Section className="min-w-0" title="Recent pages" bodyClassName="p-0"
           actions={<Link to="/entries" className="text-sm font-medium text-bark-500 hover:underline">All entries →</Link>}>
           {data.recent.length === 0 ? (
             <div className="p-6">
@@ -96,30 +96,6 @@ export default function Dashboard() {
           )}
         </Section>
 
-        <div className="space-y-6">
-          <Section title="Vault" actions={<Link to="/vault" className="text-sm font-medium text-bark-500 hover:underline">Details →</Link>}>
-            <div className="flex items-start gap-3">
-              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${data.integrity.ok ? 'bg-sage-100 text-sage-600' : 'bg-rose-100 text-rose-600'}`}>
-                <NavIcon name={data.integrity.ok ? 'access' : 'close'} size={20} />
-              </span>
-              <div>
-                <p className={`font-semibold ${data.integrity.ok ? 'text-sage-600' : 'text-rose-600'}`}>{data.integrity.ok ? 'Verified' : 'Verification failed'}</p>
-                <p className="text-sm text-ink-400">{data.integrity.ok ? `All ${data.integrity.length} records are exactly as saved.` : 'Some records no longer match what was saved.'}</p>
-              </div>
-            </div>
-          </Section>
-          <Section title="Themes" description="What you write about most">
-            {data.topics.length ? (
-              <div className="flex flex-wrap gap-2">
-                {data.topics.map(([t, n]) => (
-                  <Link key={t} to={`/entries?topic=${t}`} className="inline-flex items-center gap-1.5 rounded-full border border-cream-300 bg-cream-100 px-3 py-1 text-sm text-ink-600 hover:border-bark-500/40 hover:text-bark-600">
-                    {t}<span className="text-xs text-ink-400">{n}</span>
-                  </Link>
-                ))}
-              </div>
-            ) : <p className="text-sm text-ink-400">Themes appear as you write.</p>}
-          </Section>
-        </div>
       </div>
     </>
   )
