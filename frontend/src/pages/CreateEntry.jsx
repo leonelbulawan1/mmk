@@ -238,7 +238,11 @@ export default function CreateEntry() {
 
           {/* Header rows, like an email: To / Subject / Date / Opens */}
           {isLetter && (
-            <Row label="To" htmlFor="to">
+            /* To and Opens side by side, so a letter has the same height as an entry */
+            <div className="grid border-b border-cream-300 lg:grid-cols-2">
+              <div className="flex min-h-[3.5rem] flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 sm:px-6">
+                <label htmlFor="to" className="w-16 shrink-0 text-sm text-ink-400">To</label>
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
               {active.length === 0 ? (
                 <span className="text-sm text-bark-600">No beneficiaries yet. <Link className="underline" to="/beneficiaries">Add one</Link></span>
               ) : (
@@ -252,22 +256,12 @@ export default function CreateEntry() {
                   ✓ Can receive letters
                 </span>
               )}
-            </Row>
-          )}
-          {isLetter && !opensOnDate && release && !release.released && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gold-500/30 bg-[#FBF0D9] px-5 py-3 text-sm text-bark-600 sm:px-6">
-              <span className="min-w-0 flex-1">{recipientName} can't receive letters yet. Add them to your legacy policy.</span>
-              <button type="button" onClick={addRelease} disabled={addingRelease} className="btn-secondary py-1.5 text-sm">
-                {addingRelease ? 'Adding…' : 'Add to policy'}
-              </button>
             </div>
-          )}
-          <Row label="Subject" htmlFor="subject">
-            <input id="subject" className={`${bare} text-lg font-semibold`} placeholder={isLetter ? 'Title' : 'Title (optional)'}
-              value={form.title} onChange={set('title')} maxLength={200} />
-          </Row>
-          {isLetter && (
-            <Row label="Opens" error={pastOpen ? 'The date can’t be in the past.' : ''}>
+              </div>
+              <div className="border-t border-cream-300 px-5 py-2.5 sm:px-6 lg:border-l lg:border-t-0">
+                <div className="flex min-h-[2.25rem] flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="w-16 shrink-0 text-sm text-ink-400">Opens</span>
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <label className="flex items-center gap-2 text-sm text-ink-600">
                   <input type="radio" name="opens" checked={opensOnDate} onChange={() => setForm({ ...form, opens: 'date' })} /> On
@@ -288,11 +282,27 @@ export default function CreateEntry() {
                   </label>
                 )}
               </div>
-            </Row>
+            </div>
+                </div>
+                {pastOpen && <p className="mt-1 text-xs text-rose-600" role="alert">The date can’t be in the past.</p>}
+              </div>
+            </div>
           )}
+          {isLetter && !opensOnDate && release && !release.released && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gold-500/30 bg-[#FBF0D9] px-5 py-3 text-sm text-bark-600 sm:px-6">
+              <span className="min-w-0 flex-1">{recipientName} can't receive letters yet. Add them to your legacy policy.</span>
+              <button type="button" onClick={addRelease} disabled={addingRelease} className="btn-secondary py-1.5 text-sm">
+                {addingRelease ? 'Adding…' : 'Add to policy'}
+              </button>
+            </div>
+          )}
+          <Row label="Subject" htmlFor="subject">
+            <input id="subject" className={`${bare} text-lg font-semibold`} placeholder={isLetter ? 'Title' : 'Title (optional)'}
+              value={form.title} onChange={set('title')} maxLength={200} />
+          </Row>
 
           {/* Body */}
-          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${focus ? 'min-h-[65vh]' : 'min-h-[380px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
+          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${focus ? 'min-h-[65vh]' : isLetter ? 'min-h-[266px] lg:min-h-[323px]' : 'min-h-[380px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
             placeholder={isLetter ? 'Dear…' : 'Start writing…'} value={form.text} onChange={onText} ref={textRef} spellCheck autoCorrect="on" autoCapitalize="sentences"
             aria-label={isLetter ? 'Letter text' : 'Entry text'} aria-describedby="autofix-status" />
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2 text-xs text-ink-400 sm:px-6">
@@ -304,12 +314,11 @@ export default function CreateEntry() {
             </span>
           </div>
 
-          {isLetter && <div className="px-5 pb-4 sm:px-6"><LegalDisclaimer compact /></div>}
 
           {/* Toolbar, like an email's bottom bar: writing mode on the left, send on the right */}
           <div className="border-t border-cream-300 bg-cream-100/70 px-4 py-3 sm:px-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              {isLetter ? <span /> : <div className="flex flex-wrap items-center gap-2">
+              {isLetter ? <p className="text-xs text-ink-400" title="This letter is a personal message. It has no legal effect."><b className="font-semibold text-ink-500">Not a legal will.</b> It has no legal effect.</p> : <div className="flex flex-wrap items-center gap-2">
                 <span id="mode-label" className="sr-only">Writing mode</span>
                 <div role="radiogroup" aria-labelledby="mode-label" className="inline-flex rounded-xl bg-cream-200 p-1">
                   {MODES.map((m) => (
