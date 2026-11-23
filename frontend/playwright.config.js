@@ -25,6 +25,6 @@ export default defineConfig({
   ],
   webServer: [
     { command: `E2E_API_PORT=${API_PORT} bash e2e/start-api.sh`, url: `http://127.0.0.1:${API_PORT}/api/health`, timeout: 120_000, reuseExistingServer: false },
-    { command: `VITE_API_TARGET=http://127.0.0.1:${API_PORT} npx vite --port ${WEB_PORT} --strictPort`, url: `http://127.0.0.1:${WEB_PORT}`, timeout: 60_000, reuseExistingServer: false },
+    { command: `VITE_API_TARGET=http://127.0.0.1:${API_PORT} npx vite --host 127.0.0.1 --port ${WEB_PORT} --strictPort`, url: `http://127.0.0.1:${WEB_PORT}`, timeout: 60_000, reuseExistingServer: false },
   ],
 })
