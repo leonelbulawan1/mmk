@@ -115,14 +115,16 @@ function DateLead({ iso, month }) {
 const titleOf = (e) => e.title?.trim() || (e.snippet || '').split(/\s+/).slice(0, 7).join(' ') + ((e.snippet || '').split(/\s+/).length > 7 ? '…' : '') || 'Untitled'
 
 // A light divider inside a card: month or recipient, with a count.
-function Divider({ id, title, count }) {
+function Divider({ id, title }) {
   return (
     <li id={id} className="flex scroll-mt-36 items-center justify-between gap-3 border-y border-cream-200 bg-cream-100/80 px-4 py-2 first:border-t-0 sm:px-5">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">{title}</h3>
-      <span className="text-xs text-ink-400">{count}</span>
     </li>
   )
 }
+
+// The line under the title; for an untitled entry, the words after the ones used as its title.
+const snippetOf = (e) => e.title?.trim() ? e.snippet : (e.snippet || '').split(/\s+/).slice(7).join(' ')
 
 const PAGE = 30  // entries shown at a time; "Show more" adds the next batch
 
@@ -181,9 +183,8 @@ export default function Entries() {
   const shown = sorted.slice(0, limit)
   const monthName = (ym) => new Date(ym + '-01T00:00').toLocaleString('en', { month: 'long', year: 'numeric' })
 
-  const rowMenu = (e) => <CardMenu label={e.title || 'Untitled'} items={[
-    { label: 'View', icon: isLetter(e) ? 'letters' : 'entries', to: `/entries/${e.id}` },
-    ...(user.death_triggered_at ? [] : [{ label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }])]} />
+  const rowMenu = (e) => user.death_triggered_at ? null : <CardMenu label={e.title || 'Untitled'} items={[
+    { label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }]} />
   const canWrite = !user.death_triggered_at
   const ColumnHead = ({ icon, label, count, note }) => (
     <h2 className="mb-3 flex items-baseline gap-2 px-1 text-lg font-semibold text-ink-700">
@@ -205,7 +206,7 @@ export default function Entries() {
     const seenYear = new Set()
     return (
       <div className="min-w-0">
-        {heading && <ColumnHead icon="entries" label="Diary entries" count={list.length} note="Private" />}
+        {heading && <ColumnHead icon="entries" label="Diary entries" count={list.length} />}
         {!list.length ? <Blank text="No diary entries here" to="/entries/new" action="Write an entry" /> : (
           <div className="card mb-6 overflow-hidden p-0">
             <ol>
@@ -213,14 +214,13 @@ export default function Entries() {
                 const y = ym.slice(0, 4)
                 const first = !seenYear.has(y); seenYear.add(y)
                 return [
-                  <Divider key={`d-${ym}`} id={first ? `year-${y}` : undefined} title={monthName(ym)} count={`${groups[ym].length} ${groups[ym].length === 1 ? 'entry' : 'entries'}`} />,
+                  <Divider key={`d-${ym}`} id={first ? `year-${y}` : undefined} title={monthName(ym)} />,
                   ...groups[ym].map((e) => (
                     <Row key={e.id} to={`/entries/${e.id}`} lead={<DateLead iso={e.entry_date} />}
                       title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{titleOf(e)}</>}
-                      snippet={e.snippet}
+                      snippet={snippetOf(e)}
                       meta={<>
                         {e.pending_review && <Pill tone="gold">Needs review</Pill>}
-                        {e.revisions > 0 && <span className="whitespace-nowrap text-xs text-ink-400">{e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
                       </>}
                       menu={rowMenu(e)} />
                   )),
@@ -239,18 +239,18 @@ export default function Entries() {
     const people = Object.keys(groups).sort((a, b) => a.localeCompare(b))
     return (
       <div className={`min-w-0 ${heading ? 'xl:sticky xl:top-28' : ''}`}>
-        {heading && <ColumnHead icon="letters" label="Letters" count={list.length} note="For your beneficiaries" />}
+        {heading && <ColumnHead icon="letters" label="Letters" count={list.length} />}
         {!list.length ? <Blank text="No letters here" to="/entries/new?kind=letter" action="Write a letter" /> : (
           <div className={`card mb-6 overflow-hidden p-0 ${heading ? 'xl:max-h-[calc(100vh-10rem)] xl:overflow-y-auto' : ''}`}>
             <ol>
               {people.map((who) => [
-                <Divider key={`p-${who}`} title={`To ${who}`} count={`${groups[who].length} ${groups[who].length === 1 ? 'letter' : 'letters'}`} />,
+                <Divider key={`p-${who}`} title={`To ${who}`} />,
                 ...groups[who].map((e) => {
                   const st = letterStatus(e)
                   return (
                     <Row key={e.id} to={`/entries/${e.id}`} lead={<DateLead iso={e.entry_date} month />}
                       title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{titleOf(e)}</>}
-                      snippet={e.snippet}
+                      snippet={snippetOf(e)}
                       meta={<>
                         {e.pending_review && <Pill tone="gold">Needs review</Pill>}
                         <Pill tone={st.tone}>{st.label}</Pill>
@@ -321,7 +321,7 @@ export default function Entries() {
         if (!list.length) return null
         return (
           <section className="card mb-6 p-0" aria-labelledby="drafts-h">
-            <GroupHeader id="drafts-h" title="Drafts" count={list.length} note="Only on this device" />
+            <GroupHeader id="drafts-h" title="Drafts" count={list.length} />
             <ul className="divide-y divide-cream-200">
               {list.map((d) => {
                 const letter = d.form.kind === 'letter'
@@ -335,7 +335,6 @@ export default function Entries() {
                         <span className="font-semibold text-ink-700 group-hover:text-bark-500">{d.form.title?.trim() || 'Untitled'}</span>
                         <span className="text-ink-400"> · {d.form.text?.trim() || '…'}</span>
                       </span>
-                      <span className="hidden shrink-0 sm:inline"><Pill>{letter ? 'Letter draft' : 'Draft'}</Pill></span>
                       {saved && <span className="hidden shrink-0 text-xs text-ink-400 md:inline">{saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
                     </Link>
                     <CardMenu label={d.form.title?.trim() || 'Untitled draft'} items={[
