@@ -90,7 +90,6 @@ export default function CreateEntry() {
   const [restored, setRestored] = useState(!!draft)
   const [draftSaved, setDraftSaved] = useState(null)   // time the draft was last stored on this device
   const [confirming, setConfirming] = useState(false)   // final check before the permanent save
-  const [focus, setFocus] = useState(false)             // distraction-free full-screen writing
   // Automatic spelling and grammar correction while typing (on by default, remembered per browser).
   const [autoFix, setAutoFix] = useState(() => { try { return localStorage.getItem('mmk.autocorrect') !== 'off' } catch { return true } })
   const [lastFix, setLastFix] = useState(null)   // { from, to, before } for the Undo link
@@ -168,15 +167,14 @@ export default function CreateEntry() {
     navigate('/entries', { state: { draftSaved: true } })
   }
 
-  // Keyboard: Ctrl/Cmd+S opens the final check; Esc leaves focus mode.
+  // Keyboard: Ctrl/Cmd+S opens the final check.
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (canSaveRef.current) document.getElementById('composer')?.requestSubmit() }
-      else if (e.key === 'Escape' && focus && !confirming) setFocus(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [focus, confirming])
+  }, [confirming])
   const canSaveRef = useRef(false)
   const recipientName = active.find((b) => b.handle === form.recipient)?.display_name || form.recipient
 
@@ -230,8 +228,8 @@ export default function CreateEntry() {
     <>
       <h1 className="sr-only">Diary entries</h1>
       <EntriesTabs active={isLetter ? 'letter' : 'text'} />
-      <form id="composer" onSubmit={askToSave} className={focus ? 'fixed inset-0 z-40 overflow-y-auto bg-cream-50 px-2 py-4 sm:px-6 sm:py-8' : ''}>
-        <div className={`card overflow-hidden p-0 ${focus ? 'mx-auto max-w-3xl' : ''}`}>
+      <form id="composer" onSubmit={askToSave}>
+        <div className="card overflow-hidden p-0">
           {/* Window bar: what you are writing, and the draft status */}
 
 
@@ -303,7 +301,7 @@ export default function CreateEntry() {
           </Row>
 
           {/* Body */}
-          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${focus ? 'min-h-[65vh]' : isLetter ? 'min-h-[386px] lg:min-h-[443px]' : 'min-h-[500px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
+          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${isLetter ? 'min-h-[386px] lg:min-h-[443px]' : 'min-h-[500px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
             placeholder={isLetter ? 'Dear…' : 'Start writing…'} value={form.text} onChange={onText} ref={textRef} spellCheck autoCorrect="on" autoCapitalize="sentences"
             aria-label={isLetter ? 'Letter text' : 'Entry text'} aria-describedby="autofix-status" />
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2 text-xs text-ink-400 sm:px-6">
@@ -340,10 +338,6 @@ export default function CreateEntry() {
                   {draftSaved === 'failed' ? <span className="text-rose-600"> · draft not saved</span>
                     : draftSaved ? <> · saved {clock(draftSaved)}</> : restored ? ' · draft restored' : ''}
                 </span>
-                <button type="button" onClick={() => setFocus(!focus)} aria-pressed={focus} aria-label={focus ? 'Exit focus mode' : 'Focus mode'} title={focus ? 'Exit focus mode (Esc)' : 'Focus mode'}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:bg-cream-200">
-                  <NavIcon name={focus ? 'close' : 'focus'} size={16} />
-                </button>
                 <button type="button" className="btn-ghost px-4 py-2.5" disabled={!hasContent || busy} onClick={saveDraft} title="Keep it under Drafts in All entries">Save draft</button>
                 <button className="btn-primary px-5 py-2.5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title={`${isLetter ? 'Send' : 'Save'} (Ctrl+S)`}>
                   <NavIcon name={isLetter ? 'send' : 'write'} size={16} />{busy ? (isLetter ? 'Sending…' : 'Saving…') : (isLetter ? 'Send' : 'Save')}
