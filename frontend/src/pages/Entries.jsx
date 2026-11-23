@@ -1,10 +1,43 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, ConfirmDialog, Empty, LetterBadge, Spinner, Tag } from '../components/ui'
 import EntriesTabs from '../components/EntriesTabs'
 import NavIcon from '../components/NavIcon'
+
+// "⋮" menu on a draft card: Edit or Delete. Closes on Escape, on a click outside, or after a choice.
+function DraftMenu({ editTo, onDelete, label }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return undefined
+    const away = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    const key = (e) => { if (e.key === 'Escape') { setOpen(false); ref.current?.querySelector('button')?.focus() } }
+    document.addEventListener('mousedown', away); document.addEventListener('keydown', key)
+    ref.current?.querySelector('[role=menuitem]')?.focus()
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', key) }
+  }, [open])
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Options for ${label}`}
+        className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-500 hover:bg-cream-200">
+        <NavIcon name="more" size={20} />
+      </button>
+      {open && (
+        <div role="menu" className="absolute left-0 top-11 z-20 w-40 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">
+          <Link role="menuitem" to={editTo} className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-ink-700 hover:bg-cream-200 focus:bg-cream-200 focus:outline-none">
+            <NavIcon name="edit" size={16} />Edit
+          </Link>
+          <button role="menuitem" type="button" onClick={() => { setOpen(false); onDelete() }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-rose-600 hover:bg-cream-200 focus:bg-cream-200 focus:outline-none">
+            <NavIcon name="trash" size={16} />Delete
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const PAGE = 30  // entries shown at a time; "Show more" adds the next batch
 
@@ -111,10 +144,9 @@ export default function Entries() {
                 const letter = d.form.kind === 'letter'
                 const saved = d.saved_at ? new Date(d.saved_at) : null
                 return (
-                  <li key={d.id} className="card flex items-center gap-4 border-dashed p-4 sm:gap-6 sm:p-5">
-                    <div className="w-12 shrink-0 text-center sm:w-14" aria-hidden>
-                      <NavIcon name={letter ? 'letters' : 'write'} size={22} />
-                    </div>
+                  <li key={d.id} className="card flex items-center gap-3 border-dashed p-4 sm:gap-5 sm:p-5">
+                    <DraftMenu editTo={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} onDelete={() => setToDelete(d)}
+                      label={d.form.title?.trim() || 'Untitled draft'} />
                     <Link to={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} className="group min-w-0 flex-1">
                       <h3 className="text-lg font-semibold group-hover:text-bark-500 sm:text-xl">{d.form.title?.trim() || 'Untitled'}</h3>
                       <p className="mt-1 line-clamp-1 text-ink-500">{d.form.text?.trim() || '…'}</p>
@@ -123,10 +155,6 @@ export default function Entries() {
                         {saved && <>Saved {saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</>}
                       </p>
                     </Link>
-                    <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-                      <Link to={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} className="btn-secondary px-3 py-1.5 text-sm">Continue</Link>
-                      <button type="button" onClick={() => setToDelete(d)} className="btn-ghost px-3 py-1.5 text-sm text-rose-600">Delete</button>
-                    </div>
                   </li>
                 )
               })}
