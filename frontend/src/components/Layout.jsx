@@ -121,7 +121,7 @@ export default function Layout() {
               : 'This diary has been sealed and its legacy releases are now active.'}
           </div>
         )}
-        <div className="px-2 py-8 sm:px-3 lg:px-3 lg:py-10"><Suspense fallback={<Spinner />}><Outlet /></Suspense></div>
+        <div className="px-1 py-8 lg:py-10"><Suspense fallback={<Spinner />}><Outlet /></Suspense></div>
       </main>
     </div>
   )

@@ -279,7 +279,7 @@ export default function Entries() {
       <h1 className="sr-only">Entry</h1>
       {/* Tabs, search and filters stay at the top while the list scrolls under them. */}
       <div ref={stickyTop} aria-hidden className="h-px" />
-      <div className={`sticky top-0 z-30 -mx-2 -mt-8 mb-5 bg-cream-100/95 px-2 pb-3 pt-4 backdrop-blur transition-shadow sm:-mx-3 sm:px-3 lg:-mx-3 lg:-mt-10 lg:px-3 lg:pt-6 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
+      <div className={`sticky top-0 z-30 -mx-1 -mt-8 mb-5 bg-cream-100/95 px-1 pb-3 pt-4 backdrop-blur transition-shadow lg:-mt-10 lg:pt-6 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
         <div className="flex flex-1 gap-2">
           <form role="search" className="relative flex-1" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
