@@ -220,10 +220,10 @@ export default function Entries() {
     const groups = list.reduce((acc, e) => { const k = e.recipient_name || e.recipient || 'Unknown'; (acc[k] ||= []).push(e); return acc }, {})
     const people = Object.keys(groups).sort((a, b) => a.localeCompare(b))
     return (
-      <div className={`min-w-0 ${heading ? 'xl:sticky xl:top-28' : ''}`}>
+      <div className="min-w-0">
         {heading && <ColumnHead icon="letters" label="Letters" count={list.length} />}
         {!list.length ? <Blank text="No letters here" to="/entries/new?kind=letter" action="Write a letter" /> : (
-          <div className={`card mb-6 overflow-hidden p-0 ${heading ? 'xl:max-h-[calc(100vh-10rem)] xl:overflow-y-auto' : ''}`}>
+          <div className={`card mb-6 overflow-hidden p-0 `}>
             <ol>
               {people.map((who) => [
                 <Divider key={`p-${who}`} title={`To ${who}`} />,
@@ -327,7 +327,7 @@ export default function Entries() {
             ))}
           </nav>
         )}
-        <div className={kind === 'all' ? 'grid items-start gap-x-6 xl:grid-cols-2' : ''}>
+        <div>
           {(both || kind === 'text') && (!reviewOnly || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: both })}
           {(both || kind === 'letter') && (!reviewOnly || shown.some(isLetter)) && LetterColumn({ list: shown.filter(isLetter), heading: both })}
         </div>
