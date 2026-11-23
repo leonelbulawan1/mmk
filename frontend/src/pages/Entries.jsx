@@ -37,39 +37,12 @@ function CardMenu({ items, label }) {
   )
 }
 
-function GroupHeader({ id, title, count, note, noun }) {
+function GroupHeader({ id, title, count, note }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-t-2xl border-b border-cream-300 bg-cream-100/70 px-4 py-2.5 sm:px-5">
       <h2 id={id} className="text-sm font-semibold uppercase tracking-wider text-ink-600">{title}</h2>
-      <span className="text-xs text-ink-400">{note ? `${note} · ` : ''}{count} {noun || (count === 1 ? 'entry' : 'entries')}</span>
+      <span className="text-xs text-ink-400">{note ? `${note} · ` : ''}{count} {count === 1 ? 'item' : 'items'}</span>
     </div>
-  )
-}
-
-// "Untitled" tells nothing; the first words do.
-const firstWords = (text, n = 6) => {
-  const w = (text || '').trim().split(/\s+/).filter(Boolean)
-  return w.length ? w.slice(0, n).join(' ') + (w.length > n ? '…' : '') : 'Untitled'
-}
-
-// Where a letter stands, in a quiet badge: delivered, opens on a date, or after death.
-function LetterStatus({ e }) {
-  const to = (e.recipient_name || e.recipient || '').split(' ')[0]
-  const day = (iso) => new Date(iso + 'T00:00').toLocaleString('en', { month: 'short', day: 'numeric' })
-  let status, tone = ''
-  if (e.deliver_while_alive && e.release_on) {
-    const opened = e.release_on <= new Date().toLocaleDateString('en-CA')
-    status = opened ? `Delivered ${day(e.release_on)}` : `Opens ${day(e.release_on)}`
-    tone = opened ? 'sage' : ''
-  } else if (e.release_on_death) {
-    status = e.release_days_after_death ? `${e.release_days_after_death} days after death` : 'After death'
-  } else {
-    status = e.release_on ? `After death · ${day(e.release_on)}` : 'After death'
-  }
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${tone === 'sage' ? 'bg-sage-100 text-sage-600' : 'bg-cream-200 text-ink-600'}`}>
-      <NavIcon name="letters" size={13} />To {to} · {status}
-    </span>
   )
 }
 
@@ -103,8 +76,8 @@ export default function Entries() {
   const [q, setQ] = useState(params.get('q') || '')
   const [state, setState] = useState({ loading: true, data: [], error: '' })
   const topic = params.get('topic') || ''
-  const view = params.get('show') || (params.get('review') === '1' ? 'review' : params.get('kind') || 'all')
-  const kind = view === 'text' || view === 'letter' ? view : ''
+  const kind = params.get('kind') || ''
+  const reviewOnly = params.get('review') === '1'
   const oldest = params.get('sort') === 'oldest'
   const [limit, setLimit] = useState(PAGE)
   // Unfinished writing on this device (see api.js drafts); shown above the saved entries.
@@ -126,13 +99,13 @@ export default function Entries() {
 
   useEffect(() => {
     const ctrl = new AbortController()
-    const qs = new URLSearchParams({ q: params.get('q') || '', topic })  // every kind, so each chip can show its count
+    const qs = new URLSearchParams({ q: params.get('q') || '', topic, kind })
     setState((s) => ({ ...s, loading: true }))
     api(`/api/entries?${qs}`, { signal: ctrl.signal })
       .then((data) => setState({ loading: false, data, error: '' }))
       .catch((e) => e.name !== 'AbortError' && setState({ loading: false, data: [], error: e.message }))
     return () => ctrl.abort()
-  }, [params.get('q'), topic]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [params, topic, kind])
 
   const update = (k, v) => { const p = new URLSearchParams(params); v ? p.set(k, v) : p.delete(k); setParams(p, { replace: true }) }
 
@@ -142,16 +115,8 @@ export default function Entries() {
     return () => clearTimeout(t)
   }, [q]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const counts = {
-    all: state.data.length, text: state.data.filter((e) => e.kind !== 'letter').length,
-    letter: state.data.filter((e) => e.kind === 'letter').length, drafts: draftList.length,
-    review: state.data.filter((e) => e.pending_review).length,
-  }
-  const filtered = view === 'drafts' ? [] : view === 'review' ? state.data.filter((e) => e.pending_review)
-    : kind ? state.data.filter((e) => (kind === 'letter') === (e.kind === 'letter')) : state.data
-  const setView = (v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); v === 'all' ? p.delete('show') : p.set('show', v); setParams(p, { replace: true }) }
-  const CHIPS = [['all', 'All'], ['text', 'Entries'], ['letter', 'Letters'], ['drafts', 'Drafts'], ['review', 'Needs review']]
-    .filter(([k]) => k === 'all' || k === 'text' || k === 'letter' || counts[k] > 0 || view === k)
+  const needReview = state.data.filter((e) => e.pending_review).length
+  const filtered = reviewOnly ? state.data.filter((e) => e.pending_review) : state.data
   const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
   const shown = sorted.slice(0, limit)
   // Group by month ("November 2026"), in the chosen order.
@@ -167,8 +132,8 @@ export default function Entries() {
       <div ref={stickyTop} aria-hidden className="h-px" />
       <div className={`sticky top-0 z-30 -mx-4 -mt-8 mb-5 bg-cream-100/95 px-4 pb-3 pt-4 backdrop-blur transition-shadow sm:-mx-6 sm:px-6 lg:-mx-8 lg:-mt-12 lg:px-8 lg:pt-6 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
       <EntriesTabs active="list" canWrite={!user.death_triggered_at} className="mb-3" />
-      <form role="search" className="grid grid-cols-[1fr_8.5rem] gap-2 sm:grid-cols-[1fr_11rem] sm:gap-3" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
-        <div className="relative">
+      <form role="search" className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_11rem_11rem] sm:gap-3" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
+        <div className="relative col-span-2 sm:col-span-1">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
             className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
           <input className="input pl-10 pr-10" type="search" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entries" />
@@ -179,26 +144,16 @@ export default function Entries() {
             </button>
           )}
         </div>
+        <select className="input" value={kind} onChange={(e) => update('kind', e.target.value)} aria-label="Show">
+          <option value="">All</option><option value="text">Entries</option><option value="letter">Letters</option>
+        </select>
         <select className="input" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
           <option value="">Newest</option><option value="oldest">Oldest</option>
         </select>
       </form>
-      <div role="group" aria-label="Show" className="mt-3 flex gap-2 overflow-x-auto pb-0.5">
-        {CHIPS.map(([k, label]) => {
-          const on = view === k
-          return (
-            <button key={k} type="button" onClick={() => setView(k)} aria-pressed={on}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${on ? 'border-ink-700 bg-ink-700 text-cream-50' : 'border-cream-300 bg-white/70 text-ink-600 hover:border-ink-400'}`}>
-              {k === 'review' && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />}
-              {label}
-              {!state.loading && <span className={`text-xs ${on ? 'text-cream-200' : 'text-ink-400'}`}>{counts[k]}</span>}
-            </button>
-          )
-        })}
-      </div>
       </div>
       {location.state?.draftSaved && <div className="mb-4"><Alert kind="success">Saved to Drafts.</Alert></div>}
-      <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400 ${params.get('q') || topic ? 'mb-4' : ''}`} aria-live="polite">
+      <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400" aria-live="polite">
         {!state.loading && (params.get('q') || topic) && (
           <span>
             {filtered.length} {filtered.length === 1 ? (kind === 'letter' ? 'letter' : 'entry') : (kind === 'letter' ? 'letters' : 'entries')}
@@ -210,12 +165,23 @@ export default function Entries() {
       </div>
 
       <Alert>{state.error}</Alert>
-      {!user.death_triggered_at && !params.get('q') && (view === 'all' || view === 'drafts') && (() => {
-        const list = draftList
+      {!state.loading && (needReview > 0 || reviewOnly) && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold-500/30 bg-[#FBF0D9] px-4 py-3 text-sm text-bark-600">
+          <span className="flex items-center gap-2">
+            <span aria-hidden className="h-2 w-2 rounded-full bg-gold-500" />
+            {reviewOnly ? 'Needs review' : <>{needReview} need{needReview === 1 ? 's' : ''} review</>}
+          </span>
+          <button type="button" onClick={() => update('review', reviewOnly ? '' : '1')} className="font-medium underline-offset-2 hover:underline">
+            {reviewOnly ? 'Show all' : 'Show'}
+          </button>
+        </div>
+      )}
+      {!user.death_triggered_at && !params.get('q') && !reviewOnly && (() => {
+        const list = draftList.filter((d) => !kind || (d.form.kind || 'text') === kind)
         if (!list.length) return null
         return (
           <section className="card mb-8 p-0" aria-labelledby="drafts-h">
-            <GroupHeader id="drafts-h" title="Drafts" count={list.length} note="Only on this device" noun={list.length === 1 ? 'draft' : 'drafts'} />
+            <GroupHeader id="drafts-h" title="Drafts" count={list.length} note="Only on this device" />
             <ol className="divide-y divide-cream-200">
               {list.map((d) => {
                 const letter = d.form.kind === 'letter'
@@ -238,30 +204,27 @@ export default function Entries() {
           </section>
         )
       })()}
-      {view === 'drafts' ? (!draftList.length && <Empty title="No drafts" />) : state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner /> : shown.length === 0 ? (
-        <Empty title={params.get('q') || topic || view !== 'all' ? 'No matches' : 'No entries yet'}
-          action={!user.death_triggered_at && !(params.get('q') || topic || view !== 'all') && <Link to="/entries/new" className="btn-primary">New entry</Link>} />
+      {state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner /> : shown.length === 0 ? (
+        <Empty title={params.get('q') || topic || kind || reviewOnly ? 'No matches' : 'No entries yet'}
+          action={!user.death_triggered_at && !(params.get('q') || topic || kind || reviewOnly) && <Link to="/entries/new" className="btn-primary">New entry</Link>} />
       ) : (
         months.map((ym) => (
           <section key={ym} className="card mb-6 p-0" aria-labelledby={`m-${ym}`}>
             <GroupHeader id={`m-${ym}`} title={monthName(ym)} count={byMonth[ym].length} />
             <ol className="divide-y divide-cream-200">
-              {byMonth[ym].map((e, i, arr) => {
+              {byMonth[ym].map((e) => {
                 const d = new Date(e.entry_date + 'T00:00')
-                const sameDay = i > 0 && arr[i - 1].entry_date === e.entry_date  // show the date once per day
                 return (
                   <Row key={e.id} to={`/entries/${e.id}`}
                     lead={<div className="w-10 text-center" aria-hidden>
-                      {!sameDay && <>
-                        <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
-                        <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { weekday: 'short' })}</p>
-                      </>}
+                      <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
+                      <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { weekday: 'short' })}</p>
                     </div>}
-                    title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || firstWords(e.snippet)}</>}
+                    title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</>}
                     snippet={e.snippet}
                     meta={<>
                       {e.pending_review && <Pill tone="gold">Needs review</Pill>}
-                      {e.kind === 'letter' && <LetterStatus e={e} />}
+                      {e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}
                       {e.revisions > 0 && <span className="text-xs text-ink-400">{e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
                     </>}
                     menu={<CardMenu label={e.title || 'Untitled'} items={[
