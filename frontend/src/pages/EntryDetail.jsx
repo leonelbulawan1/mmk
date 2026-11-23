@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
@@ -31,6 +31,10 @@ export default function EntryDetail() {
   const [msg, setMsg] = useState({ kind: location.state?.delivery?.email === 'failed' ? 'warn' : '', text: location.state?.justCreated ? savedText(location.state.delivery) : '' })
   const [busy, setBusy] = useState(false)
   const sealed = !!user.death_triggered_at
+  // "Add revision" from the ⋮ menu in All entries opens the revision form straight away.
+  useEffect(() => {
+    if (e && location.state?.revise && !sealed) { setDraft(e.current_text); setEditing(true) }
+  }, [e?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <Spinner />
   if (error) return <Alert>{error}</Alert>

@@ -6,8 +6,9 @@ import { Alert, ConfirmDialog, Empty, LetterBadge, Spinner, Tag } from '../compo
 import EntriesTabs from '../components/EntriesTabs'
 import NavIcon from '../components/NavIcon'
 
-// "⋮" menu on a draft card: Edit or Delete. Closes on Escape, on a click outside, or after a choice.
-function DraftMenu({ editTo, onDelete, label }) {
+// "⋮" menu on a card. items: [{ label, icon, to } | { label, icon, onClick, danger }].
+// Closes on Escape, on a click outside, or after a choice.
+function CardMenu({ items, label }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useEffect(() => {
@@ -18,21 +19,18 @@ function DraftMenu({ editTo, onDelete, label }) {
     ref.current?.querySelector('[role=menuitem]')?.focus()
     return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', key) }
   }, [open])
+  const cls = (danger) => `flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm hover:bg-cream-200 focus:bg-cream-200 focus:outline-none ${danger ? 'text-rose-600' : 'text-ink-700'}`
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div ref={ref} className="relative shrink-0 self-start">
       <button type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label={`Options for ${label}`}
         className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-500 hover:bg-cream-200">
         <NavIcon name="more" size={20} />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-11 z-20 w-40 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">
-          <Link role="menuitem" to={editTo} className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-ink-700 hover:bg-cream-200 focus:bg-cream-200 focus:outline-none">
-            <NavIcon name="edit" size={16} />Edit
-          </Link>
-          <button role="menuitem" type="button" onClick={() => { setOpen(false); onDelete() }}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-rose-600 hover:bg-cream-200 focus:bg-cream-200 focus:outline-none">
-            <NavIcon name="trash" size={16} />Delete
-          </button>
+        <div role="menu" className="absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">
+          {items.map((it) => it.to
+            ? <Link key={it.label} role="menuitem" to={it.to} state={it.state} className={cls(it.danger)}><NavIcon name={it.icon} size={16} />{it.label}</Link>
+            : <button key={it.label} role="menuitem" type="button" onClick={() => { setOpen(false); it.onClick() }} className={cls(it.danger)}><NavIcon name={it.icon} size={16} />{it.label}</button>)}
         </div>
       )}
     </div>
@@ -153,8 +151,9 @@ export default function Entries() {
                         {saved && <>Saved {saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</>}
                       </p>
                     </Link>
-                    <DraftMenu editTo={`/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`} onDelete={() => setToDelete(d)}
-                      label={d.form.title?.trim() || 'Untitled draft'} />
+                    <CardMenu label={d.form.title?.trim() || 'Untitled draft'} items={[
+                      { label: 'Edit', icon: 'edit', to: `/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}` },
+                      { label: 'Delete', icon: 'trash', danger: true, onClick: () => setToDelete(d) }]} />
                   </li>
                 )
               })}
@@ -172,7 +171,8 @@ export default function Entries() {
             <ol className="space-y-3">
               {byYear[year].map((e) => (
                 <li key={e.id}>
-                  <Link to={`/entries/${e.id}`} className="card group flex gap-4 p-4 transition hover:-translate-y-0.5 sm:gap-6 sm:p-5">
+                  <div className="card flex items-center gap-3 p-4 transition hover:-translate-y-0.5 sm:gap-5 sm:p-5">
+                  <Link to={`/entries/${e.id}`} className="group flex min-w-0 flex-1 gap-4 sm:gap-6">
                     <div className="w-12 shrink-0 text-center sm:w-14" aria-hidden>
                       <p className="text-xs font-medium uppercase tracking-wider text-bark-500">{new Date(e.entry_date + 'T00:00').toLocaleString('en', { month: 'short' })}</p>
                       <p className="text-2xl font-semibold leading-tight text-ink-700 sm:text-3xl">{Number(e.entry_date.slice(8, 10))}</p>
@@ -192,6 +192,10 @@ export default function Entries() {
                       {e.kind === 'letter' && <div className="mt-2"><LetterBadge to={e.recipient_name || e.recipient} /></div>}
                     </div>
                   </Link>
+                  <CardMenu label={e.title || 'Untitled'} items={[
+                    { label: 'View', icon: e.kind === 'letter' ? 'letters' : 'entries', to: `/entries/${e.id}` },
+                    ...(user.death_triggered_at ? [] : [{ label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }])]} />
+                  </div>
                 </li>
               ))}
             </ol>
