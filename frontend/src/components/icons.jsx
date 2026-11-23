@@ -16,13 +16,28 @@ export const KeyIcon = () => (
 )
 
 // A text input with an icon inside on the left. Same props as <input>.
-export function IconInput({ icon: Icon, className = '', ...props }) {
+// With `error`, the field turns red and the message is shown under it (and read by screen readers).
+export function IconInput({ icon: Icon, className = '', error, ...props }) {
+  const msgId = error && props.id ? `${props.id}-error` : undefined
   return (
-    <div className="relative">
-      <span className="pointer-events-none absolute inset-y-0 left-0 flex w-11 items-center justify-center text-ink-400">
-        <Icon />
-      </span>
-      <input {...props} className={`input pl-11 ${className}`} />
+    <div>
+      <div className="relative">
+        <span className={`pointer-events-none absolute inset-y-0 left-0 flex w-11 items-center justify-center ${error ? 'text-rose-600' : 'text-ink-400'}`}>
+          <Icon />
+        </span>
+        <input {...props} aria-invalid={!!error} aria-describedby={msgId} className={`input pl-11 ${error ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''} ${className}`} />
+      </div>
+      <FieldMessage id={msgId} error={error} />
     </div>
+  )
+}
+
+export function FieldMessage({ id, error }) {
+  if (!error) return null
+  return (
+    <p id={id} className="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-rose-600">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true" className="mt-px shrink-0"><circle cx="12" cy="12" r="9.5" /><path d="M12 7.5v5.5M12 16.5h.01" /></svg>
+      {error}
+    </p>
   )
 }

@@ -5,6 +5,7 @@ import { Logo } from '../components/Layout'
 import PasswordInput from '../components/PasswordInput'
 import { IconInput, LockIcon, MailIcon } from '../components/icons'
 import { Alert } from '../components/ui'
+import { check, focusFirst, rules } from '../validation'
 
 // Equal space above and below the card so it sits in the middle of the screen. The browser demo
 // keeps a little more on both sides for its "Demo · accounts" button.
@@ -75,10 +76,14 @@ export default function Login() {
   const location = useLocation()
   const [form, setForm] = useState({ email: location.state?.email || '', password: '', remember: false })
   const [error, setError] = useState('')
+  const [fields, setFields] = useState({})
   const [busy, setBusy] = useState(false)
 
   const submit = async (e) => {
     e.preventDefault()
+    const bad = check(form, { email: rules.email, password: rules.password })
+    setFields(bad)
+    if (Object.keys(bad).length) { focusFirst(bad, { email: 'login-email', password: 'login-password' }); return }
     setBusy(true); setError('')
     try {
       const user = await login(form.email, form.password, form.remember)
@@ -95,19 +100,19 @@ export default function Login() {
     } finally { setBusy(false) }
   }
   // The message goes away as soon as the person starts typing again.
-  const set = (k) => (e) => { setError(''); setForm({ ...form, [k]: e.target.value }) }
+  const set = (k) => (e) => { setError(''); setFields((f) => ({ ...f, [k]: '' })); setForm({ ...form, [k]: e.target.value }) }
 
   return (
     <AuthShell title="Welcome back" subtitle="Sign in to continue to your account."
       footer={<>Don't have an account? <Link className="whitespace-nowrap font-medium text-bark-500 hover:underline" to="/register">Create an account</Link></>}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} noValidate className="space-y-4">
         <ErrorSlot error={error}>
-          {location.state?.reset && <Alert kind="success">Your password was changed. Sign in with the new one.</Alert>}
+          {location.state?.reset && <Alert kind="success">Password changed. Sign in with your new password.</Alert>}
         </ErrorSlot>
-        <IconInput icon={MailIcon} type="email" autoComplete="email" required placeholder="Email address" aria-label="Email address"
-          value={form.email} onChange={set('email')} />
+        <IconInput id="login-email" icon={MailIcon} type="email" autoComplete="email" required placeholder="Email address" aria-label="Email address"
+          value={form.email} onChange={set('email')} error={fields.email} />
         <PasswordInput id="login-password" icon={LockIcon} autoComplete="current-password" required placeholder="Password"
-          aria-label="Password" value={form.password} onChange={set('password')} />
+          aria-label="Password" value={form.password} onChange={set('password')} error={fields.password} />
         <div className="flex items-center justify-between gap-3 whitespace-nowrap text-sm [@media(max-width:340px)]:text-[13px]">
           <label className="flex cursor-pointer items-center gap-2 text-ink-500">
             <input type="checkbox" className="checkbox" checked={form.remember}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, fmtDate } from '../api'
-import { Alert, Card, Hash, PageHeader, Section, Spinner, Tag, useAsync } from '../components/ui'
+import { Alert, Card, Hash, PageHeader, Section, Spinner, Tag, useAsync, useToast } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 function Report({ title, r }) {
@@ -23,6 +23,7 @@ export default function VaultIntegrity() {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [view, setView] = useState('chain')
+  const toast = useToast()
 
   const exportVault = async () => {
     setExporting(true)
@@ -32,12 +33,12 @@ export default function VaultIntegrity() {
         // Downloads are not available inside the hosted demo frame, so copy the export instead.
         await navigator.clipboard.writeText(JSON.stringify(data, null, 2))
         setError('')
-        setCopied(true)
+        setCopied(true); toast('Vault export copied to the clipboard.')
         return
       }
       const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
       const a = Object.assign(document.createElement('a'), { href: url, download: `alaala-vault-${new Date().toISOString().slice(0, 10)}.json` })
-      a.click(); URL.revokeObjectURL(url)
+      a.click(); URL.revokeObjectURL(url); toast('Vault export downloaded.')
     } catch (e) { setError(e.message) } finally { setExporting(false) }
   }
 
@@ -50,10 +51,10 @@ export default function VaultIntegrity() {
           <button className="btn-secondary" onClick={exportVault} disabled={exporting}>{exporting ? 'Exporting…' : copied ? 'Copied to clipboard ✓' : import.meta.env.VITE_WEB_RUNTIME === '1' ? 'Copy vault export (JSON)' : 'Export vault (JSON)'}</button>
         </>} />
       <Alert onClose={() => setError('')}>{error}</Alert>
-      {v.loading ? <Spinner label="Recomputing hashes" /> : v.error ? (
+      {v.loading ? <Spinner label="Verifying your vault" /> : v.error ? (
         <div className="mb-6 rounded-2xl bg-cream-200 px-6 py-4 text-ink-600" role="status">
-          <p className="text-2xl font-semibold">Unable to verify right now</p>
-          <p className="mt-1 text-sm">The check could not run ({v.error}). This does not mean anything changed. Check your connection and try again.</p>
+          <p className="text-xl font-semibold">We couldn't verify your vault</p>
+          <p className="mt-1 text-sm">{v.error} This doesn't mean anything changed.</p>
           <button className="btn-secondary mt-3" onClick={() => { v.reload(); audit.reload() }}>Try again</button>
         </div>
       ) : (
@@ -103,7 +104,7 @@ export default function VaultIntegrity() {
           </ol>
         </div> : <p className="text-sm text-ink-400">Run the check to see the chain.</p>) : (
           <>
-        {audit.loading ? <Spinner /> : (
+        {audit.loading ? <Spinner label="Loading audit log" /> : (
           <div className="max-h-[32rem] overflow-y-auto">
             <table className="w-full text-sm">
               <thead><tr className="sticky top-0 bg-cream-50 text-left text-xs text-ink-400"><th className="py-2">When</th><th>Action</th><th>By</th><th>Details</th></tr></thead>

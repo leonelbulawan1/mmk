@@ -4,20 +4,20 @@ import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import WhoCanRead from '../components/WhoCanRead'
 import DiffView from '../components/DiffView'
-import { Alert, Card, Hash, LetterBadge, PageHeader, Spinner, Tag, useAsync, Section } from '../components/ui'
+import { Alert, Card, Hash, LetterBadge, PageHeader, Spinner, Tag, useAsync, Section, useToast } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 const MODE_LABEL = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Review' }
 
 function savedText(d) {
-  if (!d) return 'Saved.'
+  if (!d) return 'Entry saved.'
   if (d.status === 'delivered') {
-    if (d.email === 'sent') return `Sent. An email went to ${d.to}, and the letter is on their MMK home page.`
-    if (d.email === 'failed') return `Sent to their MMK home page, but the email could not be sent. ${d.email_problem || ''}`
-    return 'Sent to their MMK home page.'
+    if (d.email === 'sent') return `Letter sent. We emailed ${d.to}, and the letter is on their MMK home page.`
+    if (d.email === 'failed') return `The letter is on their MMK home page, but we couldn't send the email. ${d.email_problem || ''}`
+    return 'Letter sent to their MMK home page.'
   }
-  if (d.after_death) return d.days_after_death ? `Sent. This letter opens ${d.days_after_death} days after your death.` : 'Sent. This letter opens after your death.'
-  return `Sent. It will be delivered on ${fmtDate(d.opens_on)}.`
+  if (d.after_death) return d.days_after_death ? `Letter saved. It opens ${d.days_after_death} days after your passing.` : 'Letter saved. It opens after your passing.'
+  return `Letter saved. It will be delivered on ${fmtDate(d.opens_on)}.`
 }
 
 export default function EntryDetail() {
@@ -28,22 +28,25 @@ export default function EntryDetail() {
   const [view, setView] = useState('current')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
-  const [msg, setMsg] = useState({ kind: location.state?.delivery?.email === 'failed' ? 'warn' : '', text: location.state?.justCreated ? savedText(location.state.delivery) : '' })
+  const failedEmail = location.state?.delivery?.email === 'failed'
+  const [msg, setMsg] = useState({ kind: 'warn', text: location.state?.justCreated && failedEmail ? savedText(location.state.delivery) : '' })
   const [busy, setBusy] = useState(false)
+  const toast = useToast()
+  useEffect(() => { if (location.state?.justCreated && !failedEmail) toast(savedText(location.state.delivery)) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const sealed = !!user.death_triggered_at
   // "Add revision" from the ⋮ menu in All entries opens the revision form straight away.
   useEffect(() => {
     if (e && location.state?.revise && !sealed && e.kind !== 'letter') { setDraft(e.current_text); setEditing(true) }
   }, [e?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) return <Spinner />
+  if (loading) return <Spinner label="Loading entry" />
   if (error) return <Alert>{error}</Alert>
 
   const revise = async (text, source) => {
     setBusy(true)
     try {
       setData(await api(`/api/entries/${id}/revisions`, { method: 'POST', body: { text, source } }))
-      setEditing(false); setMsg({ kind: 'success', text: 'Saved. Your original words are kept under Original and Revisions.' })
+      setEditing(false); setMsg({}); toast('Changes saved. Your original words are kept under Original.')
     } catch (err) { setMsg({ kind: 'error', text: err.message }) } finally { setBusy(false) }
   }
   const acceptReview = () => revise(e.review.suggestions.map((op) => (op.op === 'equal' ? op.before : op.after)).join(''), 'review')

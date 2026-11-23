@@ -67,7 +67,7 @@ def _invite() -> str:
 def _get(db: Session, owner: User, bid: int) -> User:
     b = db.get(User, bid)
     if b is None or b.owner_id != owner.id or b.role != "beneficiary":
-        raise HTTPException(404, "Beneficiary not found")
+        raise HTTPException(404, "We couldn't find that beneficiary.")
     return b
 
 
@@ -88,10 +88,10 @@ def invitation_status(bid: int, owner: User = Depends(require_owner), db: Sessio
 def create(body: BeneficiaryIn, owner: User = Depends(require_living_owner), db: Session = Depends(get_db)):
     handle = body.handle.strip().lower()
     if not HANDLE_RE.match(handle) or handle in KEYWORDS:
-        raise HTTPException(422, "Handle must be 2-32 lowercase letters, digits or _ and not a policy keyword")
+        raise HTTPException(422, "A handle must be 2 to 32 lowercase letters, numbers or underscores, and can't be a policy keyword.")
     email = _valid_email(db, body.email)
     if db.scalars(select(User).where(User.owner_id == owner.id, User.handle == handle)).first():
-        raise HTTPException(409, "That handle is already used")
+        raise HTTPException(409, "That handle is already in use. Choose another.")
     code = _invite()
     b = User(role="beneficiary", email=email, display_name=body.display_name.strip(), owner_id=owner.id,
              handle=handle, relationship=body.relationship.strip(), invite_code_hash=hash_invite(code))
@@ -125,7 +125,7 @@ def _link(b: User, code: str) -> str:
 def reissue_invite(bid: int, owner: User = Depends(require_living_owner), db: Session = Depends(get_db)):
     b = _get(db, owner, bid)
     if b.password_hash is not None:
-        raise HTTPException(400, "This beneficiary has already activated their account")
+        raise HTTPException(400, "This beneficiary has already activated their account.")
     code = _invite()
     b.invite_code_hash = hash_invite(code)
     audit.record(db, owner.id, owner, "beneficiary.invite", {"handle": b.handle}, commit=False)
@@ -140,7 +140,7 @@ def update(bid: int, body: BeneficiaryPatch, owner: User = Depends(require_livin
     new_code_sent = None
     if body.email is not None and body.email.lower() != b.email:
         if b.password_hash is not None:
-            raise HTTPException(400, "The email can be changed only before the account is activated")
+            raise HTTPException(400, "The email can only be changed before the account is activated.")
         b.email = _valid_email(db, body.email, exclude_id=b.id)
         new_code_sent = _invite()
         b.invite_code_hash = hash_invite(new_code_sent)

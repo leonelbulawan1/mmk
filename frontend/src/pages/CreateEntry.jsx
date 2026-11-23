@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { api, drafts, fmtDate, newDraftId, today, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
-import { Alert, Card, ConfirmDialog, Dialog, Field, LegalDisclaimer, PageHeader, useAsync } from '../components/ui'
+import { Alert, Card, ConfirmDialog, Dialog, Field, LegalDisclaimer, PageHeader, useAsync, useToast } from '../components/ui'
 import { correctAll, correctAtCaret, nameMap } from '../autocorrect'
 import NavIcon from '../components/NavIcon'
 
@@ -65,6 +65,7 @@ export default function CreateEntry({ modal = false }) {
   const navigate = useNavigate()
   const location = useLocation()
   const background = location.state?.background
+  const toast = useToast()
   const [params] = useSearchParams()
   const initialMode = MODES.some((m) => m.key === params.get('mode')) ? params.get('mode') : user.default_writing_mode || 'verbatim'
   const blank = { title: '', text: '', entry_date: today(), kind: 'text', recipient: '', release_on: '', release_on_death: false, opens: 'date', days_after: '' }
@@ -164,7 +165,8 @@ export default function CreateEntry({ modal = false }) {
   }
   // Leave the page but keep the writing: it waits under Drafts in All entries.
   const saveDraft = () => {
-    try { drafts.put(user.id, { id: draftId.current, form, mode }) } catch { setDraftSaved('failed'); return }
+    try { drafts.put(user.id, { id: draftId.current, form, mode }) } catch { setDraftSaved('failed'); setError("Your draft couldn't be saved on this device. Copy your text before you leave."); return }
+    toast('Saved to Drafts. You can finish it any time.')
     if (modal && background) navigate(background.pathname + (background.search || ''), { replace: true, state: { draftSaved: true } })
     else navigate('/entries?kind=draft', { state: { draftSaved: true } })
   }
@@ -224,7 +226,7 @@ export default function CreateEntry({ modal = false }) {
       drafts.remove(user.id, draftId.current)
       navigate(`/entries/${res.entry.id}`, { replace: modal, state: { justCreated: true, delivery: res.delivery } })
     } catch (err) {
-      setError(err.status ? err.message : 'Could not reach MMK. Check your connection; your draft is still on this device.')
+      setError(err.status ? err.message : "Can't connect to MMK. Check your internet connection and try again. Your draft is still on this device.")
       setBusy(false)
     }
   }

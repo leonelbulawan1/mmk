@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/review", tags=["review"])
 
 def require_reviewer(user: User = Depends(current_user)) -> User:
     if not death.is_reviewer(user):
-        raise HTTPException(403, "Reviewer account required")
+        raise HTTPException(403, "You need a reviewer account to do this.")
     return user
 
 
@@ -54,7 +54,7 @@ def cases(user: User = Depends(require_reviewer), db: Session = Depends(get_db))
 def _case(db: Session, user: User, rid: int) -> DeathReport:
     rep = db.get(DeathReport, rid)
     if rep is None or rep.owner_id == user.id:
-        raise HTTPException(404, "Not found")
+        raise HTTPException(404, "We couldn't find what you were looking for.")
     return rep
 
 
@@ -68,7 +68,7 @@ def evidence(eid: int, user: User = Depends(require_reviewer), db: Session = Dep
     try:
         ev, content = death.read_evidence(db, user, eid)
     except LookupError:
-        raise HTTPException(404, "Not found")
+        raise HTTPException(404, "We couldn't find what you were looking for.")
     except PermissionError as exc:
         raise HTTPException(403, str(exc))
     return {"filename": ev.filename, "content_type": ev.content_type, "content_base64": base64.b64encode(content).decode()}
@@ -97,7 +97,7 @@ def start(rid: int, user: User = Depends(require_reviewer), db: Session = Depend
 @router.post("/cases/{rid}/approve")
 def approve(rid: int, body: DecisionIn, user: User = Depends(require_reviewer), db: Session = Depends(get_db)):
     if not verify_password(body.password, user.password_hash or ""):  # a deliberate act, not a stray click
-        raise HTTPException(400, "Password is incorrect")
+        raise HTTPException(400, "Your password is incorrect.")
     return _act(death.approve, db, user, _case(db, user, rid), body.note)
 
 

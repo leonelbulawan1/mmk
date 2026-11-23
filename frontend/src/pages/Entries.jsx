@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, ConfirmDialog, Empty, Spinner, Tag } from '../components/ui'
+import { Alert, ConfirmDialog, Empty, Spinner, Tag, useToast } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 // "⋮" menu on a card. items: [{ label, icon, to } | { label, icon, onClick, danger }].
@@ -155,7 +155,8 @@ export default function Entries() {
   }, [])
   // The floating composer saves drafts while it is open; read them again once it closes.
   useEffect(() => { setDraftList(drafts.list(user.id)) }, [location.key, user.id])
-  const deleteDraft = () => { drafts.remove(user.id, toDelete.id); setDraftList(drafts.list(user.id)); setToDelete(null) }
+  const toast = useToast()
+  const deleteDraft = () => { drafts.remove(user.id, toDelete.id); setDraftList(drafts.list(user.id)); setToDelete(null); toast('Draft deleted.') }
   useEffect(() => setLimit(PAGE), [params])
 
   useEffect(() => {
@@ -294,20 +295,13 @@ export default function Entries() {
               </button>
             )}
           </form>
-          <select className="input w-auto shrink-0 sm:hidden" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
-            <option value="">Newest</option><option value="oldest">Oldest</option>
-          </select>
         </div>
         <div className="flex gap-2 sm:gap-3">
           <KindTabs value={reviewOnly ? 'review' : kind} counts={state.loading ? null : counts} review={needReview > 0 || reviewOnly}
             onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); if (v === 'review') p.set('review', '1'); else if (v !== 'text') p.set('kind', v); setParams(p, { replace: true }) }} />
-          <select className="input hidden w-36 shrink-0 sm:block" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
-            <option value="">Newest</option><option value="oldest">Oldest</option>
-          </select>
         </div>
       </div>
       </div>
-      {location.state?.draftSaved && <div className="mb-4"><Alert kind="success">Moved to Drafts. You can continue it any time.</Alert></div>}
       <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400 ${params.get('q') || topic ? 'mb-5' : ''}`} aria-live="polite">
         {!state.loading && (params.get('q') || topic) && (
           <span>
@@ -346,7 +340,7 @@ export default function Entries() {
             </ol>
           </div>
         )
-      ) : state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner /> : shown.length === 0 ? (
+      ) : state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner label={kind === 'letter' ? 'Loading letters' : 'Loading entries'} /> : shown.length === 0 ? (
         <Empty title={params.get('q') || topic || reviewOnly ? 'No matches' : kind === 'letter' ? 'No letters yet' : 'No diary entries yet'}
           action={!user.death_triggered_at && !(params.get('q') || topic || reviewOnly) && <Link to={kind === 'letter' ? '/entries/new?kind=letter' : '/entries/new'} state={{ background: location }} className="btn-primary">{kind === 'letter' ? 'Write a letter' : 'Write an entry'}</Link>} />
       ) : (

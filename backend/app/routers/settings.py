@@ -46,17 +46,17 @@ def update(body: SettingsIn, user: User = Depends(current_user), db: Session = D
         user.display_name = body.display_name.strip()
     if body.default_writing_mode is not None:
         if user.role != "owner":
-            raise HTTPException(403, "Only owners have a writing mode")
+            raise HTTPException(403, "Only diary owners have a writing mode.")
         user.default_writing_mode = body.default_writing_mode
     if body.email_letters is not None:
         if user.role != "beneficiary":
-            raise HTTPException(403, "Only beneficiaries receive letter emails")
+            raise HTTPException(403, "Only beneficiaries receive letter emails.")
         user.email_letters = body.email_letters
     if body.allow_ai_answers is not None:
         if user.role != "owner":
-            raise HTTPException(403, "Only the diary owner decides this")
+            raise HTTPException(403, "Only the diary owner can change this.")
         if user.death_triggered_at:
-            raise HTTPException(403, "The vault is sealed; this can no longer change")
+            raise HTTPException(403, "The vault is sealed, so this can no longer change.")
         user.allow_ai_answers = body.allow_ai_answers
     audit.record(db, user.owner_id or user.id, user, "settings.update", body.model_dump(exclude_none=True), commit=False)
     db.commit()
@@ -67,9 +67,9 @@ def update(body: SettingsIn, user: User = Depends(current_user), db: Session = D
 def death_trigger(body: DeathTriggerIn, owner: User = Depends(require_living_owner), db: Session = Depends(get_db)):
     """Irreversible: seals the vault, freezes the policy and starts after-death releases."""
     if not verify_password(body.password, owner.password_hash or ""):
-        raise HTTPException(400, "Password is incorrect")
+        raise HTTPException(400, "Your password is incorrect.")
     if body.confirmation.strip() != CONFIRM_PHRASE:
-        raise HTTPException(400, f"Type {CONFIRM_PHRASE} to confirm")
+        raise HTTPException(400, f"Type {CONFIRM_PHRASE} exactly to confirm.")
     try:
         notices = death.activate(db, owner, owner, via="owner")
     except PermissionError as exc:
@@ -90,11 +90,11 @@ def set_executor(body: ExecutorIn, owner: User = Depends(require_living_owner), 
     if body.beneficiary_id is not None:
         b = db.get(User, body.beneficiary_id)
         if b is None or b.owner_id != owner.id or b.role != "beneficiary":
-            raise HTTPException(404, "Beneficiary not found")
+            raise HTTPException(404, "We couldn't find that beneficiary.")
         if not b.active or b.password_hash is None:
-            raise HTTPException(400, "The executor must have an active, activated account")
+            raise HTTPException(400, "Your executor must have an active, activated account.")
     if death.pending_report(db, owner.id):
-        raise HTTPException(400, "Cancel the waiting report before changing your executor")
+        raise HTTPException(400, "Cancel the pending report before you change your executor.")
     owner.executor_id = body.beneficiary_id
     audit.record(db, owner.id, owner, "executor.set", {"beneficiary_id": body.beneficiary_id}, commit=False)
     db.commit()
@@ -121,5 +121,5 @@ def retry_notification(notice_id: int, owner: User = Depends(require_owner), db:
     try:
         notify.retry(db, owner, notice_id)
     except KeyError:
-        raise HTTPException(404, "Notice not found")
+        raise HTTPException(404, "We couldn't find that email notice.")
     return {"email_configured": notify.smtp_configured(), "notices": notify.list_notices(db, owner)}

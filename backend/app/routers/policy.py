@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 from datetime import date
 from pathlib import Path
 
@@ -43,7 +45,7 @@ def get_version(version: int, owner: User = Depends(require_owner), db: Session 
     row = db.scalars(select(PolicyVersion).where(PolicyVersion.owner_id == owner.id,
                                                   PolicyVersion.version == version)).first()
     if row is None:
-        raise HTTPException(404, "Version not found")
+        raise HTTPException(404, "We couldn't find that policy version.")
     return {"version": row.version, "source": row.source, "prolog": row.prolog_facts, "created_at": row.created_at}
 
 
@@ -59,7 +61,8 @@ def save(body: SourceIn, owner: User = Depends(require_living_owner), db: Sessio
     except PolicyFrozenError as exc:
         raise HTTPException(403, str(exc))
     except PrologError as exc:
-        raise HTTPException(503, f"Access engine unavailable: {exc}")
+        print(f"[policy] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        raise HTTPException(503, "The access engine is unavailable right now. Try again in a few minutes.")
     if row is None:
         raise HTTPException(422, {"message": "The policy has errors", **result.to_dict()})
     return {**result.to_dict(), "version": row.version, "hash": row.hash}
@@ -67,7 +70,7 @@ def save(body: SourceIn, owner: User = Depends(require_living_owner), db: Sessio
 
 def _letter_release_out(db: Session, owner: User, handle: str) -> dict:
     if handle not in policy_service.handles(db, owner):
-        raise HTTPException(404, "No beneficiary with that handle")
+        raise HTTPException(404, "No beneficiary has that handle.")
     by = policy_service.letter_releases_for(policy_service.current_protocol(db, owner), handle)
     return {"handle": handle, "released": bool(by), "by": by}
 
@@ -89,7 +92,8 @@ def add_letter_release(handle: str, owner: User = Depends(require_living_owner),
     except PolicyFrozenError as exc:
         raise HTTPException(403, str(exc))
     except PrologError as exc:
-        raise HTTPException(503, f"Access engine unavailable: {exc}")
+        print(f"[policy] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        raise HTTPException(503, "The access engine is unavailable right now. Try again in a few minutes.")
     if row is None:
         raise HTTPException(422, {"message": "The policy has errors", **result.to_dict()})
     return {**_letter_release_out(db, owner, handle), "version": row.version}
@@ -118,7 +122,8 @@ def matrix(on: date | None = None, after_death: bool = True, owner: User = Depen
         engine = policy_service.engine_for(db, owner, assume_death=after_death)
         result = engine.matrix(when)
     except PrologError as exc:
-        raise HTTPException(503, f"Access engine unavailable: {exc}")
+        print(f"[policy] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        raise HTTPException(503, "The access engine is unavailable right now. Try again in a few minutes.")
     vault = vault_service.load_vault(db, owner)
     protocol = policy_service.current_protocol(db, owner)
     rule_lines = {i: r.line for i, r in enumerate(protocol.rules, start=1)}
@@ -141,11 +146,12 @@ def entry_access(entry_id: int, owner: User = Depends(require_owner), db: Sessio
     """Who may read this entry after the owner's passing, and why (Prolog decisions for one entry)."""
     vault = vault_service.load_vault(db, owner)
     if vault.get(entry_id) is None:
-        raise HTTPException(404, "Entry not found")
+        raise HTTPException(404, "We couldn't find that entry.")
     try:
         result = policy_service.engine_for(db, owner, assume_death=True).matrix(today())
     except PrologError as exc:
-        raise HTTPException(503, f"Access engine unavailable: {exc}")
+        print(f"[policy] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        raise HTTPException(503, "The access engine is unavailable right now. Try again in a few minutes.")
     protocol = policy_service.current_protocol(db, owner)
     rule_lines = {i: r.line for i, r in enumerate(protocol.rules, start=1)}
     people = []

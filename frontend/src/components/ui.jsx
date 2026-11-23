@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { FieldMessage } from './icons'
 
 // Title of a page: name, one short line about it, and the page's main actions on the right.
 export function PageHeader({ eyebrow, title, subtitle, actions, meta }) {
@@ -44,8 +45,8 @@ export function Field({ label, hint, error, children }) {
     <label className="block">
       {label && <span className="label">{label}</span>}
       {children}
-      {hint && !error && <span className="mt-1 block text-xs text-ink-400">{hint}</span>}
-      {error && <span className="mt-1 block text-xs text-rose-600">{error}</span>}
+      {hint && !error && <span className="mt-1.5 block text-xs text-ink-400">{hint}</span>}
+      <FieldMessage error={error} />
     </label>
   )
 }
@@ -67,18 +68,55 @@ export function Alert({ kind = 'error', children, onClose }) {
   }
   return (
     <div role={kind === 'error' ? 'alert' : 'status'} className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${styles[kind]}`}>
-      <div className="flex items-start gap-2.5">{kind === 'error' && <AlertIcon />}<div>{children}</div></div>
+      <div className="flex items-start gap-2.5">{(kind === 'error' || kind === 'warn') && <AlertIcon />}<div>{children}</div></div>
       {onClose && <button onClick={onClose} className="opacity-60 hover:opacity-100" aria-label="Dismiss">×</button>}
     </div>
   )
 }
 
+// Loading indicator. After a few seconds it explains the wait (the free server sleeps when idle).
 export function Spinner({ label = 'Loading' }) {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => { const t = setTimeout(() => setSlow(true), 6000); return () => clearTimeout(t) }, [])
   return (
-    <div className="flex items-center gap-3 py-10 text-ink-400" role="status">
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-gold-500 border-t-transparent" />
-      <span className="text-sm">{label}…</span>
+    <div className="flex flex-col items-start gap-1 py-10 text-ink-400" role="status" aria-live="polite">
+      <div className="flex items-center gap-3">
+        <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-gold-500 border-t-transparent" />
+        <span className="text-sm">{label}…</span>
+      </div>
+      {slow && <p className="pl-7 text-xs">This is taking longer than usual. The server may be starting up; it can take up to a minute.</p>}
     </div>
+  )
+}
+
+// Short confirmations ("Profile saved."), shown in the corner and gone after a few seconds.
+const ToastContext = createContext(() => {})
+export const useToast = () => useContext(ToastContext)
+
+export function ToastProvider({ children }) {
+  const [items, setItems] = useState([])
+  const remove = useCallback((id) => setItems((xs) => xs.filter((x) => x.id !== id)), [])
+  const show = useCallback((text, kind = 'success') => {
+    const id = Date.now() + Math.random()
+    setItems((xs) => [...xs.slice(-2), { id, text, kind }])
+    setTimeout(() => remove(id), kind === 'error' ? 7000 : 4000)
+  }, [remove])
+  const tone = { success: 'border-sage-600/25 text-sage-600', error: 'border-rose-600/25 text-rose-600', info: 'border-cream-300 text-ink-600' }
+  return (
+    <ToastContext.Provider value={show}>
+      {children}
+      <div className="pointer-events-none fixed inset-x-3 bottom-3 z-[60] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:items-end" aria-live="polite" role="status">
+        {items.map((t) => (
+          <div key={t.id} className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-cream-50 px-4 py-3 text-sm font-medium shadow-paper fade-in ${tone[t.kind] || tone.info}`}>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-px shrink-0">
+              {t.kind === 'error' ? <><circle cx="12" cy="12" r="9.5" /><path d="M12 7.5v5.5M12 16.5h.01" /></> : <><circle cx="12" cy="12" r="9.5" /><path d="m8 12.5 2.5 2.5L16 9.5" /></>}
+            </svg>
+            <span className="flex-1 text-ink-700">{t.text}</span>
+            <button type="button" onClick={() => remove(t.id)} aria-label="Dismiss" className="-mr-1 text-ink-400 hover:text-ink-700">×</button>
+          </div>
+        ))}
+      </div>
+    </ToastContext.Provider>
   )
 }
 

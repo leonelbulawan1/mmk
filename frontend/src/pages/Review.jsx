@@ -28,7 +28,7 @@ function CaseView({ id, onChanged }) {
   const [form, setForm] = useState({ note: '', password: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  if (c.loading) return <Spinner />
+  if (c.loading) return <Spinner label="Loading report" />
   if (c.error) return <Alert>{c.error}</Alert>
   const d = c.data
   const act = async (step, body) => {
@@ -120,7 +120,7 @@ export default function Review() {
     <>
       <PageHeader title="Review reports"
         subtitle="Reports that an owner has passed away. Approve only after checking the documents. Approval starts a waiting period; the owner can cancel and beneficiaries can dispute until it ends." />
-      {list.loading ? <Spinner /> : list.error ? <Alert>{list.error}</Alert> : !list.data.length ? (
+      {list.loading ? <Spinner label="Loading reports" /> : list.error ? <Alert>{list.error}</Alert> : !list.data.length ? (
         <Empty title="No reports">When an executor reports a passing, it appears here.</Empty>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">

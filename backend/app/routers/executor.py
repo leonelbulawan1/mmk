@@ -24,9 +24,9 @@ class ReportIn(BaseModel):
 @router.post("/report")
 def report(body: ReportIn, user: User = Depends(require_beneficiary), db: Session = Depends(get_db)):
     if not verify_password(body.password, user.password_hash or ""):
-        raise HTTPException(400, "Password is incorrect")
+        raise HTTPException(400, "Your password is incorrect.")
     if body.confirmation.strip() != CONFIRM_PHRASE:
-        raise HTTPException(400, f"Type {CONFIRM_PHRASE} to confirm")
+        raise HTTPException(400, f"Type {CONFIRM_PHRASE} exactly to confirm.")
     try:
         death.report(db, user)
     except PermissionError as exc:
@@ -59,7 +59,7 @@ def add_evidence(body: EvidenceIn, user: User = Depends(require_beneficiary), db
     try:
         content = base64.b64decode(body.content_base64, validate=True)
     except (binascii.Error, ValueError):
-        raise HTTPException(400, "The file could not be read")
+        raise HTTPException(400, "We couldn't read that file. Upload a PDF, JPEG or PNG.")
     try:
         death.add_evidence(db, user, body.filename, content)
     except LookupError as exc:

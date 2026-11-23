@@ -25,7 +25,7 @@ export default function Dashboard() {
   const location = useLocation()
   const { data, error, loading } = useAsync(() => api('/api/dashboard'))
   const draftList = drafts.list(user.id)
-  if (loading) return <Spinner />
+  if (loading) return <Spinner label="Loading your dashboard" />
   if (error) return <Alert>{error}</Alert>
   const sealed = !!data.death_triggered_at
   const hour = new Date().getHours()

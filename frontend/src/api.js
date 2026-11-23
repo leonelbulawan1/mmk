@@ -23,23 +23,61 @@ export class ApiError extends Error {
   }
 }
 
+// Field names in the API's validation errors, in words people use.
+const FIELD = { email: 'Email', password: 'Password', new_password: 'New password', display_name: 'Name', handle: 'Policy handle',
+  title: 'Title', text: 'Text', code: 'Code', invite_code: 'Invite code', recipient: 'Recipient', release_on: 'Opening date' }
+
 function formatDetail(detail) {
-  if (Array.isArray(detail)) return detail.map((d) => d.msg?.replace(/^Value error, /, '') || 'Invalid input').join(' ')
+  if (Array.isArray(detail)) {
+    return detail.map((d) => {
+      const field = FIELD[d.loc?.[d.loc.length - 1]]
+      if (/valid email/i.test(d.msg || '')) return 'Enter a valid email address, like name@gmail.com.'
+      if (d.type === 'string_too_short' && field) return `${field} is too short.`
+      if (d.type === 'string_too_long' && field) return `${field} is too long.`
+      if (d.type === 'missing' && field) return `${field} is required.`
+      const msg = (d.msg || 'Check what you entered.').replace(/^Value error, /, '')
+      return /[.!?]$/.test(msg) ? msg : `${msg}.`
+    }).join(' ')
+  }
   return detail
+}
+
+// What to say when the server gives no usable message.
+const STATUS_TEXT = {
+  0: "Can't connect to MMK. Check your internet connection and try again.",
+  401: 'Your session has ended. Sign in again to continue.',
+  403: "You don't have permission to do this.",
+  404: "We couldn't find what you were looking for.",
+  408: 'The request took too long. Try again.',
+  413: 'That file is too large.',
+  429: 'Too many attempts. Wait a few minutes and try again.',
+  500: 'Something went wrong on our side. Try again in a moment.',
+  502: 'MMK is starting up or briefly unavailable. Try again in a moment.',
+  503: 'MMK is temporarily unavailable. Try again in a moment.',
+  504: 'MMK took too long to respond. Try again in a moment.',
 }
 
 export async function api(path, { method = 'GET', body, signal } = {}) {
   const headers = { 'Content-Type': 'application/json' }
   const token = tokenStore.get()
   if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${BASE}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined, signal })
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined, signal })
+  } catch (err) {
+    if (err?.name === 'AbortError') throw err
+    throw new ApiError(0, STATUS_TEXT[0])
+  }
   const data = res.status === 204 ? null : await res.json().catch(() => null)
   if (!res.ok) {
     if (res.status === 401 && token) {
       tokenStore.set(null)
       window.dispatchEvent(new Event('alaala:logout'))
     }
-    throw new ApiError(res.status, formatDetail(data?.detail) || res.statusText)
+    // Server errors never show their internal text; 4xx messages from MMK are written for people.
+    const detail = res.status >= 500 ? null : formatDetail(data?.detail)
+    const fallback = STATUS_TEXT[res.status] || (res.status >= 500 ? STATUS_TEXT[500] : 'Something went wrong. Try again.')
+    throw new ApiError(res.status, typeof detail === 'string' || detail?.message ? detail : fallback)
   }
   return data
 }

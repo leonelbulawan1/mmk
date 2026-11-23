@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
-import { Alert, LegalDisclaimer, PageHeader, Section, Spinner, Tag, useAsync } from '../components/ui'
+import { Alert, LegalDisclaimer, PageHeader, Section, Spinner, Tag, useAsync, useToast } from '../components/ui'
 
 const CHEATSHEET = [
   ['group family = maria, jose;', 'Name a set of beneficiaries'],
@@ -23,17 +23,18 @@ export default function PolicyEditor() {
   const [busy, setBusy] = useState(false)
   const [grammar, setGrammar] = useState('')
   const textRef = useRef(null)
+  const toast = useToast()
 
   useEffect(() => { if (policy.data) setSource(policy.data.source) }, [policy.data])
   useEffect(() => {
     if (!policy.data) return
     const t = setTimeout(() => {
-      api('/api/policy/validate', { method: 'POST', body: { source } }).then(setResult).catch((e) => setMsg({ kind: 'error', text: e.message }))
+      api('/api/policy/validate', { method: 'POST', body: { source } }).then(setResult).catch((e) => setMsg({ kind: 'error', text: `We couldn't check your policy. ${e.message}` }))
     }, 350)
     return () => clearTimeout(t)
   }, [source, policy.data])
 
-  if (policy.loading) return <Spinner />
+  if (policy.loading) return <Spinner label="Loading your legacy policy" />
   if (policy.error) return <Alert>{policy.error}</Alert>
   const frozen = policy.data.frozen
   const dirty = source !== policy.data.source
@@ -42,7 +43,7 @@ export default function PolicyEditor() {
     setBusy(true); setMsg({})
     try {
       const r = await api('/api/policy', { method: 'PUT', body: { source } })
-      setMsg({ kind: 'success', text: `Saved as version ${r.version}. Access decisions now follow this policy.` })
+      toast(`Policy saved as version ${r.version}. Access now follows this policy.`)
       policy.reload()
     } catch (e) { setMsg({ kind: 'error', text: e.message }) } finally { setBusy(false) }
   }

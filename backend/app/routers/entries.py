@@ -189,7 +189,7 @@ def letter_delivery(db: Session, owner: User, entry) -> dict:
 def get_entry(entry_id: int, owner: User = Depends(require_owner), db: Session = Depends(get_db)):
     e = vault_service.load_vault(db, owner).get(entry_id)
     if e is None:
-        raise HTTPException(404, "Entry not found")
+        raise HTTPException(404, "We couldn't find that entry.")
     out = with_recipient_name(entry_detail(e), recipient_names(db, owner))
     if e.kind == "letter":
         out["delivery"] = letter_delivery(db, owner, e)
@@ -205,7 +205,7 @@ def add_revision(entry_id: int, body: RevisionIn, owner: User = Depends(require_
     try:
         vault_service.append_revision(db, owner, entry_id, body.text, body.source)
     except KeyError:
-        raise HTTPException(404, "Entry not found")
+        raise HTTPException(404, "We couldn't find that entry.")
     except (ValueError, VaultSealedError) as exc:
         raise HTTPException(400, str(exc))
     return entry_detail(vault_service.load_vault(db, owner).get(entry_id))

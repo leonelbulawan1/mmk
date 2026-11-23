@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import PasswordInput from './PasswordInput'
-import { Alert, Card, Field, useAsync, Section } from './ui'
+import { Alert, Card, Field, useAsync, Section, useToast } from './ui'
 
 const fmtWhen = (iso) => new Date(iso).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })
 const waitText = (m) => (m % 1440 === 0 ? `${m / 1440} day${m === 1440 ? '' : 's'}` : m % 60 === 0 ? `${m / 60} hour${m === 60 ? '' : 's'}` : `${m} minute${m === 1 ? '' : 's'}`)
@@ -68,6 +68,7 @@ export function PendingReportBanner() {
 // Owner: choose the executor (Settings).
 export function ExecutorSettings() {
   const { user, setUser } = useAuth()
+  const toast = useToast()
   const bens = useAsync(() => api('/api/beneficiaries'))
   const [choice, setChoice] = useState(user.executor?.id ? String(user.executor.id) : '')
   const [msg, setMsg] = useState({})
@@ -79,7 +80,7 @@ export function ExecutorSettings() {
     e.preventDefault(); setBusy(true); setMsg({})
     try {
       setUser(await api('/api/settings/executor', { method: 'PUT', body: { beneficiary_id: choice ? Number(choice) : null } }))
-      setMsg({ kind: 'success', text: choice ? 'Executor saved.' : 'You no longer have an executor.' })
+      toast(choice ? 'Executor saved.' : 'Executor removed.')
     } catch (err) { setMsg({ kind: 'error', text: err.message }) } finally { setBusy(false) }
   }
 
@@ -101,7 +102,7 @@ export function ExecutorSettings() {
               {eligible.map((b) => <option key={b.id} value={b.id}>{b.display_name}{b.relationship ? ` (${b.relationship})` : ''}</option>)}
             </select>
           </Field>
-          <button className="btn-secondary" disabled={busy || !!user.pending_report || choice === (user.executor?.id ? String(user.executor.id) : '')}>Save executor</button>
+          <button className="btn-secondary" disabled={busy || !!user.pending_report || choice === (user.executor?.id ? String(user.executor.id) : '')}>{busy ? 'Saving…' : 'Save executor'}</button>
         </form>
       )}
     </Section>

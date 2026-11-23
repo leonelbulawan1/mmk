@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, Empty, Field, PageHeader, Section, Spinner, Tag, useAsync } from '../components/ui'
+import { Alert, Empty, Field, PageHeader, Section, Spinner, Tag, useAsync, useToast } from '../components/ui'
+import { check, focusFirst, rules } from '../validation'
 
 // In the browser edition links cannot open a specific page, so only the code is shown there.
 const WEB = import.meta.env.VITE_WEB_RUNTIME === '1'
@@ -10,7 +11,7 @@ const WEB = import.meta.env.VITE_WEB_RUNTIME === '1'
 const blank = { display_name: '', email: '', handle: '' }
 
 // Pydantic's own wording for a malformed address is long; say it plainly.
-const plainEmailError = (msg) => /not a valid email address/i.test(msg || '') ? 'Enter a valid email address, like maria.santos@gmail.com.' : msg
+const plainEmailError = (msg) => /not a valid email address/i.test(msg || '') ? 'Enter a valid email address, like name@gmail.com.' : msg
 
 function InviteStatus({ inv }) {
   if (!inv) return null
@@ -52,14 +53,20 @@ export default function Beneficiaries() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [emailError, setEmailError] = useState('')
+  const [fields, setFields] = useState({})
+  const toast = useToast()
   const set = (k) => (e) => {
     const v = e.target.value
+    setFields((f) => ({ ...f, [k]: '' }))
     if (k === 'email') setEmailError('')
     setForm((f) => ({ ...f, [k]: v, ...(k === 'display_name' && !f._handleTouched ? { handle: v.split(' ')[0].toLowerCase().replace(/[^a-z0-9_]/g, '') } : {}), ...(k === 'handle' ? { _handleTouched: true } : {}) }))
   }
 
   const create = async (e) => {
     e.preventDefault()
+    const bad = check(form, { display_name: rules.required('their full name'), email: rules.otherEmail, handle: rules.handle })
+    setFields(bad)
+    if (Object.keys(bad).length) { focusFirst(bad, { display_name: 'ben-name', email: 'ben-email', handle: 'ben-handle' }); return }
     setBusy(true); setError(''); setEmailError('')
     try {
       const { _handleTouched, ...body } = form
@@ -83,7 +90,7 @@ export default function Beneficiaries() {
     list.reload()
   }
   const toggle = async (b) => {
-    try { await api(`/api/beneficiaries/${b.id}`, { method: 'PATCH', body: { active: !b.active } }); list.reload() }
+    try { await api(`/api/beneficiaries/${b.id}`, { method: 'PATCH', body: { active: !b.active } }); list.reload(); toast(b.active ? `${b.display_name} was deactivated.` : `${b.display_name} was reactivated.`) }
     catch (err) { setError(err.message) }
   }
 
@@ -122,7 +129,7 @@ export default function Beneficiaries() {
 
       <div className="grid items-start gap-6 lg:grid-cols-3">
         <Section className="min-w-0 lg:col-span-2" title="Your beneficiaries" description="Invite status, executor and quick actions" bodyClassName="p-0">
-          {list.loading ? <div className="px-6"><Spinner /></div> : !list.data?.length ? (
+          {list.loading ? <div className="px-6"><Spinner label="Loading beneficiaries" /></div> : !list.data?.length ? (
             <div className="p-6"><Empty title="No beneficiaries yet">Register someone with the form, then write a policy for them.</Empty></div>
           ) : (
             <ul className="divide-y divide-cream-200">
@@ -163,14 +170,13 @@ export default function Beneficiaries() {
 
         {!sealed && (
           <Section className="lg:sticky lg:top-6" title="Register someone" description="They get an email invitation to activate their account.">
-            <form onSubmit={create} className="space-y-4">
-              <Field label="Full name"><input className="input" required value={form.display_name} onChange={set('display_name')} /></Field>
-              <Field label="Email" hint="Any email works: Gmail, Yahoo, Outlook, school or work.">
-                <input className={`input ${emailError ? 'border-rose-600' : ''}`} type="email" required value={form.email} onChange={set('email')} aria-invalid={!!emailError} />
-                {emailError && <p className="mt-1 text-xs text-rose-600">{emailError}</p>}</Field>
-              <Field label="Policy handle" hint="Used in your policy, e.g. allow maria …  (lowercase)">
-                <input className="input font-mono" required pattern="[a-z][a-z0-9_]{1,31}" value={form.handle} onChange={set('handle')} /></Field>
-              <button className="btn-primary w-full" disabled={busy}>{busy ? 'Adding…' : 'Add and send invite'}</button>
+            <form onSubmit={create} noValidate className="space-y-4">
+              <Field label="Full name" error={fields.display_name}><input id="ben-name" className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={form.display_name} onChange={set('display_name')} /></Field>
+              <Field label="Email" hint="Any email works: Gmail, Yahoo, Outlook, school or work." error={fields.email || emailError}>
+                <input id="ben-email" className={`input ${fields.email || emailError ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} type="email" required value={form.email} onChange={set('email')} aria-invalid={!!(fields.email || emailError)} /></Field>
+              <Field label="Policy handle" hint="Used in your policy, like allow maria … (lowercase)" error={fields.handle}>
+                <input id="ben-handle" className={`input font-mono ${fields.handle ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.handle} value={form.handle} onChange={set('handle')} /></Field>
+              <button className="btn-primary w-full" disabled={busy}>{busy ? 'Sending invite…' : 'Add and send invite'}</button>
             </form>
           </Section>
         )}

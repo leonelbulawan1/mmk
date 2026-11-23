@@ -95,7 +95,7 @@ def user_out(u: User, db: Session | None = None) -> dict:
 
 def _strong(pw: str) -> None:
     if not (re.search(r"[A-Za-z]", pw) and re.search(r"\d", pw)):
-        raise HTTPException(422, "Password must contain letters and numbers")
+        raise HTTPException(422, "Your password must contain both letters and numbers.")
 
 
 def hash_invite(code: str) -> str:
@@ -120,7 +120,7 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
         raise HTTPException(422, str(exc))
     user = db.scalars(select(User).where(User.email == email)).first()
     if user is not None and not (user.role == "owner" and user.email_verified_at is None):
-        raise HTTPException(409, "An account with this email already exists")
+        raise HTTPException(409, "An account with this email already exists.")
     if user is None:
         user = User(role="owner", email=email, display_name=body.display_name.strip(),
                     password_hash=hash_password(body.password))
@@ -158,7 +158,7 @@ def verify_email(body: VerifyIn, db: Session = Depends(get_db)):
     """Confirm the emailed code and sign the owner in."""
     user = _pending_owner(db, body.email)
     if user is None:
-        raise HTTPException(400, "This email is already verified or has no pending sign-up. Try signing in")
+        raise HTTPException(400, "This email is already verified or has no pending sign-up. Try signing in.")
     try:
         verification.verify(db, user, body.code)
     except verification.VerificationError as exc:
@@ -188,7 +188,7 @@ def activate(body: ActivateIn, request: Request, db: Session = Depends(get_db)):
     if (user is None or not user.invite_code_hash or not user.active
             or not hmac.compare_digest(user.invite_code_hash, hash_invite(body.invite_code))):
         attempts.failed("activate", body.email, ip)
-        raise HTTPException(400, "Invalid email or invite code")
+        raise HTTPException(400, "The email or invite code is incorrect. Check both and try again.")
     attempts.succeeded("activate", body.email)
     user.password_hash = hash_password(body.password)
     user.invite_code_hash = None
@@ -207,7 +207,7 @@ def login(body: LoginIn, request: Request, db: Session = Depends(get_db)):
         attempts.failed("login", body.email, ip)
         if user is not None:
             audit.record(db, user.owner_id or user.id, None, "auth.login_failed", {"email": user.email})
-        raise HTTPException(401, "Incorrect email or password")
+        raise HTTPException(401, "Incorrect email or password.")
     attempts.succeeded("login", body.email)
     if user.role == "owner" and user.email_verified_at is None:
         # Only said after the correct password, so it reveals nothing to someone guessing.
@@ -247,7 +247,7 @@ def reset_password(body: ResetPasswordIn, db: Session = Depends(get_db)):
     """Set a new password with the emailed code. Signs out every device."""
     user = _resettable(db, body.email)
     if user is None:
-        raise HTTPException(400, "That code is not correct")
+        raise HTTPException(400, "That code is incorrect. Check the code and try again.")
     _strong(body.new_password)
     try:
         verification.check_code(db, user, body.code, verification.RESET)
@@ -268,7 +268,7 @@ def me(user: User = Depends(current_user), db: Session = Depends(get_db)):
 @router.post("/change-password")
 def change_password(body: ChangePasswordIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     if not verify_password(body.current_password, user.password_hash or ""):
-        raise HTTPException(400, "Current password is incorrect")
+        raise HTTPException(400, "Your current password is incorrect.")
     _strong(body.new_password)
     user.password_hash = hash_password(body.new_password)
     user.token_version = (user.token_version or 0) + 1  # other devices are signed out

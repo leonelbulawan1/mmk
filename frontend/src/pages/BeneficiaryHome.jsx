@@ -7,7 +7,7 @@ import NavIcon from '../components/NavIcon'
 export default function BeneficiaryHome() {
   const o = useAsync(() => api('/api/beneficiary/overview'))
   const letters = useAsync(() => api('/api/letters'))
-  if (o.loading) return <Spinner />
+  if (o.loading) return <Spinner label="Loading" />
   if (o.error) return <Alert>{o.error}</Alert>
   const d = o.data
   const first = d.owner.split(' ')[0]

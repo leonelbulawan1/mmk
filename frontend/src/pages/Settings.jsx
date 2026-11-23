@@ -4,7 +4,8 @@ import { useAuth } from '../auth'
 import PasswordInput from '../components/PasswordInput'
 import EmailNotices from '../components/EmailNotices'
 import { ExecutorSettings } from '../components/Executor'
-import { Alert, Field, PageHeader, Section, Spinner, useAsync } from '../components/ui'
+import { Alert, Field, PageHeader, Section, Spinner, useAsync, useToast } from '../components/ui'
+import { check, rules } from '../validation'
 
 export default function Settings() {
   const { user, setUser } = useAuth()
@@ -16,26 +17,37 @@ export default function Settings() {
   const [death, setDeath] = useState({ password: '', confirmation: '' })
   const [msg, setMsg] = useState({})
   const [busy, setBusy] = useState('')
+  const [fields, setFields] = useState({})
+  const toast = useToast()
 
   const run = async (key, fn, ok) => {
     setBusy(key); setMsg({})
-    try { await fn(); setMsg({ key, kind: 'success', text: ok }) } catch (e) { setMsg({ key, kind: 'error', text: e.message }) } finally { setBusy('') }
+    try { await fn(); toast(ok) } catch (e) { setMsg({ key, kind: 'error', text: e.message }) } finally { setBusy('') }
   }
   const note = (key) => msg.key === key && <div className="mb-3"><Alert kind={msg.kind} onClose={() => setMsg({})}>{msg.text}</Alert></div>
 
-  const saveProfile = (e) => { e.preventDefault(); run('profile', async () => setUser(await api('/api/settings', { method: 'PUT', body: isOwner
+  const saveProfile = (e) => {
+    e.preventDefault()
+    const bad = check(profile, { display_name: rules.required('your name') })
+    setFields(bad); if (bad.display_name) return
+    run('profile', async () => setUser(await api('/api/settings', { method: 'PUT', body: isOwner
     ? { display_name: profile.display_name, default_writing_mode: profile.default_writing_mode, ...(user.death_triggered_at ? {} : { allow_ai_answers: profile.allow_ai_answers }) }
-    : { display_name: profile.display_name, email_letters: profile.email_letters } })), 'Saved.') }
+    : { display_name: profile.display_name, email_letters: profile.email_letters } })), 'Profile saved.')
+  }
   const changePw = (e) => {
     e.preventDefault()
+    const bad = check(pw, { current_password: (v) => (v ? '' : 'Enter your current password.'), new_password: rules.newPassword })
+    setFields(bad); if (Object.keys(bad).length) return
     run('pw', async () => {
       const r = await api('/api/auth/change-password', { method: 'POST', body: { current_password: pw.current_password, new_password: pw.new_password } })
       tokenStore.set(r.token, tokenStore.remembered())  // stay signed in here; other devices are signed out
       setPw({ current_password: '', new_password: '' })
-    }, 'Password changed. Your other devices have been signed out.')
+    }, 'Password changed. You were signed out on your other devices.')
   }
   const trigger = (e) => {
     e.preventDefault()
+    const bad = check(death, { password: rules.password, confirmation: rules.phrase(s.data?.confirm_phrase || 'SEAL MY VAULT') })
+    setFields(bad); if (Object.keys(bad).length) return
     setBusy('death'); setMsg({})
     api('/api/settings/death-trigger', { method: 'POST', body: death })
       .then((r) => {
@@ -50,7 +62,7 @@ export default function Settings() {
       .finally(() => setBusy(''))
   }
 
-  if (s.loading) return <Spinner />
+  if (s.loading) return <Spinner label="Loading settings" />
   const phrase = s.data?.confirm_phrase || 'SEAL MY VAULT'
 
   return (
@@ -67,8 +79,8 @@ export default function Settings() {
         <div className="min-w-0 space-y-6">
         <Section id="profile" title="Profile" description="How you appear in MMK">
           {note('profile')}
-          <form onSubmit={saveProfile} className="space-y-4">
-            <Field label="Display name"><input className="input" required value={profile.display_name} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} /></Field>
+          <form onSubmit={saveProfile} noValidate className="space-y-4">
+            <Field label="Display name" error={fields.display_name}><input className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={profile.display_name} onChange={(e) => { setFields({}); setProfile({ ...profile, display_name: e.target.value }) }} /></Field>
             <Field label="Email"><input className="input" value={user.email} disabled /></Field>
             {isOwner && (
               <Field label="Default writing mode" hint="Pre-selected when you start a new entry.">
@@ -92,18 +104,18 @@ export default function Settings() {
                   <span className="block text-xs text-ink-400">The letter appears on your MMK home page either way.</span></span>
               </label>
             )}
-            <div className="flex justify-end border-t border-cream-300/80 pt-4"><button className="btn-primary" disabled={busy === 'profile'}>Save profile</button></div>
+            <div className="flex justify-end border-t border-cream-300/80 pt-4"><button className="btn-primary" disabled={busy === 'profile'}>{busy === 'profile' ? 'Saving…' : 'Save profile'}</button></div>
           </form>
         </Section>
 
         <Section id="password" title="Password" description="Changing it signs out your other devices">
           {note('pw')}
-          <form onSubmit={changePw} className="space-y-4">
+          <form onSubmit={changePw} noValidate className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Current password"><PasswordInput required autoComplete="current-password" value={pw.current_password} onChange={(e) => setPw({ ...pw, current_password: e.target.value })} /></Field>
-            <Field label="New password" hint="At least 8 characters, with letters and numbers"><PasswordInput required minLength={8} autoComplete="new-password" value={pw.new_password} onChange={(e) => setPw({ ...pw, new_password: e.target.value })} /></Field>
+            <Field label="Current password"><PasswordInput required autoComplete="current-password" value={pw.current_password} error={fields.current_password} onChange={(e) => { setFields({}); setPw({ ...pw, current_password: e.target.value }) }} /></Field>
+            <Field label="New password"><PasswordInput required minLength={8} autoComplete="new-password" value={pw.new_password} error={fields.new_password} hint="At least 8 characters, with letters and numbers." onChange={(e) => { setFields({}); setPw({ ...pw, new_password: e.target.value }) }} /></Field>
             </div>
-            <div className="flex justify-end border-t border-cream-300/80 pt-4"><button className="btn-primary" disabled={busy === 'pw'}>Change password</button></div>
+            <div className="flex justify-end border-t border-cream-300/80 pt-4"><button className="btn-primary" disabled={busy === 'pw'}>{busy === 'pw' ? 'Changing password…' : 'Change password'}</button></div>
           </form>
           {!s.data?.prolog_available && <div className="mt-4"><Alert kind="warn">SWI-Prolog is not available on the server, so nothing can be shared (the system fails closed).</Alert></div>}
         </Section>
@@ -127,10 +139,10 @@ export default function Settings() {
                   something to read is automatically emailed a short notice with a sign-in link (never any diary content).
                   Use this yourself if you want to seal your diary now. After your passing, your executor (above) starts it instead, without your password.
                 </p>
-                <form onSubmit={trigger} className="mt-5 grid gap-4 border-t border-cream-300/80 pt-5 sm:grid-cols-3 sm:items-end">
-                  <Field label="Your password"><PasswordInput required value={death.password} onChange={(e) => setDeath({ ...death, password: e.target.value })} /></Field>
-                  <Field label={<>Type <b>{phrase}</b></>}><input className="input font-mono" required value={death.confirmation} onChange={(e) => setDeath({ ...death, confirmation: e.target.value })} /></Field>
-                  <button className="btn-danger" disabled={busy === 'death' || death.confirmation !== phrase}>Seal vault permanently</button>
+                <form onSubmit={trigger} noValidate className="mt-5 grid gap-4 border-t border-cream-300/80 pt-5 sm:grid-cols-3 sm:items-end">
+                  <Field label="Your password"><PasswordInput required value={death.password} error={fields.password} onChange={(e) => { setFields({}); setDeath({ ...death, password: e.target.value }) }} /></Field>
+                  <Field label={<>Type <b>{phrase}</b></>} error={fields.confirmation}><input className={`input font-mono ${fields.confirmation ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.confirmation} value={death.confirmation} onChange={(e) => { setFields({}); setDeath({ ...death, confirmation: e.target.value }) }} /></Field>
+                  <button className="btn-danger" disabled={busy === 'death'}>{busy === 'death' ? 'Sealing vault…' : 'Seal vault permanently'}</button>
                 </form>
               </>
             )}

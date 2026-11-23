@@ -41,7 +41,7 @@ def test_unknown_email_gets_the_same_answer(client, db):
     unknown = _forgot(client, "nobody@example.com")
     assert unknown == {"ok": True}
     assert set(known) - {"demo_code"} == set(unknown)  # only the development code differs
-    assert _reset(client, "nobody@example.com", "123456").json()["detail"] == "That code is not correct"
+    assert _reset(client, "nobody@example.com", "123456").json()["detail"] == "That code is incorrect. Check the code and try again."
 
 
 def test_code_is_single_use_and_limited(client, db):

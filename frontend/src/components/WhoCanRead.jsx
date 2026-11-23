@@ -13,7 +13,7 @@ export default function WhoCanRead({ entryId, sealed }) {
         <h2 className="text-lg font-semibold">{sealed ? 'Who can read this' : 'Who can read this after you’re gone'}</h2>
         {!sealed && <p className="mt-1 text-xs text-ink-400">While you are alive, no one can read your diary.</p>}
       </div>
-      {access.loading ? <Spinner /> : access.error ? <p className="text-rose-600">{access.error}</p> : people.length === 0 ? (
+      {access.loading ? <Spinner label="Checking access" /> : access.error ? <p className="text-rose-600">{access.error}</p> : people.length === 0 ? (
         <p className="text-ink-400">No beneficiaries yet. <Link to="/beneficiaries" className="text-bark-500 hover:underline">Add one</Link></p>
       ) : (
         <ul className="divide-y divide-cream-300">

@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import { IconInput, KeyIcon, MailIcon } from '../components/icons'
 import { Alert } from '../components/ui'
 import { AuthShell, ErrorSlot, Spinner } from './Login'
+import { check, focusFirst, rules } from '../validation'
 
 const RESEND_SECONDS = 60
 
@@ -21,9 +22,10 @@ export default function VerifyEmail() {
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
   // Shown when the server could not send the code (the reason comes from the server).
-  const [problem, setProblem] = useState(state?.email_sent === false && !state?.demo_code ? state?.email_problem || 'Please try again.' : '')
+  const [problem, setProblem] = useState(state?.email_sent === false && !state?.demo_code ? state?.email_problem || 'Try again.' : '')
   const [wait, setWait] = useState(state?.email && !problem ? RESEND_SECONDS : 0)
   const asked = useRef(false)
+  const [fields, setFields] = useState({})
 
   useEffect(() => { if (wait > 0) { const t = setTimeout(() => setWait(wait - 1), 1000); return () => clearTimeout(t) } }, [wait])
 
@@ -32,9 +34,9 @@ export default function VerifyEmail() {
     try {
       const r = await api('/api/auth/resend-verification', { method: 'POST', body: { email } })
       if (r.demo_code) setDemoCode(r.demo_code)
-      if (r.email_sent === false && !r.demo_code) { setProblem(r.email_problem || 'Please try again.'); setWait(0); return }
+      if (r.email_sent === false && !r.demo_code) { setProblem(r.email_problem || 'Try again.'); setWait(0); return }
       setProblem('')
-      setInfo(auto ? 'We sent you a new code.' : 'A new code was sent. The previous one no longer works.')
+      setInfo(auto ? 'We sent you a new code.' : 'New code sent. The previous code no longer works.')
       setWait(RESEND_SECONDS); setCode('')
     } catch (e) {
       if (e.status === 429) {  // a code was sent moments ago: wait instead of showing an error
@@ -48,6 +50,9 @@ export default function VerifyEmail() {
 
   const submit = async (e) => {
     e.preventDefault()
+    const bad = check({ email, code }, { email: rules.email, code: rules.code6 })
+    setFields(bad)
+    if (Object.keys(bad).length) { focusFirst(bad, { email: 've-email', code: 've-code' }); return }
     setBusy(true); setError(''); setInfo('')
     try { accept(await api('/api/auth/verify-email', { method: 'POST', body: { email, code } })); navigate('/dashboard') }
     catch (err) { setError(err.message); setCode('') }
@@ -62,22 +67,22 @@ export default function VerifyEmail() {
         {wait > 0 ? <span className="whitespace-nowrap">Resend in {wait}s</span>
           : <button type="button" disabled={!email} onClick={() => resend()} className="whitespace-nowrap font-medium text-bark-500 hover:underline disabled:opacity-50">Resend code</button>}
       </>}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} noValidate className="space-y-4">
         <ErrorSlot error={error}>
           {problem ? <Alert kind="warn">We couldn't send the code. {problem} Then tap <b>Resend code</b>.</Alert>
             : info ? <Alert kind="success">{info}</Alert>
             : demoCode ? <Alert kind="info">Demo: email can't be sent here, so your code is <b className="font-mono tracking-widest">{demoCode}</b>.</Alert> : null}
         </ErrorSlot>
         {!state?.email && (
-          <IconInput icon={MailIcon} type="email" required autoComplete="email" placeholder="Email address" aria-label="Email address"
-            value={email} onChange={(e) => { setError(''); setEmail(e.target.value) }} />
+          <IconInput id="ve-email" error={fields.email} icon={MailIcon} type="email" required autoComplete="email" placeholder="Email address" aria-label="Email address"
+            value={email} onChange={(e) => { setError(''); setFields({}); setEmail(e.target.value) }} />
         )}
-        <IconInput icon={KeyIcon} required inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6}
+        <IconInput id="ve-code" error={fields.code} icon={KeyIcon} required inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6}
           className="font-mono text-lg tracking-[0.4em] placeholder:font-sans placeholder:text-base placeholder:tracking-normal"
           placeholder="6-digit code" aria-label="6-digit code" value={code}
-          onChange={(e) => { setError(''); setCode(e.target.value.replace(/\D/g, '').slice(0, 6)) }} />
-        <button className="btn-primary w-full py-3" disabled={busy || code.length !== 6 || !email}>
-          {busy ? <><Spinner /> Verifying…</> : 'Verify email'}
+          onChange={(e) => { setError(''); setFields({}); setCode(e.target.value.replace(/\D/g, '').slice(0, 6)) }} />
+        <button className="btn-primary w-full py-3" disabled={busy}>
+          {busy ? <><Spinner /> Verifying your email…</> : 'Verify email'}
         </button>
         <p className="text-center text-sm text-ink-400">Wrong email? <Link to="/register" className="font-medium text-bark-500 hover:underline">Start again</Link></p>
       </form>

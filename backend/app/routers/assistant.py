@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -29,11 +31,11 @@ def _owner_and_handle(db: Session, user: User, as_handle: str | None) -> tuple[U
         return db.get(User, user.owner_id), user.handle
     if user.role == "owner":
         if not as_handle:
-            raise HTTPException(422, "Choose which beneficiary to preview as")
+            raise HTTPException(422, "Choose a beneficiary to preview as.")
         if as_handle not in policy_service.handles(db, user):
-            raise HTTPException(404, "Unknown beneficiary")
+            raise HTTPException(404, "We couldn't find that beneficiary.")
         return user, as_handle
-    raise HTTPException(403, "Not allowed")
+    raise HTTPException(403, "You don't have permission to do this.")
 
 
 @router.get("/assistant/info")
@@ -58,7 +60,8 @@ def ask(body: AskIn, user: User = Depends(current_user), db: Session = Depends(g
         audit.record(db, owner.id, user, "assistant.engine_error", {"error": str(exc)[:200]})
         raise HTTPException(503, "The access engine is unavailable, so nothing can be shared right now.")
     except LLMError as exc:
-        raise HTTPException(503, f"The language model is unavailable: {exc}")
+        print(f"[assistant] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        raise HTTPException(503, "The AI assistant is unavailable right now. Try again in a few minutes.")
     return answer.to_dict()
 
 
@@ -96,7 +99,7 @@ def overview(user: User = Depends(require_beneficiary), db: Session = Depends(ge
     try:
         decisions = policy_service.decisions_for(db, owner, user.handle, today())
     except PrologError:
-        raise HTTPException(503, "The access engine is unavailable.")
+        raise HTTPException(503, "The access engine is unavailable right now. Try again in a few minutes.")
     vault = vault_service.load_vault(db, owner)
     ensure_intact(db, owner, vault, user)
     kinds = {int(e.id): e.kind for e in vault.entries}

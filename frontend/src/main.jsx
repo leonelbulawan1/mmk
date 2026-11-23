@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, MemoryRouter, useLocation } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './auth'
+import { ToastProvider } from './components/ui'
 import './index.css'
 
 // VITE_WEB_RUNTIME=1 builds the self-contained browser edition (backend runs in the page).
@@ -74,8 +75,10 @@ const app = (
   <StrictMode>
     <Shell>
       <AuthProvider>
-        <App />
-        {WEB && <DemoBar />}
+        <ToastProvider>
+          <App />
+          {WEB && <DemoBar />}
+        </ToastProvider>
       </AuthProvider>
     </Shell>
   </StrictMode>
