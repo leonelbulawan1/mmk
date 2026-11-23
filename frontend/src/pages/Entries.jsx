@@ -4,6 +4,7 @@ import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, ConfirmDialog, Empty, Spinner, Tag } from '../components/ui'
 import NavIcon from '../components/NavIcon'
+import NewMenu from '../components/NewMenu'
 
 // "⋮" menu on a card. items: [{ label, icon, to } | { label, icon, onClick, danger }].
 // Closes on Escape, on a click outside, or after a choice.
@@ -66,42 +67,6 @@ function Row({ to, lead, title, snippet, meta, menu, stack }) {
       </Link>
       {menu}
     </li>
-  )
-}
-
-// "+ New" button with a small menu: Diary entry or Letter.
-function NewMenu() {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-  useEffect(() => {
-    if (!open) return undefined
-    const away = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
-    const key = (e) => { if (e.key === 'Escape') { setOpen(false); ref.current?.querySelector('button')?.focus() } }
-    document.addEventListener('mousedown', away); document.addEventListener('keydown', key)
-    ref.current?.querySelector('[role=menuitem]')?.focus()
-    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', key) }
-  }, [open])
-  const item = 'flex items-start gap-3 px-4 py-3 hover:bg-cream-200 focus:bg-cream-200 focus:outline-none'
-  return (
-    <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open}
-        className="btn-primary h-full min-h-[46px] whitespace-nowrap px-4">
-        <span aria-hidden className="text-lg leading-none">+</span>New
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-      </button>
-      {open && (
-        <div role="menu" className="absolute right-0 top-full z-40 mt-2 w-60 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">
-          <Link role="menuitem" to="/entries/new" className={item}>
-            <span className="mt-0.5 text-ink-500"><NavIcon name="write" size={18} /></span>
-            <span><span className="block text-sm font-medium text-ink-700">Diary entry</span><span className="block text-xs text-ink-400">Private, for your diary</span></span>
-          </Link>
-          <Link role="menuitem" to="/entries/new?kind=letter" className={item}>
-            <span className="mt-0.5 text-ink-500"><NavIcon name="letters" size={18} /></span>
-            <span><span className="block text-sm font-medium text-ink-700">Letter</span><span className="block text-xs text-ink-400">To one of your beneficiaries</span></span>
-          </Link>
-        </div>
-      )}
-    </div>
   )
 }
 

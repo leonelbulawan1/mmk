@@ -3,6 +3,7 @@ import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, Empty, PageHeader, Section, Spinner, Tag, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
+import NewMenu from '../components/NewMenu'
 
 function Stat({ label, value, to, icon, note, highlight }) {
   return (
@@ -34,10 +35,7 @@ export default function Dashboard() {
     <>
       <PageHeader eyebrow={`${greeting},`} title={data.owner}
         subtitle={sealed ? 'Your vault is sealed. Your legacy policy is now in effect.' : 'What would you like to remember today?'}
-        actions={!sealed && <>
-          <Link to="/entries/new?kind=letter" className="btn-secondary"><NavIcon name="letters" size={16} />New letter</Link>
-          <Link to="/entries/new" className="btn-primary"><NavIcon name="write" size={16} />New entry</Link>
-        </>} />
+        actions={!sealed && <NewMenu label="New entry" />} />
 
       {draft && !sealed && (
         <div className="card mb-6 flex flex-wrap items-center gap-4 px-5 py-4 fade-in">
