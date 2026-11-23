@@ -338,7 +338,7 @@ export default function CreateEntry() {
                   {draftSaved === 'failed' ? <span className="text-rose-600"> · draft not saved</span>
                     : draftSaved ? <> · saved {clock(draftSaved)}</> : restored ? ' · draft restored' : ''}
                 </span>
-                <button type="button" className="btn-ghost px-4 py-2.5" disabled={!hasContent || busy} onClick={saveDraft} title="Keep it under Drafts in All entries">Save draft</button>
+                <button type="button" className="btn-ghost px-4 py-2.5" disabled={!hasContent || busy} onClick={saveDraft} title="Close it; it waits under Drafts in All entries">Discard</button>
                 <button className="btn-primary px-5 py-2.5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title={`${isLetter ? 'Send' : 'Save'} (Ctrl+S)`}>
                   <NavIcon name={isLetter ? 'send' : 'write'} size={16} />{busy ? (isLetter ? 'Sending…' : 'Saving…') : (isLetter ? 'Send' : 'Save')}
                 </button>

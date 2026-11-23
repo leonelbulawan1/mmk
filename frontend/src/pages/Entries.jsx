@@ -152,7 +152,7 @@ export default function Entries() {
         </select>
       </form>
       </div>
-      {location.state?.draftSaved && <div className="mb-4"><Alert kind="success">Saved to Drafts.</Alert></div>}
+      {location.state?.draftSaved && <div className="mb-4"><Alert kind="success">Moved to Drafts. You can continue it any time.</Alert></div>}
       <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400" aria-live="polite">
         {!state.loading && (params.get('q') || topic) && (
           <span>
