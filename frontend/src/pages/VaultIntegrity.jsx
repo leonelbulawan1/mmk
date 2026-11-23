@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { api, fmtDate } from '../api'
-import { Alert, Card, Hash, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
+import { Alert, Card, Hash, PageHeader, Section, Spinner, Tag, useAsync } from '../components/ui'
+import NavIcon from '../components/NavIcon'
 
 function Report({ title, r }) {
   return (
     <Card>
       <p className="text-xs uppercase tracking-wider text-ink-400">{title}</p>
-      <p className={`mt-1 text-3xl font-semibold ${r.ok ? 'text-sage-600' : 'text-rose-600'}`}>{r.ok ? 'Verified' : 'Verification failed'}</p>
+      <p className={`mt-1 text-2xl font-semibold ${r.ok ? 'text-sage-600' : 'text-rose-600'}`}>{r.ok ? 'Verified' : 'Verification failed'}</p>
       <p className="text-sm text-ink-400">{r.length} records · head <Hash value={r.head} /></p>
       {r.problems.length > 0 && (
         <ul className="mt-3 space-y-1 text-sm text-rose-600">{r.problems.map((p, i) => <li key={i}>#{p.seq} {p.ref}: {p.problem}</li>)}</ul>
@@ -21,6 +22,7 @@ export default function VaultIntegrity() {
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [view, setView] = useState('chain')
 
   const exportVault = async () => {
     setExporting(true)
@@ -41,8 +43,8 @@ export default function VaultIntegrity() {
 
   return (
     <>
-      <PageHeader eyebrow="nothing changes unseen" title="Vault integrity"
-        subtitle="Each record's hash includes the previous record's hash. Recomputing the chain shows whether any entry, revision, policy version or audit event was changed or removed in the database. It is a check run by this server, not an outside audit, and the diary is not end-to-end encrypted."
+      <PageHeader title="Vault integrity"
+        subtitle="Each record's hash includes the previous one, so recomputing the chain shows whether anything was changed or removed. This check runs on the MMK server; it is not an outside audit, and the diary is not end-to-end encrypted."
         actions={<>
           <button className="btn-secondary" onClick={() => { v.reload(); audit.reload() }}>Verify again</button>
           <button className="btn-secondary" onClick={exportVault} disabled={exporting}>{exporting ? 'Exporting…' : copied ? 'Copied to clipboard ✓' : import.meta.env.VITE_WEB_RUNTIME === '1' ? 'Copy vault export (JSON)' : 'Export vault (JSON)'}</button>
@@ -56,12 +58,15 @@ export default function VaultIntegrity() {
         </div>
       ) : (
         <>
-          <div className={`mb-6 rounded-2xl px-6 py-4 ${v.data.ok ? 'bg-sage-100 text-sage-600' : 'bg-rose-100 text-rose-600'}`}>
-            <p className="text-2xl font-semibold">{v.data.ok ? '✓ Verified: every record matches its hash' : '⚠ Verification failed'}</p>
+          <div className={`mb-6 flex items-start gap-4 rounded-2xl border px-6 py-5 ${v.data.ok ? 'border-sage-600/20 bg-sage-100 text-sage-600' : 'border-rose-600/20 bg-rose-100 text-rose-600'}`}>
+            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/60"><NavIcon name={v.data.ok ? 'access' : 'close'} size={20} /></span>
+            <div>
+            <p className="text-xl font-semibold">{v.data.ok ? 'Verified: every record matches its hash' : 'Verification failed'}</p>
             <p className="text-sm">{v.data.ok
               ? `Checked ${new Date().toLocaleString()}. No entry, revision, policy version or audit event was changed or removed since it was saved.`
               : 'Some records no longer match their hashes, so they were changed outside MMK. Nothing is shared with beneficiaries until this is resolved. Contact the MMK administrator and keep an exported copy.'}</p>
             {v.data.sealed && <p className="text-sm">The vault is sealed; no new records can be appended.</p>}
+            </div>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             <Report title="Entries & revisions" r={v.data.entries} />
@@ -69,32 +74,39 @@ export default function VaultIntegrity() {
             <Report title="Audit log" r={v.data.audit} />
           </div>
 
-          <Card className="mt-6 overflow-x-auto">
-            <h2 className="mb-4 text-2xl font-semibold">The chain</h2>
-            <ol className="relative space-y-3 border-l-2 border-gold-400/60 pl-6">
-              {v.data.records.map((r) => (
-                <li key={r.seq} className="relative">
-                  <span className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full border-2 border-gold-500 bg-cream-50" />
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
-                    <span className="font-mono text-xs text-ink-400">#{r.seq}</span>
-                    <Tag tone={r.kind === 'revision' ? 'bark' : 'cream'}>{r.kind}</Tag>
-                    <span className="font-medium">{r.title || (r.kind === 'revision' ? r.ref : 'Untitled')}</span>
-                    {r.date && <span className="text-xs text-ink-400">{fmtDate(r.date)}</span>}
-                    <span className="text-xs text-ink-400">prev <Hash value={r.prev_hash} n={8} /> → <Hash value={r.hash} n={8} /></span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </Card>
         </>
       )}
 
-      <Card className="mt-6">
-        <h2 className="mb-4 text-2xl font-semibold">Audit log</h2>
+      <Section className="mt-6" bodyClassName="p-5 sm:p-6"
+        title={<div role="tablist" className="flex rounded-xl border border-cream-300 bg-cream-100 p-1 text-sm font-medium">
+          {[['chain', 'Record chain', v.data?.records?.length], ['audit', 'Audit log', audit.data?.length]].map(([k, l, n]) => (
+            <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
+              className={`rounded-lg px-3 py-1.5 transition ${view === k ? 'bg-ink-700 text-cream-50' : 'text-ink-500 hover:bg-cream-200'}`}>
+              {l}{n != null && <span className={`ml-1.5 text-xs ${view === k ? 'text-cream-200' : 'text-ink-400'}`}>{n}</span>}
+            </button>
+          ))}
+        </div>}>
+        {view === 'chain' ? (v.data ? <div className="max-h-[32rem] overflow-auto">
+            <ol className="relative space-y-3 border-l-2 border-gold-400/60 pl-6">
+            {v.data.records.map((r) => (
+              <li key={r.seq} className="relative">
+                <span className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full border-2 border-gold-500 bg-cream-50" />
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+                  <span className="font-mono text-xs text-ink-400">#{r.seq}</span>
+                  <Tag tone={r.kind === 'revision' ? 'bark' : 'cream'}>{r.kind}</Tag>
+                  <span className="font-medium">{r.title || (r.kind === 'revision' ? r.ref : 'Untitled')}</span>
+                  {r.date && <span className="text-xs text-ink-400">{fmtDate(r.date)}</span>}
+                  <span className="text-xs text-ink-400">prev <Hash value={r.prev_hash} n={8} /> → <Hash value={r.hash} n={8} /></span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div> : <p className="text-sm text-ink-400">Run the check to see the chain.</p>) : (
+          <>
         {audit.loading ? <Spinner /> : (
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-[32rem] overflow-y-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-ink-400"><th className="py-2">When</th><th>Action</th><th>By</th><th>Details</th></tr></thead>
+              <thead><tr className="sticky top-0 bg-cream-50 text-left text-xs text-ink-400"><th className="py-2">When</th><th>Action</th><th>By</th><th>Details</th></tr></thead>
               <tbody>
                 {(audit.data || []).map((a) => (
                   <tr key={a.id} className="border-t border-cream-300/60 align-top">
@@ -108,7 +120,9 @@ export default function VaultIntegrity() {
             </table>
           </div>
         )}
-      </Card>
+          </>
+        )}
+      </Section>
     </>
   )
 }

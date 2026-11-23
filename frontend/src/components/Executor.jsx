@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import PasswordInput from './PasswordInput'
-import { Alert, Card, Field, useAsync } from './ui'
+import { Alert, Card, Field, useAsync, Section } from './ui'
 
 const fmtWhen = (iso) => new Date(iso).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })
 const waitText = (m) => (m % 1440 === 0 ? `${m / 1440} day${m === 1440 ? '' : 's'}` : m % 60 === 0 ? `${m / 60} hour${m === 60 ? '' : 's'}` : `${m} minute${m === 1 ? '' : 's'}`)
@@ -84,9 +84,8 @@ export function ExecutorSettings() {
   }
 
   return (
-    <Card className="lg:col-span-2">
-      <h2 className="text-2xl font-semibold">Executor</h2>
-      <p className="mt-1 max-w-3xl text-sm text-ink-500">
+    <Section id="executor" title="Executor" description="Someone you trust to report your passing">
+      <p className="max-w-3xl text-sm text-ink-500">
         Choose a beneficiary you trust to report your passing. When they do, you are emailed and have a waiting period
         of {waitText(user.death_report_wait_minutes || 20160)} to press <b>“I'm still here”</b>. If nobody cancels, the death trigger
         activates on its own: your vault is sealed, your policy frozen, and your beneficiaries emailed. They never need your password.
@@ -105,7 +104,7 @@ export function ExecutorSettings() {
           <button className="btn-secondary" disabled={busy || !!user.pending_report || choice === (user.executor?.id ? String(user.executor.id) : '')}>Save executor</button>
         </form>
       )}
-    </Card>
+    </Section>
   )
 }
 
@@ -142,7 +141,7 @@ export function ExecutorPanel() {
 
   return (
     <Card className="mt-6 border-gold-500/40">
-      <h2 className="text-2xl font-semibold">You are {first}'s executor</h2>
+      <h2 className="text-xl font-semibold">You are {first}'s executor</h2>
       {rep ? (
         <>
           <p className="mt-2 text-sm text-ink-500">
@@ -207,7 +206,7 @@ export function DisputePanel() {
   }
   return (
     <Card className="mt-6 border-rose-600/30">
-      <h2 className="text-2xl font-semibold">{first}'s passing was reported</h2>
+      <h2 className="text-xl font-semibold">{first}'s passing was reported</h2>
       <p className="mt-2 text-sm text-ink-500">The report is {STATE_TEXT[rep.status] || rep.status}.
         {rep.activates_at && <> If no one disputes it, {first}'s diary opens as {first} wished on {fmtWhen(rep.activates_at)}.</>}</p>
       {rep.can_dispute ? (

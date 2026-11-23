@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, Card, Empty, Field, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
+import { Alert, Empty, Field, PageHeader, Section, Spinner, Tag, useAsync } from '../components/ui'
 
 // In the browser edition links cannot open a specific page, so only the code is shown there.
 const WEB = import.meta.env.VITE_WEB_RUNTIME === '1'
@@ -89,8 +89,9 @@ export default function Beneficiaries() {
 
   return (
     <>
-      <PageHeader eyebrow="the people you trust" title="Beneficiaries"
-        subtitle="Register the people who may remember you through your diary. They see nothing while you are alive; after your passing, only what your legacy policy allows." />
+      <PageHeader title="Beneficiaries"
+        subtitle="The people who may remember you through your diary. They see nothing while you are alive; after your passing, only what your legacy policy allows."
+        meta={list.data?.length ? <Tag>{list.data.length}</Tag> : null} />
       <div className="mb-4 space-y-3">
         <Alert onClose={() => setError('')}>{error}</Alert>
         {invite && (invite.emailed ? (
@@ -119,57 +120,59 @@ export default function Beneficiaries() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          {list.loading ? <Spinner /> : !list.data?.length ? (
-            <Empty title="No beneficiaries yet">Add someone on the right, then write a policy for them.</Empty>
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <Section className="min-w-0 lg:col-span-2" title="Your beneficiaries" description="Invite status, executor and quick actions" bodyClassName="p-0">
+          {list.loading ? <div className="px-6"><Spinner /></div> : !list.data?.length ? (
+            <div className="p-6"><Empty title="No beneficiaries yet">Register someone with the form, then write a policy for them.</Empty></div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <ul className="divide-y divide-cream-200">
               {list.data.map((b) => (
-                <Card key={b.id} className={b.active ? '' : 'opacity-60'}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-2xl font-semibold">{b.display_name}</h3>
+                <li key={b.id} className={`px-5 py-4 sm:px-6 ${b.active ? '' : 'opacity-60'}`}>
+                  <div className="flex flex-wrap items-start gap-4">
+                    <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cream-200 text-base font-semibold text-ink-600">
+                      {b.display_name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-base font-semibold">{b.display_name}</h3>
+                        <code className="rounded bg-cream-200 px-1.5 py-0.5 text-xs text-ink-500">{b.handle}</code>
+                        {user.executor?.id === b.id && <Tag tone="ink">Executor</Tag>}
+                      </div>
                       <p className="break-all text-sm text-ink-400">{b.email}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <Tag tone={b.activated ? 'cream' : 'bark'}>{b.activated ? 'Account active' : 'Invite pending'}</Tag>
+                        {!b.activated && <InviteStatus inv={b.invitation} />}
+                        {!b.active && <Tag tone="bark">Deactivated</Tag>}
+                        <span className="self-center text-ink-400">Added {fmtDate(b.created_at)}</span>
+                      </div>
                     </div>
-                    <Tag tone="ink">{b.handle}</Tag>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                    <Tag>{b.activated ? 'Account active' : 'Invite pending'}</Tag>
-                    {!b.activated && <InviteStatus inv={b.invitation} />}
-                    {!b.active && <Tag tone="bark">Deactivated</Tag>}
-                    {user.executor?.id === b.id && <Tag tone="ink">Executor</Tag>}
-                    <Tag>Added {fmtDate(b.created_at)}</Tag>
+                    {!sealed && (
+                      <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+                        <Link className="btn-secondary px-3 py-1.5 text-xs" to={`/assistant?as=${b.handle}`}>Preview as {b.display_name.split(' ')[0]}</Link>
+                        {!b.activated && <button className="btn-secondary px-3 py-1.5 text-xs" onClick={() => reissue(b)}>Send invite again</button>}
+                        <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => toggle(b)}>{b.active ? 'Deactivate' : 'Reactivate'}</button>
+                      </div>
+                    )}
                   </div>
                   {!sealed && !b.activated && b.invitation?.status === 'bounced' && <FixEmail key={b.email} b={b} onSaved={emailFixed} />}
-                  <div className="mt-4 flex flex-wrap gap-2">
-                  {!sealed && (
-                    <>
-                      {!b.activated && <button className="btn-secondary px-3 py-1.5 text-xs" onClick={() => reissue(b)}>Send invite again</button>}
-                      <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => toggle(b)}>{b.active ? 'Deactivate' : 'Reactivate'}</button>
-                      <Link className="btn-ghost px-3 py-1.5 text-xs" to={`/assistant?as=${b.handle}`}>Preview as {b.display_name.split(' ')[0]}</Link>
-                    </>
-                  )}
-                  </div>
-                </Card>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </Section>
 
         {!sealed && (
-          <Card>
-            <h2 className="text-2xl font-semibold">Register someone</h2>
-            <form onSubmit={create} className="mt-4 space-y-4">
+          <Section className="lg:sticky lg:top-6" title="Register someone" description="They get an email invitation to activate their account.">
+            <form onSubmit={create} className="space-y-4">
               <Field label="Full name"><input className="input" required value={form.display_name} onChange={set('display_name')} /></Field>
               <Field label="Email" hint="Any email works: Gmail, Yahoo, Outlook, school or work.">
                 <input className={`input ${emailError ? 'border-rose-600' : ''}`} type="email" required value={form.email} onChange={set('email')} aria-invalid={!!emailError} />
                 {emailError && <p className="mt-1 text-xs text-rose-600">{emailError}</p>}</Field>
               <Field label="Policy handle" hint="Used in your policy, e.g. allow maria …  (lowercase)">
                 <input className="input font-mono" required pattern="[a-z][a-z0-9_]{1,31}" value={form.handle} onChange={set('handle')} /></Field>
-              <button className="btn-primary w-full" disabled={busy}>{busy ? 'Adding…' : 'Add and create invite'}</button>
+              <button className="btn-primary w-full" disabled={busy}>{busy ? 'Adding…' : 'Add and send invite'}</button>
             </form>
-          </Card>
+          </Section>
         )}
       </div>
     </>

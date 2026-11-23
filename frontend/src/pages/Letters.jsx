@@ -7,7 +7,7 @@ export default function Letters() {
   const letters = useAsync(() => api('/api/letters'))
   return (
     <>
-      <PageHeader eyebrow="for you" title="Letters" subtitle={`Letters ${user.owner?.display_name || ''} wrote to you appear here once they are released.`} />
+      <PageHeader title="Letters" subtitle={`Letters ${user.owner?.display_name || ''} wrote to you appear here once they are released.`} />
       <LegalDisclaimer className="mb-6" />
       {letters.loading ? <Spinner /> : letters.error ? <Alert>{letters.error}</Alert> : !letters.data.length ? (
         <Empty title="No letters yet">{user.owner?.death_triggered

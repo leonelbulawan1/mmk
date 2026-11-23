@@ -118,7 +118,7 @@ export default function Review() {
   )
   return (
     <>
-      <PageHeader eyebrow="mmk reviewers" title="Review reports"
+      <PageHeader title="Review reports"
         subtitle="Reports that an owner has passed away. Approve only after checking the documents. Approval starts a waiting period; the owner can cancel and beneficiaries can dispute until it ends." />
       {list.loading ? <Spinner /> : list.error ? <Alert>{list.error}</Alert> : !list.data.length ? (
         <Empty title="No reports">When an executor reports a passing, it appears here.</Empty>

@@ -218,6 +218,7 @@ def dashboard(owner: User = Depends(require_owner), db: Session = Depends(get_db
     report = vault.verify()
     policy = policy_service.current_protocol(db, owner)
     this_year = today().year
+    names = recipient_names(db, owner)
     return {
         "owner": owner.display_name,
         "entry_count": sum(1 for e in entries if e.kind == "text"),
@@ -228,6 +229,6 @@ def dashboard(owner: User = Depends(require_owner), db: Session = Depends(get_db
         "integrity": {"ok": report.ok, "length": report.length, "head": report.head},
         "pending_reviews": sum(1 for e in entries if entry_summary(e)["pending_review"]),
         "topics": topics.most_common(8),
-        "recent": [entry_summary(e) for e in entries[:5]],
+        "recent": [with_recipient_name(entry_summary(e), names) for e in entries[:5]],
         "death_triggered_at": owner.death_triggered_at,
     }

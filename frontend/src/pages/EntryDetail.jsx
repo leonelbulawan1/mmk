@@ -4,7 +4,7 @@ import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import WhoCanRead from '../components/WhoCanRead'
 import DiffView from '../components/DiffView'
-import { Alert, Card, Hash, LetterBadge, PageHeader, Spinner, Tag, useAsync } from '../components/ui'
+import { Alert, Card, Hash, LetterBadge, PageHeader, Spinner, Tag, useAsync, Section } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 const MODE_LABEL = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Review' }
@@ -50,15 +50,24 @@ export default function EntryDetail() {
 
   return (
     <>
-      <PageHeader eyebrow={<span className="inline-flex flex-wrap items-center gap-2">{fmtDate(e.entry_date)}{e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}</span>} title={e.title || 'Untitled'}
-        actions={<Link to="/entries" className="btn-ghost">← All entries</Link>} />
+      <PageHeader
+        eyebrow={<nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2">
+          <Link to={e.kind === 'letter' ? '/entries?kind=letter' : '/entries?kind=text'} className="font-medium text-bark-500 hover:underline">{e.kind === 'letter' ? 'Letters' : 'Diary entries'}</Link>
+          <span aria-hidden>/</span><span>{fmtDate(e.entry_date)}</span>
+        </nav>}
+        title={e.title || 'Untitled'}
+        meta={e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}
+        actions={<>
+          <Link to="/entries" className="btn-ghost">← All entries</Link>
+          {!sealed && !editing && <button className="btn-primary" onClick={() => { setDraft(e.current_text); setEditing(true); setView('current') }}><NavIcon name="edit" size={16} />Add a revision</button>}
+        </>} />
       {msg.text && <div className="mb-4"><Alert kind={msg.kind || 'success'} onClose={() => setMsg({})}>{msg.text}</Alert></div>}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           {e.pending_review && e.review && (
             <Card className="border-gold-500/40">
-              <h2 className="text-2xl font-semibold">Suggestions to review</h2>
+              <h2 className="text-xl font-semibold">Suggestions to review</h2>
               <p className="mb-4 text-sm text-ink-400">Accepting adds a revision; your original words stay in the vault.</p>
               <div className="rounded-xl bg-cream-100 p-4"><DiffView ops={e.review.suggestions} /></div>
               {!sealed && (
@@ -72,10 +81,10 @@ export default function EntryDetail() {
 
           <Card>
             {e.revision_history.length > 0 ? (
-              <div className="mb-4 flex flex-wrap gap-2 text-sm" role="tablist">
+              <div className="mb-5 inline-flex rounded-xl border border-cream-300 bg-cream-100 p-1 text-sm font-medium" role="tablist">
                 {[['current', 'Current text'], ['original', 'Original'], ['history', `Revisions (${e.revision_history.length})`]].map(([k, l]) => (
                   <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
-                    className={`rounded-lg px-3 py-1.5 ${view === k ? 'bg-ink-700 text-cream-50' : 'bg-cream-200 text-ink-500'}`}>{l}</button>
+                    className={`rounded-lg px-3 py-1.5 transition ${view === k ? 'bg-ink-700 text-cream-50' : 'text-ink-500 hover:bg-cream-200'}`}>{l}</button>
                 ))}
               </div>
             ) : <p className="mb-3 text-xs text-ink-400">Exactly as first written · no revisions</p>}
@@ -101,34 +110,34 @@ export default function EntryDetail() {
             ) : (
               <p className="paper-lines whitespace-pre-wrap text-lg text-ink-600">{view === 'original' ? e.original_text : e.current_text}</p>
             )}
-            {!editing && !sealed && view !== 'history' && (
-              <button className="btn-secondary mt-6" onClick={() => { setDraft(e.current_text); setEditing(true) }}>Add a revision</button>
-            )}
           </Card>
         </div>
 
         <div className="space-y-6">
-          <Card className="space-y-3 text-sm">
-            <h2 className="text-xl font-semibold">About this page</h2>
-            <p><span className="text-ink-400">Writing mode:</span> {MODE_LABEL[e.writing_mode]}</p>
-            <p><span className="text-ink-400">Written:</span> {fmtDate(e.created_at)}</p>
-            {e.kind === 'letter' && (<>
-              <p><span className="text-ink-400">Letter to</span> <b>{e.recipient_name || e.recipient}</b>,{' '}
-                {e.release_on_death ? <>opens {e.release_days_after_death ? `${e.release_days_after_death} days ` : ''}after your death{e.release_on ? ` (or on ${fmtDate(e.release_on)})` : ''}</>
-                  : e.deliver_while_alive ? <>opens on {fmtDate(e.release_on)}</>
-                  : <>opens on {fmtDate(e.release_on)}, after your death</>}</p>
-              {e.delivery && <p><span className="text-ink-400">Delivery:</span>{' '}
-                {e.delivery.status === 'delivered'
-                  ? <>delivered to their home page{e.delivery.email === 'sent' ? ', email sent' : e.delivery.email === 'failed' ? ', but the email failed' : ''}</>
-                  : e.delivery.after_death ? 'waits for your death' : `will be delivered on ${fmtDate(e.delivery.opens_on)}`}</p>}
-            </>)}
-            <div><p className="text-ink-400">Themes</p><div className="mt-1 flex flex-wrap gap-1.5">{e.topics.length ? e.topics.map((t) => <Tag key={t} tone="bark">{t}</Tag>) : '—'}</div></div>
-            <div><p className="text-ink-400">People</p><div className="mt-1 flex flex-wrap gap-1.5">{e.names.length ? e.names.map((n) => <Tag key={n}>{n}</Tag>) : '—'}</div></div>
-            <div><p className="text-ink-400">Summary (what “summary” access shows)</p><p className="mt-1 italic">{e.summary}</p></div>
-          </Card>
+          <Section title="Details" bodyClassName="p-0">
+            <dl className="divide-y divide-cream-200 text-sm">
+              {[
+                ['Writing mode', MODE_LABEL[e.writing_mode]],
+                ['Written', fmtDate(e.created_at)],
+                ...(e.kind === 'letter' ? [
+                  ['To', <b key="to">{e.recipient_name || e.recipient}</b>],
+                  ['Opens', e.release_on_death ? <>{e.release_days_after_death ? `${e.release_days_after_death} days ` : ''}after your death{e.release_on ? ` (or on ${fmtDate(e.release_on)})` : ''}</>
+                    : e.deliver_while_alive ? fmtDate(e.release_on) : <>{fmtDate(e.release_on)}, after your death</>],
+                  ...(e.delivery ? [['Delivery', e.delivery.status === 'delivered'
+                    ? <>On their home page{e.delivery.email === 'sent' ? ', email sent' : e.delivery.email === 'failed' ? ', but the email failed' : ''}</>
+                    : e.delivery.after_death ? 'Waits for your death' : `On ${fmtDate(e.delivery.opens_on)}`]] : []),
+                ] : []),
+                ['Themes', e.topics.length ? <span className="flex flex-wrap justify-end gap-1.5">{e.topics.map((t) => <Tag key={t} tone="bark">{t}</Tag>)}</span> : '—'],
+                ['People', e.names.length ? <span className="flex flex-wrap justify-end gap-1.5">{e.names.map((n) => <Tag key={n}>{n}</Tag>)}</span> : '—'],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-start justify-between gap-4 px-5 py-3"><dt className="shrink-0 text-ink-400">{k}</dt><dd className="text-right text-ink-700">{v}</dd></div>
+              ))}
+              <div className="px-5 py-3"><dt className="text-ink-400">Summary <span className="text-xs">(what “summary” access shows)</span></dt><dd className="mt-1 italic text-ink-600">{e.summary}</dd></div>
+            </dl>
+          </Section>
           <WhoCanRead entryId={e.id} sealed={sealed} />
           <Card className="space-y-2 text-sm">
-            <h2 className="text-xl font-semibold">Integrity</h2>
+            <h2 className="text-lg font-semibold">Integrity</h2>
             <p className="flex items-center gap-2 font-medium text-sage-600"><NavIcon name="access" size={18} />Sealed in your vault</p>
             <p className="text-ink-400">Record #{e.seq}{e.revision_history.length > 0 && <> · {e.revision_history.length} revision{e.revision_history.length > 1 ? 's' : ''} sealed after it</>}</p>
             <details className="group">

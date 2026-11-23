@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, Card, LevelBadge, PageHeader, useAsync } from '../components/ui'
+import { Alert, Card, LevelBadge, PageHeader, Section, useAsync } from '../components/ui'
 
 const suggestionsFor = (first, isOwner) => [`What did ${first} love?`, 'Tell me about family trips.',
   isOwner ? 'What did I write about this person?' : 'What did the letters to me say?', `What was ${first} proud of?`]
@@ -57,7 +57,7 @@ export default function Assistant() {
   if (!isOwner && user.owner?.allow_ai_answers === false) {
     return (
       <>
-        <PageHeader eyebrow="ask gently" title="Ask MMK" />
+        <PageHeader title="Ask MMK" />
         <Card className="text-center text-ink-500">{ownerName} chose not to let the AI assistant answer questions about their diary. You can still read the letters and entries they shared with you.</Card>
       </>
     )
@@ -65,30 +65,31 @@ export default function Assistant() {
   if (!isOwner && !user.owner?.death_triggered) {
     return (
       <>
-        <PageHeader eyebrow="ask gently" title="Ask MMK" />
+        <PageHeader title="Ask MMK" />
         <Card className="text-center text-ink-500">{ownerName}'s diary opens only after their passing. You will receive an email when it does.</Card>
       </>
     )
   }
   return (
     <>
-      <PageHeader eyebrow={isOwner ? 'see what they would see' : 'ask gently'} title={isOwner ? 'AI assistant preview' : 'MMK AI Legacy Assistant'}
+      <PageHeader title={isOwner ? 'AI assistant preview' : 'MMK AI Legacy Assistant'}
         subtitle={isOwner
-          ? 'Ask questions exactly as a beneficiary will after your passing. The assistant only receives entries your policy permits for that person.'
+          ? 'Ask questions exactly as a beneficiary will after your passing.'
           : `Ask about ${ownerName}'s life. Answers come only from what ${ownerName} chose to share, with the date of each memory.`} />
 
-      <div className="grid gap-6 lg:grid-cols-4">
-        <div className="lg:col-span-3">
-          {isOwner && (
-            <Card className="mb-4 flex flex-wrap items-center gap-3 p-4">
-              <label htmlFor="as" className="text-sm text-ink-500">Preview as</label>
-              <select id="as" className="input w-60" value={asHandle} onChange={(e) => setParams(e.target.value ? { as: e.target.value } : {})}>
-                <option value="">Choose a beneficiary…</option>
-                {(bens.data || []).filter((b) => b.active).map((b) => <option key={b.handle} value={b.handle}>{b.display_name}</option>)}
-              </select>
-            </Card>
-          )}
-          <Card className="flex min-h-[460px] flex-col p-0">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
+          <Card className="flex min-h-[560px] flex-col p-0">
+            {isOwner && (
+              <div className="flex flex-wrap items-center gap-3 border-b border-cream-300/80 px-5 py-3.5 sm:px-6">
+                <label htmlFor="as" className="text-sm font-medium text-ink-600">Preview as</label>
+                <select id="as" className="input w-60 py-2" value={asHandle} onChange={(e) => setParams(e.target.value ? { as: e.target.value } : {})}>
+                  <option value="">Choose a beneficiary…</option>
+                  {(bens.data || []).filter((b) => b.active).map((b) => <option key={b.handle} value={b.handle}>{b.display_name}</option>)}
+                </select>
+                <span className="text-xs text-ink-400">Answers use only what your policy lets this person see.</span>
+              </div>
+            )}
             <div className="flex-1 space-y-5 overflow-y-auto p-6" aria-live="polite">
               {messages.length === 0 && (
                 <div className="py-10 text-center">
@@ -124,8 +125,7 @@ export default function Assistant() {
           {error && <div className="mt-3"><Alert onClose={() => setError('')}>{error}</Alert></div>}
         </div>
 
-        <Card className="h-fit space-y-3 text-sm">
-          <h2 className="text-xl font-semibold">How answers work</h2>
+        <Section className="lg:sticky lg:top-8" title="How answers work" bodyClassName="space-y-3 p-5 text-sm">
           <p className="text-ink-500">1. The access rules decide, before anything is read, which entries may be used and at what level.</p>
           <p className="text-ink-500">2. The assistant can search and read only those entries, through its tools.</p>
           <p className="text-ink-500">3. Every statement cites the date of the entry it came from.</p>
@@ -138,7 +138,7 @@ export default function Assistant() {
               {!info.data.configured && <span className="block text-rose-600">{info.data.error}</span>}
             </p>
           )}
-        </Card>
+        </Section>
       </div>
     </>
   )

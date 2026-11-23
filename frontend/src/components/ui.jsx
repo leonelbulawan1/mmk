@@ -1,15 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
 
-export function PageHeader({ eyebrow, title, subtitle, actions }) {
+// Title of a page: name, one short line about it, and the page's main actions on the right.
+export function PageHeader({ eyebrow, title, subtitle, actions, meta }) {
   return (
-    <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between fade-in">
-      <div>
-        {eyebrow && <p className="text-sm font-medium text-bark-500">{eyebrow}</p>}
-        <h1 className="text-4xl font-semibold leading-tight">{title}</h1>
-        {subtitle && <p className="mt-2 max-w-2xl text-ink-400">{subtitle}</p>}
+    <header className="mb-8 flex flex-col gap-4 border-b border-cream-300 pb-6 sm:flex-row sm:items-end sm:justify-between fade-in">
+      <div className="min-w-0">
+        {eyebrow && <div className="mb-1 text-sm text-ink-400">{eyebrow}</div>}
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-semibold leading-tight">{title}</h1>
+          {meta}
+        </div>
+        {subtitle && <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-ink-500">{subtitle}</p>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
     </header>
+  )
+}
+
+// A titled card: heading row (title, short description, actions) above the content.
+export function Section({ title, description, actions, children, className = '', bodyClassName = 'p-5 sm:p-6', id }) {
+  return (
+    <section id={id} className={`card scroll-mt-8 p-0 fade-in ${className}`} aria-labelledby={id && `${id}-h`}>
+      {(title || actions) && (
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-cream-300/80 px-5 py-4 sm:px-6">
+          <div className="min-w-0">
+            {title && (typeof title === 'string' ? <h2 id={id && `${id}-h`} className="text-lg font-semibold">{title}</h2> : title)}
+            {description && <p className="mt-0.5 text-sm text-ink-400">{description}</p>}
+          </div>
+          {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+        </div>
+      )}
+      <div className={bodyClassName}>{children}</div>
+    </section>
   )
 }
 
@@ -63,7 +85,7 @@ export function Spinner({ label = 'Loading' }) {
 export function Empty({ title, children, action }) {
   return (
     <div className="rounded-2xl border border-dashed border-cream-300 bg-cream-50/60 px-6 py-12 text-center">
-      <p className="text-2xl text-ink-600">{title}</p>
+      <p className="text-xl font-semibold text-ink-600">{title}</p>
       {children && <p className="mx-auto mt-2 max-w-md text-sm text-ink-400">{children}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -171,7 +193,7 @@ export function Dialog({ open, title, onClose, children, footer, wide = false })
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-700/40 p-0 sm:items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabIndex={-1}
         className={`flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-cream-50 shadow-paper sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}>
-        <h2 id="dialog-title" className="px-6 pt-5 text-2xl font-semibold">{title}</h2>
+        <h2 id="dialog-title" className="px-6 pt-5 text-xl font-semibold">{title}</h2>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
         {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-cream-300 px-6 py-4">{footer}</div>}
       </div>

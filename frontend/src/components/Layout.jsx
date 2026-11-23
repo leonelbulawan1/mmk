@@ -5,21 +5,16 @@ import { PendingReportBanner } from './Executor'
 import { ConfirmDialog, Spinner } from './ui'
 import NavIcon from './NavIcon'
 
+// Sidebar sections: [heading, [[path, label, icon], …]]. A null heading has no label.
 const OWNER_NAV = [
-  ['/dashboard', 'Dashboard', 'dashboard'],
-  ['/entries', 'Diary entries', 'entries'],
-  ['/beneficiaries', 'Beneficiaries', 'people'],
-  ['/policy', 'Legacy policy', 'policy'],
-  ['/access', 'Access permissions', 'access'],
-  ['/assistant', 'AI assistant', 'assistant'],
-  ['/vault', 'Vault integrity', 'vault'],
-  ['/settings', 'Settings', 'settings'],
+  [null, [['/dashboard', 'Dashboard', 'dashboard'], ['/entries', 'Diary entries', 'entries']]],
+  ['Legacy', [['/beneficiaries', 'Beneficiaries', 'people'], ['/policy', 'Legacy policy', 'policy'],
+    ['/access', 'Access permissions', 'access'], ['/assistant', 'AI assistant', 'assistant']]],
+  ['Account', [['/vault', 'Vault integrity', 'vault'], ['/settings', 'Settings', 'settings']]],
 ]
 const BENEFICIARY_NAV = [
-  ['/home', 'Home', 'home'],
-  ['/assistant', 'Ask MMK', 'assistant'],
-  ['/letters', 'Letters', 'letters'],
-  ['/settings', 'Settings', 'settings'],
+  [null, [['/home', 'Home', 'home'], ['/letters', 'Letters', 'letters'], ['/assistant', 'Ask MMK', 'assistant']]],
+  ['Account', [['/settings', 'Settings', 'settings']]],
 ]
 
 export function Logo({ className = '' }) {
@@ -43,36 +38,49 @@ export default function Layout() {
   const toggleCompact = () => setCompact((c) => { try { localStorage.setItem('mmk.sidebar', c ? 'full' : 'compact') } catch { /* private mode */ } return !c })
   const signOut = () => { setConfirmOut(false); logout(); navigate('/login') }
   const opened = user?.owner?.death_triggered
-  const nav = user?.role === 'owner' ? (user.is_reviewer ? [...OWNER_NAV, ['/review', 'Review reports', 'access']] : OWNER_NAV)
-    : BENEFICIARY_NAV.filter(([to]) => opened || to !== '/assistant')
+  const nav = user?.role === 'owner'
+    ? (user.is_reviewer ? [...OWNER_NAV.slice(0, 2), ['Account', [['/review', 'Review reports', 'access'], ...OWNER_NAV[2][1]]]] : OWNER_NAV)
+    : BENEFICIARY_NAV.map(([h, items]) => [h, items.filter(([to]) => opened || to !== '/assistant')])
   const sealed = user?.role === 'owner' ? user?.death_triggered_at : user?.owner?.death_triggered
 
+  const link = (small) => ([to, label, icon]) => (
+    <NavLink key={to} to={to} onClick={() => setOpen(false)} title={small ? label : undefined}
+      className={({ isActive }) => `group relative flex min-h-[42px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${small ? 'justify-center' : ''} ${isActive ? 'bg-ink-700 text-cream-50 shadow-paper' : 'text-ink-600 hover:bg-cream-200 hover:text-ink-700'}`}>
+      {({ isActive }) => <>
+        <NavIcon name={icon} />
+        <span className={small ? 'sr-only' : ''}>{label}</span>
+        {isActive && <span className="sr-only"> (current page)</span>}
+        {small && <span aria-hidden="true" className="pointer-events-none absolute left-full z-40 ml-3 hidden whitespace-nowrap rounded-lg bg-ink-700 px-2.5 py-1 text-xs text-cream-50 shadow-paper group-hover:block group-focus-visible:block">{label}</span>}
+      </>}
+    </NavLink>
+  )
   const links = (small) => (
-    <nav className="flex flex-col gap-1" aria-label="Main">
-      {nav.map(([to, label, icon]) => (
-        <NavLink key={to} to={to} onClick={() => setOpen(false)} title={small ? label : undefined}
-          className={({ isActive }) => `group relative flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${small ? 'justify-center' : ''} ${isActive ? 'bg-ink-700 text-cream-50 shadow-paper' : 'text-ink-600 hover:bg-cream-200'}`}>
-          {({ isActive }) => <>
-            <NavIcon name={icon} />
-            <span className={small ? 'sr-only' : ''}>{label}</span>
-            {isActive && <span className="sr-only"> (current page)</span>}
-            {small && <span aria-hidden="true" className="pointer-events-none absolute left-full z-40 ml-3 hidden whitespace-nowrap rounded-lg bg-ink-700 px-2.5 py-1 text-xs text-cream-50 shadow-paper group-hover:block group-focus-visible:block">{label}</span>}
-          </>}
-        </NavLink>
+    <nav className="flex flex-col gap-5" aria-label="Main">
+      {nav.map(([heading, items], i) => (
+        <div key={heading || i} className="flex flex-col gap-1">
+          {heading && (small
+            ? <span aria-hidden className="mx-auto mb-1 h-px w-8 bg-cream-300" />
+            : <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400">{heading}</p>)}
+          {items.map(link(small))}
+        </div>
       ))}
     </nav>
   )
 
+  const initial = (user?.display_name || '?').slice(0, 1).toUpperCase()
   const footer = (
-    <div className="border-t border-cream-300 pt-4">
-      <p className="truncate text-sm font-medium">{user?.display_name}</p>
-      <p className="text-xs text-ink-400">{user?.role === 'owner' ? 'Diary owner' : `Beneficiary of ${user?.owner?.display_name || ''}`}</p>
-      <button className="btn-ghost mt-2 -ml-2 px-2 py-1 text-xs" onClick={() => setConfirmOut(true)}><NavIcon name="signout" size={14} />Sign out</button>
+    <div className="flex items-center gap-3 border-t border-cream-300 pt-4">
+      <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-700 text-sm font-semibold text-cream-50">{initial}</span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-ink-700">{user?.display_name}</p>
+        <p className="truncate text-xs text-ink-400">{user?.role === 'owner' ? 'Diary owner' : `Beneficiary of ${user?.owner?.display_name || ''}`}</p>
+      </div>
+      <button className="btn-ghost h-10 w-10 shrink-0 justify-center px-0 text-ink-500" onClick={() => setConfirmOut(true)} aria-label="Sign out" title="Sign out"><NavIcon name="signout" size={18} /></button>
     </div>
   )
   const compactFooter = (
     <div className="flex flex-col items-center gap-1 border-t border-cream-300 pt-4">
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cream-200 text-sm font-semibold text-ink-600" title={user?.display_name}>{(user?.display_name || '?').slice(0, 1).toUpperCase()}</span>
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-sm font-semibold text-cream-50" title={user?.display_name}>{initial}</span>
       <button className="btn-ghost h-11 w-11 justify-center px-0" onClick={() => setConfirmOut(true)} aria-label="Sign out" title="Sign out"><NavIcon name="signout" /></button>
     </div>
   )
@@ -81,7 +89,7 @@ export default function Layout() {
     <div className="min-h-screen lg:flex">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-ink-700 focus:px-4 focus:py-2 focus:text-cream-50">Skip to main content</a>
       <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col justify-between border-r border-cream-300 bg-cream-50/80 backdrop-blur transition-[width] lg:flex ${compact ? 'w-20 px-3 py-5' : 'w-64 p-5'}`}>
-        <div className="space-y-8">
+        <div className="min-h-0 space-y-8 overflow-y-auto">
           <div className={`flex items-center ${compact ? 'flex-col gap-3' : 'justify-between'}`}>
             {compact
               ? <Link to="/" aria-label="MMK home"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-9 w-9" /></Link>
@@ -116,7 +124,7 @@ export default function Layout() {
               : 'This diary has been sealed and its legacy releases are now active.'}
           </div>
         )}
-        <div className={`mx-auto py-8 lg:py-12 ${wide ? 'max-w-none px-4 sm:px-6 lg:px-8' : 'max-w-6xl px-4 sm:px-8'}`}><Suspense fallback={<Spinner />}><Outlet /></Suspense></div>
+        <div className={`mx-auto py-8 lg:py-10 ${wide ? 'max-w-none px-4 sm:px-6 lg:px-8' : 'max-w-7xl px-4 sm:px-6 lg:px-10'}`}><Suspense fallback={<Spinner />}><Outlet /></Suspense></div>
       </main>
     </div>
   )

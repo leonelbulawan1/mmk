@@ -10,7 +10,7 @@ export default function WhoCanRead({ entryId, sealed }) {
   return (
     <Card className="space-y-3 text-sm">
       <div>
-        <h2 className="text-xl font-semibold">{sealed ? 'Who can read this' : 'Who can read this after you’re gone'}</h2>
+        <h2 className="text-lg font-semibold">{sealed ? 'Who can read this' : 'Who can read this after you’re gone'}</h2>
         {!sealed && <p className="mt-1 text-xs text-ink-400">While you are alive, no one can read your diary.</p>}
       </div>
       {access.loading ? <Spinner /> : access.error ? <p className="text-rose-600">{access.error}</p> : people.length === 0 ? (

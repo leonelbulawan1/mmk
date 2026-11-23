@@ -4,7 +4,7 @@ import { useAuth } from '../auth'
 import PasswordInput from '../components/PasswordInput'
 import EmailNotices from '../components/EmailNotices'
 import { ExecutorSettings } from '../components/Executor'
-import { Alert, Card, Field, PageHeader, Spinner, useAsync } from '../components/ui'
+import { Alert, Field, PageHeader, Section, Spinner, useAsync } from '../components/ui'
 
 export default function Settings() {
   const { user, setUser } = useAuth()
@@ -55,10 +55,17 @@ export default function Settings() {
 
   return (
     <>
-      <PageHeader eyebrow="your account" title="Settings" />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <h2 className="mb-4 text-2xl font-semibold">Profile</h2>
+      <PageHeader title="Settings" subtitle={isOwner ? 'Your profile, sign-in, executor and vault.' : 'Your profile and sign-in.'} />
+      <div className="grid items-start gap-8 lg:grid-cols-[200px_minmax(0,1fr)]">
+        <nav aria-label="Settings sections" className="hidden lg:sticky lg:top-8 lg:block">
+          <ul className="space-y-1 text-sm">
+            {[['profile', 'Profile'], ['password', 'Password'], ...(isOwner ? [['executor', 'Executor'], ['seal', 'Seal vault']] : [])].map(([id, l]) => (
+              <li key={id}><a href={`#${id}`} className="block rounded-lg px-3 py-2 font-medium text-ink-600 hover:bg-cream-200 hover:text-ink-700">{l}</a></li>
+            ))}
+          </ul>
+        </nav>
+        <div className="max-w-3xl space-y-6">
+        <Section id="profile" title="Profile" description="How you appear in MMK">
           {note('profile')}
           <form onSubmit={saveProfile} className="space-y-4">
             <Field label="Display name"><input className="input" required value={profile.display_name} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} /></Field>
@@ -85,49 +92,51 @@ export default function Settings() {
                   <span className="block text-xs text-ink-400">The letter appears on your MMK home page either way.</span></span>
               </label>
             )}
-            <button className="btn-primary" disabled={busy === 'profile'}>Save</button>
+            <div className="flex justify-end border-t border-cream-300/80 pt-4"><button className="btn-primary" disabled={busy === 'profile'}>Save profile</button></div>
           </form>
-        </Card>
+        </Section>
 
-        <Card>
-          <h2 className="mb-4 text-2xl font-semibold">Password</h2>
+        <Section id="password" title="Password" description="Changing it signs out your other devices">
           {note('pw')}
           <form onSubmit={changePw} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Current password"><PasswordInput required autoComplete="current-password" value={pw.current_password} onChange={(e) => setPw({ ...pw, current_password: e.target.value })} /></Field>
             <Field label="New password" hint="At least 8 characters, with letters and numbers"><PasswordInput required minLength={8} autoComplete="new-password" value={pw.new_password} onChange={(e) => setPw({ ...pw, new_password: e.target.value })} /></Field>
-            <button className="btn-primary" disabled={busy === 'pw'}>Change password</button>
+            </div>
+            <div className="flex justify-end border-t border-cream-300/80 pt-4"><button className="btn-primary" disabled={busy === 'pw'}>Change password</button></div>
           </form>
           {!s.data?.prolog_available && <div className="mt-4"><Alert kind="warn">SWI-Prolog is not available on the server, so nothing can be shared (the system fails closed).</Alert></div>}
-        </Card>
+        </Section>
 
         {isOwner && <ExecutorSettings />}
 
         {isOwner && (
-          <Card className="border-rose-600/30 lg:col-span-2">
-            <h2 className="text-2xl font-semibold text-rose-600">Death trigger</h2>
+          <Section id="seal" className="border-rose-600/30" title={<h2 id="seal-h" className="text-lg font-semibold text-rose-600">Seal vault (death trigger)</h2>}
+            description="Permanent. Use only if you want to seal your diary now.">
             {note('death')}
             {user.death_triggered_at ? (
               <>
-                <p className="mt-2 text-sm">Activated on {fmtDate(user.death_triggered_at)}. The vault is sealed, the legacy policy is frozen, and “after death” releases are in effect.</p>
+                <p className="text-sm">Activated on {fmtDate(user.death_triggered_at)}. The vault is sealed, the legacy policy is frozen, and “after death” releases are in effect.</p>
                 <EmailNotices />
               </>
             ) : (
               <>
-                <p className="mt-2 max-w-3xl text-sm text-ink-500">
+                <p className="max-w-3xl text-sm text-ink-500">
                   Activating this is permanent. It seals your vault so no entry can be added or revised, freezes your legacy policy
                   exactly as it is now, and opens everything you marked for release “after death”. Each beneficiary who then has
                   something to read is automatically emailed a short notice with a sign-in link (never any diary content).
                   Use this yourself if you want to seal your diary now. After your passing, your executor (above) starts it instead, without your password.
                 </p>
-                <form onSubmit={trigger} className="mt-4 grid gap-4 sm:grid-cols-3 sm:items-end">
+                <form onSubmit={trigger} className="mt-5 grid gap-4 border-t border-cream-300/80 pt-5 sm:grid-cols-3 sm:items-end">
                   <Field label="Your password"><PasswordInput required value={death.password} onChange={(e) => setDeath({ ...death, password: e.target.value })} /></Field>
                   <Field label={<>Type <b>{phrase}</b></>}><input className="input font-mono" required value={death.confirmation} onChange={(e) => setDeath({ ...death, confirmation: e.target.value })} /></Field>
                   <button className="btn-danger" disabled={busy === 'death' || death.confirmation !== phrase}>Seal vault permanently</button>
                 </form>
               </>
             )}
-          </Card>
+          </Section>
         )}
+        </div>
       </div>
     </>
   )

@@ -46,7 +46,7 @@ function GroupHeader({ id, title, count, note, sub }) {
   )
 }
 
-const PILL = { gold: 'bg-[#FBF0D9] text-bark-600', green: 'bg-emerald-50 text-emerald-700' }
+const PILL = { gold: 'bg-[#FBF0D9] text-bark-600', green: 'bg-sage-100 text-sage-600' }
 function Pill({ children, tone }) {
   return <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${PILL[tone] || 'bg-cream-200 text-ink-500'}`}>{children}</span>
 }

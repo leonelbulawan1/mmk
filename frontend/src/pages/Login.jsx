@@ -10,19 +10,49 @@ import { Alert } from '../components/ui'
 // keeps a little more on both sides for its "Demo · accounts" button.
 const WEB = import.meta.env.VITE_WEB_RUNTIME === '1'
 
+const POINTS = [
+  ['Write privately', 'Your diary stays yours. No one can read it while you are alive.'],
+  ['Leave letters', 'Write to the people you love, opened on a date or after your passing.'],
+  ['Decide who sees what', 'A legacy policy you control shares only what you allow.'],
+]
+
 export function AuthShell({ title, subtitle, children, footer }) {
   return (
-    <div className={`flex min-h-[100dvh] items-center justify-center px-4 sm:py-10 ${WEB ? 'py-14' : 'py-4'}`}>
-      {/* Same size for sign in, create account and forgot password: header on top, footer at the
-          bottom, the form centred in between. */}
-      <div className={`card flex w-full max-w-[400px] flex-col px-5 py-6 fade-in sm:p-8 [@media(max-height:620px)]:p-5 ${WEB ? 'min-h-[min(600px,calc(100dvh-7rem))]' : 'min-h-[min(600px,calc(100dvh-2rem))]'}`} data-auth-card>
-        <header className="text-center">
-          <Logo className="justify-center" />
-          <h1 className="mt-6 text-2xl font-semibold [@media(max-height:620px)]:mt-3 [@media(max-height:620px)]:text-xl">{title}</h1>
-          {subtitle && <p className="mt-1.5 text-sm text-ink-400">{subtitle}</p>}
-        </header>
-        <div className="flex flex-1 flex-col justify-center py-6 sm:py-7 [@media(max-height:620px)]:py-4">{children}</div>
-        {footer && <div className="border-t border-cream-300 pt-5 text-center text-sm text-ink-400 [@media(max-height:620px)]:pt-3">{footer}</div>}
+    <div className="lg:grid lg:min-h-[100dvh] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      {/* Brand panel, wide screens only. */}
+      <aside className="relative hidden overflow-hidden bg-ink-700 px-12 py-12 text-cream-100 lg:flex lg:flex-col lg:justify-between xl:px-16">
+        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-gold-500/10" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-cream-50/5" />
+        <div className="relative flex items-center gap-2.5">
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-9 w-9" />
+          <span className="text-2xl font-extrabold tracking-[0.06em] text-cream-50">MMK</span>
+        </div>
+        <div className="relative max-w-md">
+          <h2 className="text-4xl font-semibold leading-tight text-cream-50">A private diary that remembers you.</h2>
+          <ul className="mt-10 space-y-6">
+            {POINTS.map(([t, d]) => (
+              <li key={t} className="flex gap-4">
+                <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-gold-400" />
+                <div><p className="font-semibold text-cream-50">{t}</p><p className="mt-0.5 text-sm leading-relaxed text-cream-200/80">{d}</p></div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="relative text-xs text-cream-200/60">MMK · CS 413 project</p>
+      </aside>
+
+      <div className={`flex min-h-[100dvh] items-center justify-center px-4 sm:py-10 ${WEB ? 'py-14' : 'py-4'}`}>
+        {/* Same size for sign in, create account and forgot password: header on top, footer at the
+            bottom, the form centred in between. */}
+        <div className={`card flex w-full max-w-[400px] flex-col px-5 py-6 fade-in sm:p-8 [@media(max-height:620px)]:p-5 ${WEB ? 'min-h-[min(600px,calc(100dvh-7rem))]' : 'min-h-[min(600px,calc(100dvh-2rem))]'}`} data-auth-card>
+          <header className="text-center">
+            <Logo className="justify-center lg:hidden" />
+            <h1 className="mt-6 lg:mt-0 text-2xl font-semibold [@media(max-height:620px)]:mt-3 [@media(max-height:620px)]:text-xl">{title}</h1>
+            {subtitle && <p className="mt-1.5 text-sm text-ink-400">{subtitle}</p>}
+          </header>
+          <div className="flex flex-1 flex-col justify-center py-6 sm:py-7 [@media(max-height:620px)]:py-4">{children}</div>
+          {footer && <div className="border-t border-cream-300 pt-5 text-center text-sm text-ink-400 [@media(max-height:620px)]:pt-3">{footer}</div>}
+        </div>
       </div>
     </div>
   )
