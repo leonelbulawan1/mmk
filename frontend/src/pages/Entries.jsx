@@ -36,10 +36,11 @@ function CardMenu({ items, label }) {
   )
 }
 
-function GroupHeader({ id, title, count, note }) {
+function GroupHeader({ id, title, count, note, sub }) {
+  const H = sub ? 'h3' : 'h2'
   return (
     <div className="flex items-center justify-between gap-3 rounded-t-2xl border-b border-cream-300 bg-cream-100/70 px-4 py-2.5 sm:px-5">
-      <h2 id={id} className="text-sm font-semibold uppercase tracking-wider text-ink-600">{title}</h2>
+      <H id={id} className="text-sm font-semibold uppercase tracking-wider text-ink-600">{title}</H>
       <span className="text-xs text-ink-400">{note ? `${note} · ` : ''}{count} {count === 1 ? 'item' : 'items'}</span>
     </div>
   )
@@ -154,10 +155,6 @@ export default function Entries() {
   const filtered = reviewOnly ? state.data.filter((e) => e.pending_review) : state.data
   const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
   const shown = sorted.slice(0, limit)
-  // Group by month ("November 2026"), in the chosen order.
-  const byMonth = shown.reduce((acc, e) => { (acc[e.entry_date.slice(0, 7)] ||= []).push(e); return acc }, {})
-  const months = Object.keys(byMonth).sort()
-  if (!oldest) months.reverse()
   const monthName = (ym) => new Date(ym + '-01T00:00').toLocaleString('en', { month: 'long', year: 'numeric' })
 
   return (
@@ -248,33 +245,51 @@ export default function Entries() {
         <Empty title={params.get('q') || topic || kind || reviewOnly ? 'No matches' : 'No entries yet'}
           action={!user.death_triggered_at && !(params.get('q') || topic || kind || reviewOnly) && <Link to="/entries/new" className="btn-primary">New entry</Link>} />
       ) : (
-        months.map((ym) => (
-          <section key={ym} className="card mb-6 p-0" aria-labelledby={`m-${ym}`}>
-            <GroupHeader id={`m-${ym}`} title={monthName(ym)} count={byMonth[ym].length} />
-            <ol className="divide-y divide-cream-200">
-              {byMonth[ym].map((e) => {
-                const d = new Date(e.entry_date + 'T00:00')
-                return (
-                  <Row key={e.id} to={`/entries/${e.id}`}
-                    lead={<div className="w-10 text-center" aria-hidden>
-                      <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
-                      <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { weekday: 'short' })}</p>
-                    </div>}
-                    title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</>}
-                    snippet={e.snippet}
-                    meta={<>
-                      {e.pending_review && <Pill tone="gold">Needs review</Pill>}
-                      {e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}
-                      {e.revisions > 0 && <span className="text-xs text-ink-400">{e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
-                    </>}
-                    menu={<CardMenu label={e.title || 'Untitled'} items={[
-                      { label: 'View', icon: e.kind === 'letter' ? 'letters' : 'entries', to: `/entries/${e.id}` },
-                      ...(user.death_triggered_at ? [] : [{ label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }])]} />} />
-                )
-              })}
-            </ol>
-          </section>
-        ))
+        // Diary entries and letters are kept apart, each grouped by month.
+        [['text', 'Diary entries'], ['letter', 'Letters']].map(([k, label]) => {
+          const list = shown.filter((e) => (e.kind === 'letter' ? 'letter' : 'text') === k)
+          if (!list.length) return null
+          const groups = list.reduce((acc, e) => { (acc[e.entry_date.slice(0, 7)] ||= []).push(e); return acc }, {})
+          const ms = Object.keys(groups).sort()
+          if (!oldest) ms.reverse()
+          return (
+            <div key={k} className="mb-10">
+              {!kind && (
+                <h2 className="mb-3 flex items-center gap-2 px-1 text-lg font-semibold text-ink-700">
+                  <span className="text-bark-500"><NavIcon name={k === 'letter' ? 'letters' : 'entries'} size={20} /></span>
+                  {label}<span className="text-sm font-normal text-ink-400">· {list.length}</span>
+                </h2>
+              )}
+              {ms.map((ym) => (
+                <section key={ym} className="card mb-6 p-0" aria-labelledby={`m-${k}-${ym}`}>
+                  <GroupHeader id={`m-${k}-${ym}`} title={monthName(ym)} count={groups[ym].length} sub={!kind} />
+                  <ol className="divide-y divide-cream-200">
+                    {groups[ym].map((e) => {
+                    const d = new Date(e.entry_date + 'T00:00')
+                    return (
+                      <Row key={e.id} to={`/entries/${e.id}`}
+                        lead={<div className="w-10 text-center" aria-hidden>
+                          <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
+                          <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { weekday: 'short' })}</p>
+                        </div>}
+                        title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</>}
+                        snippet={e.snippet}
+                        meta={<>
+                          {e.pending_review && <Pill tone="gold">Needs review</Pill>}
+                          {e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}
+                          {e.revisions > 0 && <span className="text-xs text-ink-400">{e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
+                        </>}
+                        menu={<CardMenu label={e.title || 'Untitled'} items={[
+                          { label: 'View', icon: e.kind === 'letter' ? 'letters' : 'entries', to: `/entries/${e.id}` },
+                          ...(user.death_triggered_at ? [] : [{ label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }])]} />} />
+                    )
+                    })}
+                  </ol>
+                </section>
+              ))}
+            </div>
+          )
+        })
       )}
       <ConfirmDialog open={!!toDelete} danger title="Delete this draft?" confirmLabel="Delete" cancelLabel="Keep it"
         onConfirm={deleteDraft} onCancel={() => setToDelete(null)}>
