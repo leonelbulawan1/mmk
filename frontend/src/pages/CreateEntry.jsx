@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
 import { Alert, Card, ConfirmDialog, Dialog, Field, LegalDisclaimer, PageHeader, useAsync } from '../components/ui'
 import { correctAll, correctAtCaret, nameMap } from '../autocorrect'
+import EntriesTabs from '../components/EntriesTabs'
 import NavIcon from '../components/NavIcon'
 
 const MODES = [
@@ -80,6 +81,14 @@ export default function CreateEntry() {
     const start = draft ? { ...blank, ...draft.form } : blank
     return kindParam ? { ...start, kind: kindParam } : start
   })
+  // The tabs above change ?kind=; follow them (the first render already took it from the URL or the draft).
+  const lastKindParam = useRef(kindParam)
+  useEffect(() => {
+    if (lastKindParam.current === kindParam) return
+    lastKindParam.current = kindParam
+    const want = kindParam || 'text'
+    setForm((f) => (f.kind === want ? f : { ...f, kind: want }))
+  }, [kindParam])
   const [restored, setRestored] = useState(!!draft)
   const [draftSaved, setDraftSaved] = useState(null)   // time the draft was last stored on this device
   const [confirming, setConfirming] = useState(false)   // final check before the permanent save
@@ -208,7 +217,6 @@ export default function CreateEntry() {
   const noRelease = isLetter && opensOnDate && (!form.release_on || pastOpen)
   const noRecipient = isLetter && !form.recipient
   const canSave = !busy && !!form.text.trim() && !noRelease && !noRecipient
-  const setKind = (kind) => setForm({ ...form, kind })
   const words = form.text.trim() ? form.text.trim().split(/\s+/).length : 0
   const chars = form.text.length
   const minutes = Math.max(1, Math.round(words / 200))
@@ -219,20 +227,15 @@ export default function CreateEntry() {
 
   return (
     <>
-      <Link to="/entries" className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-ink-400 hover:text-ink-700">← Diary entries</Link>
-      <PageHeader title={isLetter ? 'New letter' : 'New entry'} />
+      <PageHeader eyebrow="your pages" title="Diary entries" />
+      <EntriesTabs active={isLetter ? 'letter' : 'text'} />
       <form id="composer" onSubmit={askToSave} className={focus ? 'fixed inset-0 z-40 overflow-y-auto bg-cream-50 px-2 py-4 sm:px-6 sm:py-8' : 'mx-auto max-w-4xl'}>
         <div className={`card overflow-hidden p-0 ${focus ? 'mx-auto max-w-3xl' : ''}`}>
           {/* Window bar: what you are writing, and the draft status */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cream-300 bg-cream-100/70 px-4 py-2.5 sm:px-5">
-            <div role="radiogroup" aria-label="What are you writing?" className="inline-flex rounded-xl bg-cream-200 p-1">
-              {[['text', 'Diary entry', 'entries'], ['letter', 'Letter', 'letters']].map(([k, label, icon]) => (
-                <button key={k} type="button" role="radio" aria-checked={form.kind === k} onClick={() => setKind(k)}
-                  className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${form.kind === k ? 'bg-white text-ink-700 shadow-paper' : 'text-ink-500 hover:text-ink-700'}`}>
-                  <NavIcon name={icon} size={16} />{label}
-                </button>
-              ))}
-            </div>
+            <span className="flex items-center gap-2 text-sm font-medium text-ink-600">
+              <NavIcon name={isLetter ? 'letters' : 'entries'} size={16} />{isLetter ? 'Letter' : 'Diary entry'}
+            </span>
             <div className="flex items-center gap-3">
               <span className="text-xs text-ink-400" aria-live="polite">
                 {draftSaved === 'failed' ? <span className="text-rose-600">Draft not saved: this browser blocked storage</span>

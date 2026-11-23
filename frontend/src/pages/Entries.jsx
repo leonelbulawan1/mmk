@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, Empty, LetterBadge, PageHeader, Spinner, Tag } from '../components/ui'
+import EntriesTabs from '../components/EntriesTabs'
 import NavIcon from '../components/NavIcon'
 
 const PAGE = 30  // entries shown at a time; "Show more" adds the next batch
@@ -49,10 +50,8 @@ export default function Entries() {
   return (
     <>
       <PageHeader eyebrow="your pages" title="Diary entries" subtitle="Every entry is kept exactly as first written. Corrections are added as revisions."
-        actions={!user.death_triggered_at && <>
-          <Link to="/entries/new?kind=letter" className="btn-secondary"><NavIcon name="letters" size={16} />New letter</Link>
-          <Link to="/entries/new" className="btn-primary"><NavIcon name="write" size={16} />New entry</Link>
-        </>} />
+      />
+      <EntriesTabs active="list" canWrite={!user.death_triggered_at} />
 
       <form role="search" className="card mb-4 flex flex-col gap-3 p-4 sm:flex-row" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
         <div className="relative flex-1">
