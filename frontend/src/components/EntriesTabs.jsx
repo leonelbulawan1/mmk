@@ -9,11 +9,11 @@ const TABS = [
   ['letter', 'New letter', '/entries/new?kind=letter', 'letters'],
 ]
 
-export default function EntriesTabs({ active, canWrite = true }) {
+export default function EntriesTabs({ active, canWrite = true, className = 'mb-6' }) {
   const tabs = canWrite ? TABS : TABS.slice(0, 1)
   if (tabs.length < 2) return null
   return (
-    <nav aria-label="Diary entries" className="mb-6 grid grid-cols-3 gap-1 rounded-2xl border border-cream-300 bg-cream-100 p-1">
+    <nav aria-label="Diary entries" className={`${className} grid grid-cols-3 gap-1 rounded-2xl border border-cream-300 bg-cream-100 p-1`}>
       {tabs.map(([key, label, to, icon]) => {
         const on = key === active
         return (

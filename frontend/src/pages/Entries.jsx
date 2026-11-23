@@ -84,6 +84,16 @@ export default function Entries() {
   const location = useLocation()
   const [draftList, setDraftList] = useState(() => drafts.list(user.id))
   const [toDelete, setToDelete] = useState(null)
+  // A line under the sticky toolbar once the list has scrolled beneath it.
+  const stickyTop = useRef(null)
+  const [stuck, setStuck] = useState(false)
+  useEffect(() => {
+    const el = stickyTop.current
+    if (!el || !('IntersectionObserver' in window)) return undefined
+    const io = new IntersectionObserver(([en]) => setStuck(!en.isIntersecting))
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
   const deleteDraft = () => { drafts.remove(user.id, toDelete.id); setDraftList(drafts.list(user.id)); setToDelete(null) }
   useEffect(() => setLimit(PAGE), [params])
 
@@ -118,11 +128,12 @@ export default function Entries() {
   return (
     <>
       <h1 className="sr-only">Diary entries</h1>
-      <EntriesTabs active="list" canWrite={!user.death_triggered_at} />
-      {location.state?.draftSaved && <div className="mb-4"><Alert kind="success">Saved to Drafts.</Alert></div>}
-
-      <form role="search" className="mb-3 grid gap-3 sm:grid-cols-[1fr_11rem_11rem]" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
-        <div className="relative flex-1">
+      {/* Tabs, search and filters stay at the top while the list scrolls under them. */}
+      <div ref={stickyTop} aria-hidden className="h-px" />
+      <div className={`sticky top-0 z-30 -mx-4 -mt-8 mb-5 bg-cream-100/95 px-4 pb-3 pt-4 backdrop-blur transition-shadow sm:-mx-6 sm:px-6 lg:-mx-8 lg:-mt-12 lg:px-8 lg:pt-6 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
+      <EntriesTabs active="list" canWrite={!user.death_triggered_at} className="mb-3" />
+      <form role="search" className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_11rem_11rem] sm:gap-3" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
+        <div className="relative col-span-2 sm:col-span-1">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
             className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
           <input className="input pl-10 pr-10" type="search" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entries" />
@@ -140,6 +151,8 @@ export default function Entries() {
           <option value="">Newest</option><option value="oldest">Oldest</option>
         </select>
       </form>
+      </div>
+      {location.state?.draftSaved && <div className="mb-4"><Alert kind="success">Saved to Drafts.</Alert></div>}
       <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400" aria-live="polite">
         {!state.loading && (params.get('q') || topic) && (
           <span>
