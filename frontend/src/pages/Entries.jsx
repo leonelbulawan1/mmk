@@ -49,7 +49,7 @@ export default function Entries() {
 
   return (
     <>
-      <PageHeader title="Diary entries" />
+      <h1 className="sr-only">Diary entries</h1>
       <EntriesTabs active="list" canWrite={!user.death_triggered_at} />
 
       <form role="search" className="mb-3 grid gap-3 sm:grid-cols-[1fr_11rem_11rem]" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>

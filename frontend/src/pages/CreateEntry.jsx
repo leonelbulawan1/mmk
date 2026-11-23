@@ -227,7 +227,7 @@ export default function CreateEntry() {
 
   return (
     <>
-      <PageHeader title="Diary entries" />
+      <h1 className="sr-only">Diary entries</h1>
       <EntriesTabs active={isLetter ? 'letter' : 'text'} />
       <form id="composer" onSubmit={askToSave} className={focus ? 'fixed inset-0 z-40 overflow-y-auto bg-cream-50 px-2 py-4 sm:px-6 sm:py-8' : ''}>
         <div className={`card overflow-hidden p-0 ${focus ? 'mx-auto max-w-3xl' : ''}`}>
