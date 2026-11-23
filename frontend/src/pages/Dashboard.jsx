@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
@@ -26,6 +27,15 @@ export default function Dashboard() {
   const location = useLocation()
   const { data, error, loading } = useAsync(() => api('/api/dashboard'))
   const draftList = drafts.list(user.id)
+  const topRef = useRef(null)
+  const [stuck, setStuck] = useState(false)
+  useEffect(() => {
+    const el = topRef.current
+    if (!el || !('IntersectionObserver' in window)) return undefined
+    const io = new IntersectionObserver(([en]) => setStuck(!en.isIntersecting))
+    io.observe(el)
+    return () => io.disconnect()
+  }, [loading])
   if (loading) return <Spinner label="Loading your dashboard" />
   if (error) return <Alert>{error}</Alert>
   const sealed = !!data.death_triggered_at
@@ -35,12 +45,15 @@ export default function Dashboard() {
 
   return (
     <>
+      {/* Greeting, Write and the numbers stay at the top while Recent pages scrolls (tablet and wider). */}
+      <div ref={topRef} aria-hidden className="h-px" />
+      <div className={`-mx-3 -mt-3 bg-cream-100/95 px-3 pb-4 pt-3 backdrop-blur transition-shadow sm:-mx-4 sm:px-4 md:sticky md:top-0 md:z-20 lg:-mx-5 lg:px-5 ${stuck ? 'md:border-b md:border-cream-300 md:shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
       <PageHeader eyebrow={`${greeting},`} title={data.owner}
         subtitle={sealed ? 'Your vault is sealed. Your legacy policy is now in effect.' : 'What would you like to remember today?'}
         actions={!sealed && <NewMenu label="Write" icon="write" />} />
 
       {draft && !sealed && (
-        <div className="card mb-6 flex flex-wrap items-center gap-4 px-5 py-4 fade-in">
+        <div className="card mb-4 flex flex-wrap items-center gap-4 px-5 py-4 fade-in">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-dashed border-cream-300 text-ink-400">
             <NavIcon name={draft.form.kind === 'letter' ? 'letters' : 'write'} size={18} />
           </span>
@@ -63,8 +76,9 @@ export default function Dashboard() {
         <Stat label="Needs review" value={data.pending_reviews} icon="edit"
           note={data.pending_reviews ? 'Suggestions waiting' : 'All caught up'} highlight={data.pending_reviews > 0} />
       </div>
+      </div>
 
-      <div className="mt-6">
+      <div className="mt-2">
         <Section className="min-w-0" title="Recent pages" bodyClassName="p-0"
           actions={<Link to="/entries" className="text-sm font-medium text-bark-500 hover:underline">All entries →</Link>}>
           {data.recent.length === 0 ? (
