@@ -22,9 +22,15 @@ def verify(owner: User = Depends(require_owner), db: Session = Depends(get_db)):
     audit_report = audit.verify(db, owner.id)
     audit.record(db, owner.id, owner, "vault.verify",
                  {"entries_ok": entries.ok, "policy_ok": policy.ok, "audit_ok": audit_report.ok, "head": entries.head})
-    records = [{"seq": r.seq, "ref": r.ref, "prev_hash": r.prev_hash, "hash": r.hash,
-                "kind": r.payload.get("kind"), "date": r.payload.get("entry_date"), "title": r.payload.get("title")}
-               for r in vault.chain_records()]
+    gone = vault.deleted_seqs  # deleted entries keep their records, but not their titles here
+    records = []
+    for r in vault.chain_records():
+        of = r.payload.get("entry_seq", r.seq)
+        hidden = of in gone
+        records.append({"seq": r.seq, "ref": r.ref, "prev_hash": r.prev_hash, "hash": r.hash,
+                        "kind": "deleted" if hidden else r.payload.get("kind"),
+                        "date": None if hidden else r.payload.get("entry_date"),
+                        "title": "Deleted entry" if hidden else r.payload.get("title")})
     return {"ok": entries.ok and policy.ok and audit_report.ok, "entries": entries.to_dict(),
             "policy": policy.to_dict(), "audit": audit_report.to_dict(), "records": records,
             "sealed": vault.sealed}

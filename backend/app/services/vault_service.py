@@ -140,3 +140,18 @@ def append_revision(db: Session, owner: User, entry_id: int, text: str, source: 
                  commit=False)
     db.commit()
     return Revision(**{**rev.__dict__, "id": row.id})
+
+
+def delete_entry(db: Session, owner: User, entry_id: int) -> Revision:
+    """Delete a diary entry: append a "deleted" marker to the chain (see Entry.deleted)."""
+    vault = load_vault(db, owner)
+    entry = vault.get(entry_id)
+    if entry is None:
+        raise KeyError(entry_id)
+    if entry.kind == "letter":
+        raise ValueError("A letter can't be deleted once it is sent.")
+    rev = vault.delete_entry(entry_id)
+    row = _persist_revision(db, owner, rev)
+    audit.record(db, owner.id, owner, "entry.delete", {"entry_id": entry_id, "seq": rev.seq}, commit=False)
+    db.commit()
+    return Revision(**{**rev.__dict__, "id": row.id})

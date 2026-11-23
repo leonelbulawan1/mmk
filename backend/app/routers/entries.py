@@ -211,6 +211,19 @@ def add_revision(entry_id: int, body: RevisionIn, owner: User = Depends(require_
     return entry_detail(vault_service.load_vault(db, owner).get(entry_id))
 
 
+@router.delete("/entries/{entry_id}", status_code=204)
+def delete(entry_id: int, owner: User = Depends(require_living_owner), db: Session = Depends(get_db)):
+    """Delete a diary entry. It disappears from every list and is never shared; its records stay
+    in the vault's hash chain, so Vault integrity still verifies."""
+    try:
+        vault_service.delete_entry(db, owner, entry_id)
+    except KeyError:
+        raise HTTPException(404, "We couldn't find that entry.")
+    except (ValueError, VaultSealedError) as exc:
+        raise HTTPException(400, str(exc))
+    return None
+
+
 @router.get("/dashboard")
 def dashboard(owner: User = Depends(require_owner), db: Session = Depends(get_db)):
     from ..services import policy_service

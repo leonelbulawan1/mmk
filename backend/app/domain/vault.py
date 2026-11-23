@@ -33,10 +33,17 @@ class Vault:
 
     @property
     def entries(self) -> tuple[Entry, ...]:
-        return tuple(self._order)
+        """Entries in order, without deleted ones (their records still count in the chain)."""
+        return tuple(e for e in self._order if not e.deleted)
+
+    @property
+    def deleted_seqs(self) -> frozenset[int]:
+        """Chain positions of deleted entries, so lists of records can leave out their titles."""
+        return frozenset(e.seq for e in self._order if e.deleted)
 
     def get(self, entry_id: int) -> Entry | None:
-        return self._entries.get(entry_id)
+        e = self._entries.get(entry_id)
+        return None if e is None or e.deleted else e
 
     def _records(self) -> list[tuple[int, str, dict, str, str]]:
         recs = []
@@ -87,7 +94,7 @@ class Vault:
         if self._sealed:
             raise VaultSealedError("The vault is sealed")
         entry = self._entries.get(entry_id)
-        if entry is None:
+        if entry is None or entry.deleted:
             raise KeyError(entry_id)
         if text == entry.current_text:
             raise ValueError("Revision is identical to the current text")
@@ -99,6 +106,10 @@ class Vault:
         self._order[self._order.index(entry)] = updated
         self._entries[entry_id] = updated
         return rev
+
+    def delete_entry(self, entry_id: int) -> Revision:
+        """Hide an entry for good by appending a deletion marker; nothing already written is changed."""
+        return self.append_revision(entry_id, "", "deleted")
 
     # ---- integrity --------------------------------------------------------------
     def chain_records(self) -> tuple[ChainRecord, ...]:

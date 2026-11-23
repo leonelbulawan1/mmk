@@ -30,7 +30,7 @@ class Revision:
     entry_id: int
     seq: int
     text: str
-    source: str  # "light_fix" | "review"
+    source: str  # "light_fix" | "review" | "edit" | "deleted" (a deletion marker: the entry is hidden)
     created_at: datetime
     prev_hash: str = ""
     hash: str = ""
@@ -80,6 +80,12 @@ class Entry(ABC):
     prev_hash = property(lambda self: self._prev_hash)
     hash = property(lambda self: self._hash)
     revisions = property(lambda self: self._revisions)
+
+    @property
+    def deleted(self) -> bool:
+        """Deleted by the owner: a "deleted" revision was appended. The records stay in the hash
+        chain (nothing is erased), but the entry is hidden everywhere and shared with no one."""
+        return any(r.source == "deleted" for r in self._revisions)
 
     @property
     def current_text(self) -> str:
