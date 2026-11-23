@@ -137,6 +137,8 @@ export default function Entries() {
     io.observe(el)
     return () => io.disconnect()
   }, [])
+  // The floating composer saves drafts while it is open; read them again once it closes.
+  useEffect(() => { setDraftList(drafts.list(user.id)) }, [location.key, user.id])
   const deleteDraft = () => { drafts.remove(user.id, toDelete.id); setDraftList(drafts.list(user.id)); setToDelete(null) }
   useEffect(() => setLimit(PAGE), [params])
 
@@ -311,7 +313,7 @@ export default function Entries() {
                 const to = `/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`
                 return (
                   <li key={d.id} className="group flex items-center gap-3 px-4 py-1.5 transition-colors last:rounded-b-2xl hover:bg-cream-100/60 sm:px-5">
-                    <Link to={to} className="flex min-w-0 flex-1 items-center gap-3 py-1.5">
+                    <Link to={to} state={{ background: location }} className="flex min-w-0 flex-1 items-center gap-3 py-1.5">
                       <span className="shrink-0 text-ink-400"><NavIcon name={letter ? 'letters' : 'write'} size={18} /></span>
                       <span className="min-w-0 flex-1 truncate text-sm">
                         <span className="font-semibold text-ink-700 group-hover:text-bark-500">{d.form.title?.trim() || 'Untitled'}</span>

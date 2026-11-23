@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, drafts, fmtDate, newDraftId, today, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
@@ -60,9 +60,11 @@ function Row({ label, htmlFor, children, error }) {
 const clock = (d) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 const bare = 'min-w-0 flex-1 border-0 bg-transparent p-0 text-ink-700 placeholder:text-ink-400/60 focus:outline-none focus:ring-0'
 
-export default function CreateEntry() {
+export default function CreateEntry({ modal = false }) {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const background = location.state?.background
   const [params] = useSearchParams()
   const initialMode = MODES.some((m) => m.key === params.get('mode')) ? params.get('mode') : user.default_writing_mode || 'verbatim'
   const blank = { title: '', text: '', entry_date: today(), kind: 'text', recipient: '', release_on: '', release_on_death: false, opens: 'date', days_after: '' }
@@ -163,8 +165,17 @@ export default function CreateEntry() {
   // Leave the page but keep the writing: it waits under Drafts in All entries.
   const saveDraft = () => {
     try { drafts.put(user.id, { id: draftId.current, form, mode }) } catch { setDraftSaved('failed'); return }
-    navigate('/entries', { state: { draftSaved: true } })
+    if (modal && background) navigate(background.pathname + (background.search || ''), { replace: true, state: { draftSaved: true } })
+    else navigate('/entries', { state: { draftSaved: true } })
   }
+  // Floating window: X or Escape closes it. Any writing is kept under Drafts, so nothing is lost.
+  const close = () => {
+    if (hasContent) { saveDraft(); return }
+    drafts.remove(user.id, draftId.current)
+    navigate(background.pathname + (background.search || ''), { replace: true })
+  }
+  const closeRef = useRef(close)
+  closeRef.current = close
 
   // Keyboard: Ctrl/Cmd+S opens the final check.
   useEffect(() => {
@@ -174,6 +185,15 @@ export default function CreateEntry() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [confirming])
+  useEffect(() => {
+    if (!modal) return undefined
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    ;(form.kind === 'letter' ? document.querySelector('#composer select') : textRef.current)?.focus()
+    const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('[role=dialog][aria-labelledby=dialog-title]')) { e.preventDefault(); closeRef.current() } }
+    window.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = overflow; window.removeEventListener('keydown', onKey) }
+  }, [modal]) // eslint-disable-line react-hooks/exhaustive-deps
   const canSaveRef = useRef(false)
   const recipientName = active.find((b) => b.handle === form.recipient)?.display_name || form.recipient
 
@@ -202,7 +222,7 @@ export default function CreateEntry() {
         : { recipient: form.recipient, release_on: form.release_on || null, release_on_death: false, deliver_while_alive: true })
       const res = await api('/api/entries', { method: 'POST', body })
       drafts.remove(user.id, draftId.current)
-      navigate(`/entries/${res.entry.id}`, { state: { justCreated: true, delivery: res.delivery } })
+      navigate(`/entries/${res.entry.id}`, { replace: modal, state: { justCreated: true, delivery: res.delivery } })
     } catch (err) {
       setError(err.status ? err.message : 'Could not reach MMK. Check your connection; your draft is still on this device.')
       setBusy(false)
@@ -223,10 +243,9 @@ export default function CreateEntry() {
     : noRelease ? 'Choose when the letter opens.' : ''
 
 
-  return (
+  const heading = isLetter ? 'New letter' : 'New entry'
+  const composer = (
     <>
-      <h1 className="sr-only">Diary entries</h1>
-      <h2 className="mb-4 text-2xl font-semibold">{isLetter ? 'New letter' : 'New entry'}</h2>
       <form id="composer" onSubmit={askToSave}>
         <div className="card overflow-hidden p-0">
           {/* Window bar: what you are writing, and the draft status */}
@@ -300,7 +319,7 @@ export default function CreateEntry() {
           </Row>
 
           {/* Body */}
-          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${isLetter ? 'min-h-[386px] lg:min-h-[443px]' : 'min-h-[500px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
+          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${modal ? (isLetter ? 'min-h-[260px] sm:min-h-[40vh]' : 'min-h-[320px] sm:min-h-[48vh]') : isLetter ? 'min-h-[386px] lg:min-h-[443px]' : 'min-h-[500px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
             placeholder={isLetter ? 'Dear…' : 'Start writing…'} value={form.text} onChange={onText} ref={textRef} spellCheck autoCorrect="on" autoCapitalize="sentences"
             aria-label={isLetter ? 'Letter text' : 'Entry text'} aria-describedby="autofix-status" />
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2 text-xs text-ink-400 sm:px-6">
@@ -374,5 +393,31 @@ export default function CreateEntry() {
         </ul>
       </Dialog>
     </>
+  )
+
+  if (!modal) {
+    return (
+      <>
+        <h1 className="sr-only">Diary entries</h1>
+        <h2 className="mb-4 text-2xl font-semibold">{heading}</h2>
+        {composer}
+      </>
+    )
+  }
+  return (
+    <div className="fixed inset-0 z-40 flex items-stretch justify-center bg-ink-700/40 backdrop-blur-[2px] sm:items-center sm:p-6 fade-in">
+      <div role="dialog" aria-modal="true" aria-labelledby="composer-title"
+        className="flex max-h-[100dvh] w-full flex-col overflow-hidden bg-cream-100 shadow-paper sm:max-h-[94vh] sm:max-w-5xl sm:rounded-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-cream-300 px-4 py-3 sm:px-6">
+          <h2 id="composer-title" className="flex items-center gap-2.5 text-lg font-semibold">
+            <span className="text-bark-500"><NavIcon name={isLetter ? 'letters' : 'write'} size={18} /></span>{heading}
+          </h2>
+          <button type="button" onClick={close} className="btn-ghost h-10 w-10 justify-center px-0" aria-label="Close" title="Close (Esc). Your writing stays in Drafts.">
+            <NavIcon name="close" size={20} />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">{composer}</div>
+      </div>
+    </div>
   )
 }

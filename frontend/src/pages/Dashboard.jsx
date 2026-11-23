@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, Empty, PageHeader, Section, Spinner, Tag, useAsync } from '../components/ui'
@@ -22,6 +22,7 @@ function Stat({ label, value, to, icon, note, highlight }) {
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const location = useLocation()
   const { data, error, loading } = useAsync(() => api('/api/dashboard'))
   const draftList = drafts.list(user.id)
   if (loading) return <Spinner />
@@ -35,7 +36,7 @@ export default function Dashboard() {
     <>
       <PageHeader eyebrow={`${greeting},`} title={data.owner}
         subtitle={sealed ? 'Your vault is sealed. Your legacy policy is now in effect.' : 'What would you like to remember today?'}
-        actions={!sealed && <NewMenu label="New entry" />} />
+        actions={!sealed && <NewMenu label="Write" icon="write" />} />
 
       {draft && !sealed && (
         <div className="card mb-6 flex flex-wrap items-center gap-4 px-5 py-4 fade-in">
@@ -50,7 +51,7 @@ export default function Dashboard() {
               {draftList.length > 1 && ` · ${draftList.length - 1} more in Drafts`}
             </p>
           </div>
-          <Link to={`/entries/new?draft=${draft.id}${draft.form.kind === 'letter' ? '&kind=letter' : ''}`} className="btn-secondary">Continue writing</Link>
+          <Link to={`/entries/new?draft=${draft.id}${draft.form.kind === 'letter' ? '&kind=letter' : ''}`} state={{ background: location }} className="btn-secondary">Continue writing</Link>
         </div>
       )}
 

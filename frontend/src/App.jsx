@@ -44,9 +44,18 @@ function WriteRedirect() {
 }
 
 export default function App() {
+  // A link with state.background (the + New / Write menu, Drafts) opens the composer in a floating
+  // window and keeps that page underneath. Opening /entries/new directly still shows the full page.
+  const location = useLocation()
+  const background = location.pathname === '/entries/new' && location.state?.background
   return (
     <Suspense fallback={<Spinner />}>
-    <Routes>
+    {background && (
+      <Routes>
+        <Route path="/entries/new" element={<Guard role="owner"><CreateEntry modal /></Guard>} />
+      </Routes>
+    )}
+    <Routes location={background || location}>
       {/* No landing page: visitors go straight to Sign in; signed-in users to their home. */}
       <Route path="/" element={<PublicOnly><Navigate to="/login" replace /></PublicOnly>} />
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
