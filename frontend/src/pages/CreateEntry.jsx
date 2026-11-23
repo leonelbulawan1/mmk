@@ -398,7 +398,7 @@ export default function CreateEntry({ modal = false }) {
   if (!modal) {
     return (
       <>
-        <h1 className="sr-only">Diary entries</h1>
+        <h1 className="sr-only">Entry</h1>
         <h2 className="mb-4 text-2xl font-semibold">{heading}</h2>
         {composer}
       </>

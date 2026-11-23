@@ -7,7 +7,7 @@ import NavIcon from './NavIcon'
 
 // Sidebar sections: [heading, [[path, label, icon], …]]. A null heading has no label.
 const OWNER_NAV = [
-  [null, [['/dashboard', 'Dashboard', 'dashboard'], ['/entries', 'Diary entries', 'entries']]],
+  [null, [['/dashboard', 'Dashboard', 'dashboard'], ['/entries', 'Entry', 'entries']]],
   ['Legacy', [['/beneficiaries', 'Beneficiaries', 'people'], ['/policy', 'Legacy policy', 'policy'],
     ['/access', 'Access permissions', 'access'], ['/assistant', 'AI assistant', 'assistant']]],
   ['Account', [['/vault', 'Vault integrity', 'vault'], ['/settings', 'Settings', 'settings']]],

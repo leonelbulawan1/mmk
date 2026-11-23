@@ -4,7 +4,6 @@ import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, ConfirmDialog, Empty, Spinner, Tag } from '../components/ui'
 import NavIcon from '../components/NavIcon'
-import NewMenu from '../components/NewMenu'
 
 // "⋮" menu on a card. items: [{ label, icon, to } | { label, icon, onClick, danger }].
 // Closes on Escape, on a click outside, or after a choice.
@@ -248,7 +247,7 @@ export default function Entries() {
 
   return (
     <>
-      <h1 className="sr-only">Diary entries</h1>
+      <h1 className="sr-only">Entry</h1>
       {/* Tabs, search and filters stay at the top while the list scrolls under them. */}
       <div ref={stickyTop} aria-hidden className="h-px" />
       <div className={`sticky top-0 z-30 -mx-4 -mt-8 mb-5 bg-cream-100/95 px-4 pb-3 pt-4 backdrop-blur transition-shadow sm:-mx-6 sm:px-6 lg:-mx-8 lg:-mt-12 lg:px-8 lg:pt-6 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
@@ -265,14 +264,12 @@ export default function Entries() {
               </button>
             )}
           </form>
-          {!user.death_triggered_at && <div className="sm:hidden"><NewMenu /></div>}
         </div>
         <div className="flex gap-2 sm:gap-3">
           <KindTabs value={kind} counts={state.loading ? null : counts} onChange={(v) => update('kind', v)} />
           <select className="input w-auto shrink-0 sm:w-36" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
             <option value="">Newest</option><option value="oldest">Oldest</option>
           </select>
-          {!user.death_triggered_at && <div className="hidden sm:block"><NewMenu /></div>}
         </div>
       </div>
       </div>
