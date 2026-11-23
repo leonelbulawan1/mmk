@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, ConfirmDialog, Empty, LetterBadge, Spinner, Tag } from '../components/ui'
+import { Alert, ConfirmDialog, Empty, Spinner, Tag } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 // "⋮" menu on a card. items: [{ label, icon, to } | { label, icon, onClick, danger }].
@@ -46,12 +46,13 @@ function GroupHeader({ id, title, count, note, sub }) {
   )
 }
 
+const PILL = { gold: 'bg-[#FBF0D9] text-bark-600', green: 'bg-emerald-50 text-emerald-700' }
 function Pill({ children, tone }) {
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${tone === 'gold' ? 'bg-[#FBF0D9] text-bark-600' : 'bg-cream-200 text-ink-500'}`}>{children}</span>
+  return <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${PILL[tone] || 'bg-cream-200 text-ink-500'}`}>{children}</span>
 }
 
 // One line in a group: date or icon, title and first line, details on the right, ⋮ menu.
-function Row({ to, lead, title, snippet, meta, menu }) {
+function Row({ to, lead, title, snippet, meta, menu, stack }) {
   return (
     <li className="group flex items-center gap-3 px-4 py-3.5 transition-colors last:rounded-b-2xl hover:bg-cream-100/60 sm:gap-5 sm:px-5">
       <Link to={to} className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
@@ -59,9 +60,9 @@ function Row({ to, lead, title, snippet, meta, menu }) {
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-semibold text-ink-700 group-hover:text-bark-500">{title}</h3>
           <p className="truncate text-sm text-ink-500">{snippet}</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 md:hidden">{meta}</div>
+          <div className={`mt-1.5 flex flex-wrap items-center gap-2 ${stack ? '' : 'md:hidden'}`}>{meta}</div>
         </div>
-        <div className="hidden shrink-0 flex-wrap items-center justify-end gap-2 md:flex">{meta}</div>
+        {!stack && <div className="hidden shrink-0 flex-wrap items-center justify-end gap-2 md:flex">{meta}</div>}
       </Link>
       {menu}
     </li>
@@ -104,6 +105,47 @@ function NewMenu() {
   )
 }
 
+// All · Diary · Letters, with how many of each.
+function KindTabs({ value, counts, onChange }) {
+  const tabs = [['', 'All'], ['text', 'Diary'], ['letter', 'Letters']]
+  return (
+    <div role="tablist" aria-label="Show" className="flex min-h-[46px] flex-1 rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
+      {tabs.map(([v, label]) => {
+        const on = value === v
+        return (
+          <button key={v || 'all'} type="button" role="tab" aria-selected={on} onClick={() => onChange(v)}
+            className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors sm:flex-none ${on ? 'bg-ink-700 text-cream-50' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
+            {label}{counts && <span className={`text-xs ${on ? 'text-cream-200' : 'text-ink-400'}`}>{counts[v]}</span>}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+const shortDate = (iso) => new Date(iso + 'T00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })
+
+// Where a letter stands: already on the recipient's home page, waiting for a date, or after passing.
+function letterStatus(e) {
+  const today = new Date().toLocaleDateString('en-CA')
+  if (e.deliver_while_alive && e.release_on) {
+    return e.release_on <= today ? { label: 'Sent', tone: 'green' } : { label: `Opens ${shortDate(e.release_on)}`, tone: 'gold' }
+  }
+  if (e.release_days_after_death) return { label: `${e.release_days_after_death} days after passing` }
+  return { label: 'After passing' }
+}
+
+// Day number over weekday, at the start of a row.
+function DateLead({ iso, month }) {
+  const d = new Date(iso + 'T00:00')
+  return (
+    <div className="w-10 text-center" aria-hidden>
+      <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
+      <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', month ? { month: 'short' } : { weekday: 'short' })}</p>
+    </div>
+  )
+}
+
 const PAGE = 30  // entries shown at a time; "Show more" adds the next batch
 
 export default function Entries() {
@@ -135,13 +177,13 @@ export default function Entries() {
 
   useEffect(() => {
     const ctrl = new AbortController()
-    const qs = new URLSearchParams({ q: params.get('q') || '', topic, kind })
+    const qs = new URLSearchParams({ q: params.get('q') || '', topic })
     setState((s) => ({ ...s, loading: true }))
     api(`/api/entries?${qs}`, { signal: ctrl.signal })
       .then((data) => setState({ loading: false, data, error: '' }))
       .catch((e) => e.name !== 'AbortError' && setState({ loading: false, data: [], error: e.message }))
     return () => ctrl.abort()
-  }, [params, topic, kind])
+  }, [params, topic])
 
   const update = (k, v) => { const p = new URLSearchParams(params); v ? p.set(k, v) : p.delete(k); setParams(p, { replace: true }) }
 
@@ -152,10 +194,90 @@ export default function Entries() {
   }, [q]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const needReview = state.data.filter((e) => e.pending_review).length
-  const filtered = reviewOnly ? state.data.filter((e) => e.pending_review) : state.data
+  const isLetter = (e) => e.kind === 'letter'
+  const counts = { '': state.data.length, text: state.data.filter((e) => !isLetter(e)).length, letter: state.data.filter(isLetter).length }
+  const filtered = state.data.filter((e) => (!kind || (isLetter(e) ? 'letter' : 'text') === kind) && (!reviewOnly || e.pending_review))
   const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
   const shown = sorted.slice(0, limit)
   const monthName = (ym) => new Date(ym + '-01T00:00').toLocaleString('en', { month: 'long', year: 'numeric' })
+
+  const rowMenu = (e) => <CardMenu label={e.title || 'Untitled'} items={[
+    { label: 'View', icon: isLetter(e) ? 'letters' : 'entries', to: `/entries/${e.id}` },
+    ...(user.death_triggered_at ? [] : [{ label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }])]} />
+  const canWrite = !user.death_triggered_at
+  const ColumnHead = ({ icon, label, count, note }) => (
+    <h2 className="mb-3 flex items-baseline gap-2 px-1 text-lg font-semibold text-ink-700">
+      <span className="self-center text-bark-500"><NavIcon name={icon} size={20} /></span>{label}
+      <span className="text-sm font-normal text-ink-400">{count}{note && ` · ${note}`}</span>
+    </h2>
+  )
+  const Blank = ({ text, to, action }) => (
+    <div className="card mb-6 flex flex-col items-center gap-3 py-8 text-center text-sm text-ink-400">
+      {text}{canWrite && !params.get('q') && !topic && <Link to={to} className="btn-secondary">{action}</Link>}
+    </div>
+  )
+
+  // Diary entries, grouped by month.
+  const DiaryColumn = ({ list, heading }) => {
+    const groups = list.reduce((acc, e) => { (acc[e.entry_date.slice(0, 7)] ||= []).push(e); return acc }, {})
+    const ms = Object.keys(groups).sort()
+    if (!oldest) ms.reverse()
+    return (
+      <div className="min-w-0">
+        {heading && <ColumnHead icon="entries" label="Diary entries" count={counts.text} note="Private" />}
+        {!list.length && <Blank text="No diary entries here" to="/entries/new" action="Write an entry" />}
+        {ms.map((ym) => (
+          <section key={ym} className="card mb-6 p-0" aria-labelledby={`m-${ym}`}>
+            <GroupHeader id={`m-${ym}`} title={monthName(ym)} count={groups[ym].length} sub={heading} />
+            <ol className="divide-y divide-cream-200">
+              {groups[ym].map((e) => (
+                <Row key={e.id} to={`/entries/${e.id}`} lead={<DateLead iso={e.entry_date} />}
+                  title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</>}
+                  snippet={e.snippet}
+                  meta={<>
+                    {e.pending_review && <Pill tone="gold">Needs review</Pill>}
+                    {e.revisions > 0 && <span className="text-xs text-ink-400">{e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
+                  </>}
+                  menu={rowMenu(e)} />
+              ))}
+            </ol>
+          </section>
+        ))}
+      </div>
+    )
+  }
+
+  // Letters, grouped by who they are for, each with where it stands.
+  const LetterColumn = ({ list, heading }) => {
+    const groups = list.reduce((acc, e) => { const k = e.recipient_name || e.recipient || 'Unknown'; (acc[k] ||= []).push(e); return acc }, {})
+    const people = Object.keys(groups).sort((a, b) => a.localeCompare(b))
+    return (
+      <div className="min-w-0">
+        {heading && <ColumnHead icon="letters" label="Letters" count={counts.letter} note="For your beneficiaries" />}
+        {!list.length && <Blank text="No letters here" to="/entries/new?kind=letter" action="Write a letter" />}
+        {people.map((who) => (
+          <section key={who} className="card mb-6 p-0" aria-labelledby={`to-${who}`}>
+            <GroupHeader id={`to-${who}`} title={`To ${who}`} count={groups[who].length} sub={heading} />
+            <ol className="divide-y divide-cream-200">
+              {groups[who].map((e) => {
+                const st = letterStatus(e)
+                return (
+                  <Row key={e.id} to={`/entries/${e.id}`} lead={<DateLead iso={e.entry_date} month />}
+                    title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</>}
+                    snippet={e.snippet}
+                    meta={<>
+                      {e.pending_review && <Pill tone="gold">Needs review</Pill>}
+                      <Pill tone={st.tone}>{st.label}</Pill>
+                    </>}
+                    menu={rowMenu(e)} stack={heading} />
+                )
+              })}
+            </ol>
+          </section>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -178,11 +300,9 @@ export default function Entries() {
           </form>
           {!user.death_triggered_at && <div className="sm:hidden"><NewMenu /></div>}
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
-          <select className="input sm:w-40" value={kind} onChange={(e) => update('kind', e.target.value)} aria-label="Show">
-            <option value="">All</option><option value="text">Entries</option><option value="letter">Letters</option>
-          </select>
-          <select className="input sm:w-40" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
+        <div className="flex gap-2 sm:gap-3">
+          <KindTabs value={kind} counts={state.loading ? null : counts} onChange={(v) => update('kind', v)} />
+          <select className="input w-auto shrink-0 sm:w-36" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
             <option value="">Newest</option><option value="oldest">Oldest</option>
           </select>
           {!user.death_triggered_at && <div className="hidden sm:block"><NewMenu /></div>}
@@ -217,27 +337,31 @@ export default function Entries() {
         const list = draftList.filter((d) => !kind || (d.form.kind || 'text') === kind)
         if (!list.length) return null
         return (
-          <section className="card mb-8 p-0" aria-labelledby="drafts-h">
+          <section className="card mb-6 p-0" aria-labelledby="drafts-h">
             <GroupHeader id="drafts-h" title="Drafts" count={list.length} note="Only on this device" />
-            <ol className="divide-y divide-cream-200">
+            <ul className="divide-y divide-cream-200">
               {list.map((d) => {
                 const letter = d.form.kind === 'letter'
                 const saved = d.saved_at ? new Date(d.saved_at) : null
                 const to = `/entries/new?draft=${d.id}${letter ? '&kind=letter' : ''}`
                 return (
-                  <Row key={d.id} to={to}
-                    lead={<span className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-cream-300 text-ink-400"><NavIcon name={letter ? 'letters' : 'write'} size={18} /></span>}
-                    title={d.form.title?.trim() || 'Untitled'} snippet={d.form.text?.trim() || '…'}
-                    meta={<>
-                      <Pill>{letter ? 'Letter draft' : 'Draft'}</Pill>
-                      {saved && <span className="text-xs text-ink-400">{saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
-                    </>}
-                    menu={<CardMenu label={d.form.title?.trim() || 'Untitled draft'} items={[
+                  <li key={d.id} className="group flex items-center gap-3 px-4 py-1.5 transition-colors last:rounded-b-2xl hover:bg-cream-100/60 sm:px-5">
+                    <Link to={to} className="flex min-w-0 flex-1 items-center gap-3 py-1.5">
+                      <span className="shrink-0 text-ink-400"><NavIcon name={letter ? 'letters' : 'write'} size={18} /></span>
+                      <span className="min-w-0 flex-1 truncate text-sm">
+                        <span className="font-semibold text-ink-700 group-hover:text-bark-500">{d.form.title?.trim() || 'Untitled'}</span>
+                        <span className="text-ink-400"> · {d.form.text?.trim() || '…'}</span>
+                      </span>
+                      <span className="hidden shrink-0 sm:inline"><Pill>{letter ? 'Letter draft' : 'Draft'}</Pill></span>
+                      {saved && <span className="hidden shrink-0 text-xs text-ink-400 md:inline">{saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
+                    </Link>
+                    <CardMenu label={d.form.title?.trim() || 'Untitled draft'} items={[
                       { label: 'Edit', icon: 'edit', to },
-                      { label: 'Delete', icon: 'trash', danger: true, onClick: () => setToDelete(d) }]} />} />
+                      { label: 'Delete', icon: 'trash', danger: true, onClick: () => setToDelete(d) }]} />
+                  </li>
                 )
               })}
-            </ol>
+            </ul>
           </section>
         )
       })()}
@@ -245,51 +369,10 @@ export default function Entries() {
         <Empty title={params.get('q') || topic || kind || reviewOnly ? 'No matches' : 'No entries yet'}
           action={!user.death_triggered_at && !(params.get('q') || topic || kind || reviewOnly) && <Link to="/entries/new" className="btn-primary">New entry</Link>} />
       ) : (
-        // Diary entries and letters are kept apart, each grouped by month.
-        [['text', 'Diary entries'], ['letter', 'Letters']].map(([k, label]) => {
-          const list = shown.filter((e) => (e.kind === 'letter' ? 'letter' : 'text') === k)
-          if (!list.length) return null
-          const groups = list.reduce((acc, e) => { (acc[e.entry_date.slice(0, 7)] ||= []).push(e); return acc }, {})
-          const ms = Object.keys(groups).sort()
-          if (!oldest) ms.reverse()
-          return (
-            <div key={k} className="mb-10">
-              {!kind && (
-                <h2 className="mb-3 flex items-center gap-2 px-1 text-lg font-semibold text-ink-700">
-                  <span className="text-bark-500"><NavIcon name={k === 'letter' ? 'letters' : 'entries'} size={20} /></span>
-                  {label}<span className="text-sm font-normal text-ink-400">· {list.length}</span>
-                </h2>
-              )}
-              {ms.map((ym) => (
-                <section key={ym} className="card mb-6 p-0" aria-labelledby={`m-${k}-${ym}`}>
-                  <GroupHeader id={`m-${k}-${ym}`} title={monthName(ym)} count={groups[ym].length} sub={!kind} />
-                  <ol className="divide-y divide-cream-200">
-                    {groups[ym].map((e) => {
-                    const d = new Date(e.entry_date + 'T00:00')
-                    return (
-                      <Row key={e.id} to={`/entries/${e.id}`}
-                        lead={<div className="w-10 text-center" aria-hidden>
-                          <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
-                          <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { weekday: 'short' })}</p>
-                        </div>}
-                        title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{e.title || 'Untitled'}</>}
-                        snippet={e.snippet}
-                        meta={<>
-                          {e.pending_review && <Pill tone="gold">Needs review</Pill>}
-                          {e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}
-                          {e.revisions > 0 && <span className="text-xs text-ink-400">{e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
-                        </>}
-                        menu={<CardMenu label={e.title || 'Untitled'} items={[
-                          { label: 'View', icon: e.kind === 'letter' ? 'letters' : 'entries', to: `/entries/${e.id}` },
-                          ...(user.death_triggered_at ? [] : [{ label: 'Add revision', icon: 'edit', to: `/entries/${e.id}`, state: { revise: true } }])]} />} />
-                    )
-                    })}
-                  </ol>
-                </section>
-              ))}
-            </div>
-          )
-        })
+        <div className={!kind ? 'grid items-start gap-x-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]' : ''}>
+          {(!kind || kind === 'text') && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: !kind })}
+          {(!kind || kind === 'letter') && LetterColumn({ list: shown.filter(isLetter), heading: !kind })}
+        </div>
       )}
       <ConfirmDialog open={!!toDelete} danger title="Delete this draft?" confirmLabel="Delete" cancelLabel="Keep it"
         onConfirm={deleteDraft} onCancel={() => setToDelete(null)}>
