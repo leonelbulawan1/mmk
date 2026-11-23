@@ -204,7 +204,7 @@ export function LegalDisclaimer({ compact = false, className = '' }) {
  * Accessible modal dialog: role="dialog", aria-modal, Escape closes, focus moves into it on open and
  * returns to where it was on close, Tab stays inside. Fits small screens (scrolls inside).
  */
-export function Dialog({ open, title, onClose, children, footer, wide = false }) {
+export function Dialog({ open, title, onClose, children, footer, wide = false, eyebrow, meta, closeButton = false }) {
   const ref = useRef(null)
   useEffect(() => {
     if (!open) return undefined
@@ -231,9 +231,22 @@ export function Dialog({ open, title, onClose, children, footer, wide = false })
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-700/40 p-0 sm:items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabIndex={-1}
         className={`flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-cream-50 shadow-paper sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}>
-        <h2 id="dialog-title" className="px-6 pt-5 text-lg font-semibold">{title}</h2>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
-        {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-cream-300 px-6 py-4">{footer}</div>}
+        {eyebrow || meta || closeButton ? (
+          <div className="flex items-start justify-between gap-4 border-b border-cream-300 px-6 pb-4 pt-5 sm:px-8 sm:pt-6">
+            <div className="min-w-0">
+              {eyebrow && <p className="text-xs font-semibold uppercase tracking-[0.08em] text-bark-500">{eyebrow}</p>}
+              <h2 id="dialog-title" className="mt-1.5 text-2xl font-semibold leading-tight">{title}</h2>
+              {meta && <div className="mt-2 text-sm text-ink-400">{meta}</div>}
+            </div>
+            {closeButton && onClose && (
+              <button type="button" onClick={onClose} aria-label="Close" className="btn-ghost btn-icon -mr-2 -mt-1 h-10 w-10 text-ink-400">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" style={{ width: 20, height: 20, flexShrink: 0 }}><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+            )}
+          </div>
+        ) : <h2 id="dialog-title" className="px-6 pt-5 text-lg font-semibold">{title}</h2>}
+        <div className={`min-h-0 flex-1 overflow-y-auto ${eyebrow || meta ? 'px-6 py-6 sm:px-8' : 'px-6 py-4'}`}>{children}</div>
+        {footer && <div className={`flex flex-wrap justify-end gap-2 border-t border-cream-300 py-4 ${eyebrow || meta ? 'bg-cream-100/60 px-6 sm:rounded-b-2xl sm:px-8' : 'px-6'}`}>{footer}</div>}
       </div>
     </div>
   )

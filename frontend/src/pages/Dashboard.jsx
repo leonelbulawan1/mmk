@@ -5,6 +5,14 @@ import { useAuth } from '../auth'
 import { Alert, Empty, PageHeader, Section, Spinner, Tag, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 import NewMenu from '../components/NewMenu'
+import { EntryModal } from '../components/EntryModal'
+
+// A recent item: a diary entry opens in a modal, a letter on its own page.
+function Row({ e, onOpen, className, children }) {
+  return e.kind === 'letter'
+    ? <Link to={`/entries/${e.id}`} className={className}>{children}</Link>
+    : <button type="button" onClick={onOpen} className={className}>{children}</button>
+}
 
 // One column of the summary strip: label over a number (not a link).
 function Stat({ label, value, highlight, className = '' }) {
@@ -19,7 +27,8 @@ function Stat({ label, value, highlight, className = '' }) {
 export default function Dashboard() {
   const { user } = useAuth()
   const location = useLocation()
-  const { data, error, loading } = useAsync(() => api('/api/dashboard'))
+  const { data, error, loading, reload } = useAsync(() => api('/api/dashboard'))
+  const [openEntry, setOpenEntry] = useState(null)
   const draftList = drafts.list(user.id)
   const topRef = useRef(null)
   const [stuck, setStuck] = useState(false)
@@ -41,7 +50,7 @@ export default function Dashboard() {
     <>
       {/* Greeting, Write and the numbers stay at the top while Recent pages scrolls (tablet and wider). */}
       <div ref={topRef} aria-hidden className="h-px" />
-      <div className={`-mx-3 -mt-3 bg-cream-100/95 px-3 pb-4 pt-3 backdrop-blur transition-shadow sm:-mx-4 sm:px-4 md:sticky md:top-0 md:z-20 lg:-mx-5 lg:px-5 ${stuck ? 'md:border-b md:border-cream-300 md:shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
+      <div className={`-mx-3 -mt-3 bg-cream-100/95 px-3 pb-3 pt-3 backdrop-blur transition-shadow sm:-mx-4 sm:px-4 md:sticky md:top-0 md:z-20 lg:-mx-5 lg:px-5 ${stuck ? 'md:border-b md:border-cream-300 md:shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
       <PageHeader eyebrow={`${greeting},`} title={data.owner}
         subtitle={sealed ? 'Your vault is sealed. Your legacy policy is now in effect.' : 'What would you like to remember today?'}
         actions={!sealed && <NewMenu label="Write" icon="write" />} />
@@ -63,11 +72,13 @@ export default function Dashboard() {
         </div>
       )}
 
+      <div className="border-b border-cream-300 pb-4">
       <div className="card grid grid-cols-2 overflow-hidden p-0 lg:grid-cols-4">
         <Stat label="Diary entries" value={data.entry_count} className="border-b border-r lg:border-b-0" />
         <Stat label="Letters" value={data.letter_count} className="border-b lg:border-b-0 lg:border-r" />
         <Stat label="Beneficiaries" value={data.beneficiary_count} className="border-r" />
         <Stat label="Needs review" value={data.pending_reviews} highlight={data.pending_reviews > 0} />
+      </div>
       </div>
       </div>
 
@@ -86,7 +97,7 @@ export default function Dashboard() {
                 const d = new Date(e.entry_date + 'T00:00')
                 return (
                   <li key={e.id}>
-                    <Link to={`/entries/${e.id}`} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-cream-100/60 sm:px-6">
+                    <Row e={e} onOpen={() => setOpenEntry(e)} className="group flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-cream-100/60 sm:px-6">
                       <div className="w-14 shrink-0 whitespace-nowrap text-center" aria-hidden>
                         <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
                         <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { month: 'short' })} {String(d.getFullYear()).slice(2)}</p>
@@ -99,7 +110,7 @@ export default function Dashboard() {
                       {e.created_at && <time dateTime={e.created_at} title={new Date(e.created_at).toLocaleString()} className="shrink-0 whitespace-nowrap text-xs text-ink-400">
                         {new Date(e.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                       </time>}
-                    </Link>
+                    </Row>
                   </li>
                 )
               })}
@@ -108,6 +119,7 @@ export default function Dashboard() {
         </Section>
 
       </div>
+      <EntryModal entry={openEntry} onClose={() => setOpenEntry(null)} onDeleted={() => { setOpenEntry(null); reload() }} />
     </>
   )
 }

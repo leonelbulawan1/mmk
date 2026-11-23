@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, ConfirmDialog, Dialog, Empty, Spinner, Tag, useAsync, useToast } from '../components/ui'
+import { Alert, ConfirmDialog, Empty, Spinner, Tag, useToast } from '../components/ui'
+import { DraftModal, EntryModal } from '../components/EntryModal'
 import NavIcon from '../components/NavIcon'
 
 function GroupHeader({ id, title, count, note, sub }) {
@@ -101,58 +102,6 @@ const snippetOf = (e) => e.title?.trim() ? e.snippet : (e.snippet || '').split(/
 const timeOf = (iso) => (iso ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '')
 const Time = ({ iso, title }) => iso ? <time dateTime={iso} title={title || new Date(iso).toLocaleString()} className="whitespace-nowrap text-xs text-ink-400">{timeOf(iso)}</time> : null
 
-// A diary entry in a modal: when it was written, the full text, its themes; Edit and Delete.
-function EntryModal({ entry, sealed, onClose, onDelete }) {
-  const navigate = useNavigate()
-  const full = useAsync(() => (entry ? api(`/api/entries/${entry.id}`) : Promise.resolve(null)), [entry?.id])
-  if (!entry) return null
-  const e = full.data || entry
-  const written = `${new Date(e.entry_date + 'T00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · ${timeOf(e.created_at)}`
-  return (
-    <Dialog open wide title={titleOf(e)} onClose={onClose}
-      footer={!sealed ? <>
-        <button type="button" className="btn-ghost mr-auto text-rose-600 hover:bg-rose-100" onClick={onDelete}><NavIcon name="trash" size={16} />Delete</button>
-        <button type="button" className="btn-secondary" onClick={onClose}>Close</button>
-        <button type="button" data-autofocus className="btn-primary" onClick={() => navigate(`/entries/${e.id}`, { state: { revise: true } })}><NavIcon name="edit" size={16} />Edit</button>
-      </> : <button type="button" data-autofocus className="btn-secondary" onClick={onClose}>Close</button>}>
-      <p className="-mt-2 mb-4 text-sm text-ink-400">{written}</p>
-      {full.loading ? <Spinner label="Loading entry" /> : full.error ? <Alert>{full.error}</Alert> : (
-        <>
-          <div className="whitespace-pre-wrap text-lg leading-[1.8] text-ink-600">{e.current_text}</div>
-          {(e.topics?.length > 0 || e.revisions > 0 || e.revision_history?.length > 0) && (
-            <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-cream-300 pt-4 text-xs">
-              {e.topics?.map((t) => <Tag key={t} tone="bark">{t}</Tag>)}
-              {e.revision_history?.length > 0 && <span className="ml-auto text-ink-400">Edited {e.revision_history.length} time{e.revision_history.length > 1 ? 's' : ''} · original kept</span>}
-            </div>
-          )}
-        </>
-      )}
-    </Dialog>
-  )
-}
-
-// A draft in a modal: what has been written so far; Edit (continue writing) and Delete.
-function DraftModal({ draft, location, onClose, onDelete }) {
-  const navigate = useNavigate()
-  if (!draft) return null
-  const letter = draft.form.kind === 'letter'
-  const saved = draft.saved_at ? new Date(draft.saved_at).toLocaleString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
-  const edit = () => { onClose(); navigate(`/entries/new?draft=${draft.id}${letter ? '&kind=letter' : ''}`, { state: { background: location } }) }
-  return (
-    <Dialog open wide title={draft.form.title?.trim() || 'Untitled'} onClose={onClose}
-      footer={<>
-        <button type="button" className="btn-ghost mr-auto text-rose-600 hover:bg-rose-100" onClick={onDelete}><NavIcon name="trash" size={16} />Delete</button>
-        <button type="button" className="btn-secondary" onClick={onClose}>Close</button>
-        <button type="button" data-autofocus className="btn-primary" onClick={edit}><NavIcon name="edit" size={16} />Edit</button>
-      </>}>
-      <p className="-mt-2 mb-4 flex flex-wrap items-center gap-2 text-sm text-ink-400">
-        <Pill>{letter ? 'Letter draft' : 'Diary draft'}</Pill>{saved && <>Last saved {saved}</>}
-      </p>
-      <div className="whitespace-pre-wrap text-lg leading-[1.8] text-ink-600">{draft.form.text?.trim() || <span className="text-ink-400">Nothing written yet.</span>}</div>
-    </Dialog>
-  )
-}
-
 const PAGE = 30  // entries shown at a time; "Show more" adds the next batch
 
 export default function Entries() {
@@ -172,8 +121,6 @@ export default function Entries() {
   const [toDelete, setToDelete] = useState(null)
   const [openEntry, setOpenEntry] = useState(null)   // diary entry shown in the modal
   const [openDraft, setOpenDraft] = useState(null)   // draft shown in the modal
-  const [entryToDelete, setEntryToDelete] = useState(null)
-  const [deleting, setDeleting] = useState(false)
   // A line under the sticky toolbar once the list has scrolled beneath it.
   const stickyTop = useRef(null)
   const [stuck, setStuck] = useState(false)
@@ -188,14 +135,6 @@ export default function Entries() {
   useEffect(() => { setDraftList(drafts.list(user.id)) }, [location.key, user.id])
   const toast = useToast()
   const deleteDraft = () => { drafts.remove(user.id, toDelete.id); setDraftList(drafts.list(user.id)); setToDelete(null); setOpenDraft(null); toast('Draft deleted.') }
-  const deleteEntry = async () => {
-    setDeleting(true)
-    try {
-      await api(`/api/entries/${entryToDelete.id}`, { method: 'DELETE' })
-      setState((st) => ({ ...st, data: st.data.filter((x) => x.id !== entryToDelete.id) }))
-      setEntryToDelete(null); setOpenEntry(null); toast('Entry deleted.')
-    } catch (err) { setEntryToDelete(null); toast(err.message, 'error') } finally { setDeleting(false) }
-  }
   useEffect(() => setLimit(PAGE), [params])
 
   useEffect(() => {
@@ -317,8 +256,8 @@ export default function Entries() {
       <h1 className="sr-only">Entry</h1>
       {/* Tabs, search and filters stay at the top while the list scrolls under them. */}
       <div ref={stickyTop} aria-hidden className="h-px" />
-      <div className={`sticky top-0 z-30 -mx-3 -mt-3 mb-3 bg-cream-100/95 px-3 py-3 backdrop-blur transition-shadow sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+      <div className={`sticky top-0 z-30 -mx-3 -mt-3 mb-3 bg-cream-100/95 px-3 pt-3 backdrop-blur transition-shadow sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
+      <div className="flex flex-col gap-2 border-b border-cream-300 pb-3 sm:flex-row sm:gap-3">
         <div className="flex flex-1 gap-2">
           <form role="search" className="relative flex-1" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
@@ -392,14 +331,9 @@ export default function Entries() {
         </div>
         </>
       )}
-      <EntryModal entry={entryToDelete ? null : openEntry} sealed={!!user.death_triggered_at} onClose={() => setOpenEntry(null)}
-        onDelete={() => setEntryToDelete(openEntry)} />
-      <DraftModal draft={toDelete ? null : openDraft} location={location} onClose={() => setOpenDraft(null)} onDelete={() => setToDelete(openDraft)} />
-      <ConfirmDialog open={!!entryToDelete} danger busy={deleting} title="Delete this entry?" confirmLabel="Delete entry" cancelLabel="Keep it"
-        onConfirm={deleteEntry} onCancel={() => setEntryToDelete(null)}>
-        “{entryToDelete && titleOf(entryToDelete)}” will be removed from your diary and never shared with anyone. This can’t be undone.
-        <span className="mt-2 block text-xs text-ink-400">For the vault's integrity, a record that it was deleted stays in your vault.</span>
-      </ConfirmDialog>
+      <EntryModal entry={openEntry} onClose={() => setOpenEntry(null)}
+        onDeleted={(id) => { setState((st) => ({ ...st, data: st.data.filter((x) => x.id !== id) })); setOpenEntry(null) }} />
+      <DraftModal draft={toDelete ? null : openDraft} onClose={() => setOpenDraft(null)} onDelete={() => setToDelete(openDraft)} />
       <ConfirmDialog open={!!toDelete} danger title="Delete this draft?" confirmLabel="Delete" cancelLabel="Keep it"
         onConfirm={deleteDraft} onCancel={() => setToDelete(null)}>
         “{toDelete?.form.title?.trim() || 'Untitled'}” will be deleted from this device. This can’t be undone.
