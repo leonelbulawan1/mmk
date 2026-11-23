@@ -49,15 +49,14 @@ export default function Entries() {
 
   return (
     <>
-      <PageHeader eyebrow="your pages" title="Diary entries" subtitle="Every entry is kept exactly as first written. Corrections are added as revisions."
-      />
+      <PageHeader title="Diary entries" />
       <EntriesTabs active="list" canWrite={!user.death_triggered_at} />
 
-      <form role="search" className="card mb-4 flex flex-col gap-3 p-4 sm:flex-row" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
+      <form role="search" className="mb-3 grid gap-3 sm:grid-cols-[1fr_11rem_11rem]" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
         <div className="relative flex-1">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
             className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-          <input className="input pl-10 pr-10" type="search" placeholder="Search your words…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entries" />
+          <input className="input pl-10 pr-10" type="search" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entries" />
           {q && (
             <button type="button" onClick={() => { setQ(''); update('q', '') }} aria-label="Clear search"
               className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-400 hover:bg-cream-200 hover:text-ink-600">
@@ -65,14 +64,14 @@ export default function Entries() {
             </button>
           )}
         </div>
-        <select className="input sm:w-56" value={kind} onChange={(e) => update('kind', e.target.value)} aria-label="Show">
-          <option value="">Entries and letters</option><option value="text">Entries only</option><option value="letter">Letters only</option>
+        <select className="input" value={kind} onChange={(e) => update('kind', e.target.value)} aria-label="Show">
+          <option value="">All</option><option value="text">Entries</option><option value="letter">Letters</option>
         </select>
-        <select className="input sm:w-44" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
-          <option value="">Newest first</option><option value="oldest">Oldest first</option>
+        <select className="input" value={oldest ? 'oldest' : ''} onChange={(e) => update('sort', e.target.value)} aria-label="Sort">
+          <option value="">Newest</option><option value="oldest">Oldest</option>
         </select>
       </form>
-      <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-sm text-ink-400" aria-live="polite">
+      <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-xs text-ink-400" aria-live="polite">
         {!state.loading && (
           <span>
             {filtered.length} {filtered.length === 1 ? (kind === 'letter' ? 'letter' : 'entry') : (kind === 'letter' ? 'letters' : 'entries')}
@@ -88,19 +87,16 @@ export default function Entries() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold-500/30 bg-[#FBF0D9] px-4 py-3 text-sm text-bark-600">
           <span className="flex items-center gap-2">
             <span aria-hidden className="h-2 w-2 rounded-full bg-gold-500" />
-            {reviewOnly
-              ? <>Showing {shown.length} {shown.length === 1 ? 'entry' : 'entries'} with suggested fixes to review.</>
-              : <>{needReview} {needReview === 1 ? 'entry has' : 'entries have'} suggested fixes waiting for your review.</>}
+            {reviewOnly ? 'Needs review' : <>{needReview} need{needReview === 1 ? 's' : ''} review</>}
           </span>
           <button type="button" onClick={() => update('review', reviewOnly ? '' : '1')} className="font-medium underline-offset-2 hover:underline">
-            {reviewOnly ? 'Show all entries' : 'Show them'}
+            {reviewOnly ? 'Show all' : 'Show'}
           </button>
         </div>
       )}
       {state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner /> : shown.length === 0 ? (
-        <Empty title="Nothing here yet" action={!user.death_triggered_at && <Link to="/entries/new" className="btn-primary">Write an entry</Link>}>
-          {params.get('q') || topic || kind || reviewOnly ? 'No entries match these filters.' : 'Your first page is waiting.'}
-        </Empty>
+        <Empty title={params.get('q') || topic || kind || reviewOnly ? 'No matches' : 'No entries yet'}
+          action={!user.death_triggered_at && !(params.get('q') || topic || kind || reviewOnly) && <Link to="/entries/new" className="btn-primary">New entry</Link>} />
       ) : (
         years.map((year) => (
           <section key={year} className="mb-10">
@@ -124,12 +120,8 @@ export default function Entries() {
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 line-clamp-2 text-ink-500">{e.snippet}</p>
-                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                        {e.kind === 'letter' && <LetterBadge to={e.recipient_name || e.recipient} />}
-                        {e.topics.slice(0, 3).map((t) => <Tag key={t} tone="bark">{t}</Tag>)}
-                        {e.revisions > 0 && <span className="text-xs text-ink-400">· {e.revisions} revision{e.revisions > 1 ? 's' : ''}</span>}
-                      </div>
+                      <p className="mt-1 line-clamp-1 text-ink-500">{e.snippet}</p>
+                      {e.kind === 'letter' && <div className="mt-2"><LetterBadge to={e.recipient_name || e.recipient} /></div>}
                     </div>
                   </Link>
                 </li>

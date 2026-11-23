@@ -227,27 +227,12 @@ export default function CreateEntry() {
 
   return (
     <>
-      <PageHeader eyebrow="your pages" title="Diary entries" />
+      <PageHeader title="Diary entries" />
       <EntriesTabs active={isLetter ? 'letter' : 'text'} />
-      <form id="composer" onSubmit={askToSave} className={focus ? 'fixed inset-0 z-40 overflow-y-auto bg-cream-50 px-2 py-4 sm:px-6 sm:py-8' : 'mx-auto max-w-4xl'}>
+      <form id="composer" onSubmit={askToSave} className={focus ? 'fixed inset-0 z-40 overflow-y-auto bg-cream-50 px-2 py-4 sm:px-6 sm:py-8' : ''}>
         <div className={`card overflow-hidden p-0 ${focus ? 'mx-auto max-w-3xl' : ''}`}>
           {/* Window bar: what you are writing, and the draft status */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cream-300 bg-cream-100/70 px-4 py-2.5 sm:px-5">
-            <span className="flex items-center gap-2 text-sm font-medium text-ink-600">
-              <NavIcon name={isLetter ? 'letters' : 'entries'} size={16} />{isLetter ? 'Letter' : 'Diary entry'}
-            </span>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-ink-400" aria-live="polite">
-                {draftSaved === 'failed' ? <span className="text-rose-600">Draft not saved: this browser blocked storage</span>
-                  : draftSaved ? <>Draft saved on this device · {clock(draftSaved)}</> : restored ? 'Draft restored' : 'Not saved yet'}
-                {restored && <> · <button type="button" onClick={discardDraft} className="font-medium text-bark-500 hover:underline">Discard draft</button></>}
-              </span>
-              <button type="button" onClick={() => setFocus(!focus)} aria-pressed={focus} title={focus ? 'Leave focus mode (Esc)' : 'Focus mode'}
-                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-ink-500 hover:bg-cream-200">
-                <NavIcon name={focus ? 'close' : 'focus'} size={15} />{focus ? 'Exit focus' : 'Focus'}
-              </button>
-            </div>
-          </div>
+
 
           {error && <div className="px-5 pt-4 sm:px-6"><Alert>{error}</Alert></div>}
 
@@ -282,7 +267,7 @@ export default function CreateEntry() {
               value={form.title} onChange={set('title')} maxLength={200} />
           </Row>
           {isLetter && (
-            <Row label="Opens" error={pastOpen ? 'The opening date can’t be in the past.' : noRelease ? 'Choose the date the letter opens.' : ''}>
+            <Row label="Opens" error={pastOpen ? 'The date can’t be in the past.' : ''}>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <label className="flex items-center gap-2 text-sm text-ink-600">
                   <input type="radio" name="opens" checked={opensOnDate} onChange={() => setForm({ ...form, opens: 'date' })} /> On
@@ -305,17 +290,6 @@ export default function CreateEntry() {
               </div>
             </Row>
           )}
-          {isLetter && form.recipient && (
-            <p className="border-b border-cream-200 px-5 py-2 text-xs text-ink-400 sm:px-6">
-              {opensOnDate
-                ? (form.release_on === today()
-                  ? <>{recipientName} gets it as soon as you save: an email, and the letter on their MMK home page.</>
-                  : form.release_on ? <>On {fmtDate(form.release_on)}, {recipientName} gets an email and the letter appears on their MMK home page.</> : null)
-                : Number(form.days_after) > 0
-                  ? <>{recipientName} can read it {form.days_after} day{Number(form.days_after) === 1 ? '' : 's'} after your death, as your legacy policy allows.</>
-                  : <>{recipientName} can read it only after your death, as your legacy policy allows.</>}
-            </p>
-          )}
 
           {/* Body */}
           <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${focus ? 'min-h-[65vh]' : 'min-h-[380px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
@@ -323,7 +297,7 @@ export default function CreateEntry() {
             aria-label={isLetter ? 'Letter text' : 'Entry text'} aria-describedby="autofix-status" />
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2 text-xs text-ink-400 sm:px-6">
             <label className="inline-flex items-center gap-2">
-              <input type="checkbox" className="checkbox" checked={autoFix} onChange={toggleAutoFix} /> Auto-correct spelling and grammar
+              <input type="checkbox" className="checkbox" checked={autoFix} onChange={toggleAutoFix} /> Auto-correct
             </label>
             <span id="autofix-status" aria-live="polite">
               {lastFix && <>Corrected {lastFix.from === lastFix.to ? 'spacing' : <>“{lastFix.from}” → “{lastFix.to}”</>} · <button type="button" onClick={undoFix} className="font-medium text-bark-500 hover:underline">Undo</button></>}
@@ -350,10 +324,16 @@ export default function CreateEntry() {
                   {showPreview ? 'Hide preview' : 'Preview'}
                 </button>
               </div>}
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-ink-400" title={`${chars} characters`}>
-                  {words} word{words === 1 ? '' : 's'} · {chars} characters{words ? ` · ${minutes} min read` : ''}
+              <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+                <span className="text-xs text-ink-400" title={`${chars} characters · ${minutes} min read`} aria-live="polite">
+                  {words} word{words === 1 ? '' : 's'}
+                  {draftSaved === 'failed' ? <span className="text-rose-600"> · draft not saved</span>
+                    : draftSaved ? <> · saved {clock(draftSaved)}</> : restored ? ' · draft restored' : ''}
                 </span>
+                <button type="button" onClick={() => setFocus(!focus)} aria-pressed={focus} aria-label={focus ? 'Exit focus mode' : 'Focus mode'} title={focus ? 'Exit focus mode (Esc)' : 'Focus mode'}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:bg-cream-200">
+                  <NavIcon name={focus ? 'close' : 'focus'} size={16} />
+                </button>
                 <button type="button" className="btn-ghost px-4 py-2.5" disabled={!hasContent || busy} onClick={() => setConfirmDiscard(true)}>Discard</button>
                 <button className="btn-primary px-5 py-2.5" disabled={!canSave} aria-describedby={saveHint ? 'save-hint' : undefined} title={`${isLetter ? 'Send' : 'Save'} (Ctrl+S)`}>
                   <NavIcon name={isLetter ? 'send' : 'write'} size={16} />{busy ? (isLetter ? 'Sending…' : 'Saving…') : (isLetter ? 'Send' : 'Save')}
