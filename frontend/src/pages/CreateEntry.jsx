@@ -388,9 +388,7 @@ export default function CreateEntry({ modal = false }) {
         </dl>
         <div className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap rounded-xl border border-cream-300 bg-white/70 p-4 text-ink-600">{form.text}</div>
         <ul className="mt-4 list-disc space-y-1 pl-5 text-xs text-ink-500">
-          <li>{isLetter ? 'Once sent, the letter cannot be edited or taken back.' : 'The original is kept exactly as written and cannot be edited or deleted later. You can add revisions; the original stays.'}</li>
-          {!isLetter && mode === 'light_fix' && <li>Light Fix stores its small corrections as a separate revision. Your original stays as written.</li>}
-          {!isLetter && mode === 'review' && <li>Review suggestions appear on the entry page. You choose which to keep; nothing changes without you.</li>}
+          <li>{isLetter ? 'Once sent, the letter cannot be edited or taken back.' : 'The original is kept exactly as written.'}</li>
           {isLetter && opensOnDate && <li>{recipientName} gets an email and can read the letter on their MMK home page {form.release_on === today() ? 'right away' : `on ${fmtDate(form.release_on)}`}.</li>}
         </ul>
       </Dialog>

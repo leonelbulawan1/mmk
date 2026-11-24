@@ -78,9 +78,7 @@ export default function Dashboard() {
           actions={<Link to="/entries" className="link">View all →</Link>}>
           {data.recent.length === 0 ? (
             <div className="p-6">
-              <Empty title="Your diary is empty" action={!sealed && <Link to="/entries/new" className="btn-primary">Write your first entry</Link>}>
-                Start with something small: what you ate, who you saw, what you hope for.
-              </Empty>
+              <Empty title="Your diary is empty" action={!sealed && <Link to="/entries/new" className="btn-primary">Write your first entry</Link>} />
             </div>
           ) : (
             <ul className="divide-y divide-cream-200">

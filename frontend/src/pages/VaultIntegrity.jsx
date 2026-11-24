@@ -45,7 +45,6 @@ export default function VaultIntegrity() {
   return (
     <>
       <PageHeader title="Vault integrity"
-        subtitle="Each record's hash includes the previous one, so recomputing the chain shows whether anything was changed or removed. This check runs on the MMK server; it is not an outside audit, and the diary is not end-to-end encrypted."
         actions={<>
           <button className="btn-secondary" onClick={() => { v.reload(); audit.reload() }}>Verify again</button>
           <button className="btn-secondary" onClick={exportVault} disabled={exporting}>{exporting ? 'Exporting…' : copied ? 'Copied to clipboard ✓' : import.meta.env.VITE_WEB_RUNTIME === '1' ? 'Copy vault export (JSON)' : 'Export vault (JSON)'}</button>

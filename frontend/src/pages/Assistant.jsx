@@ -72,10 +72,7 @@ export default function Assistant() {
   }
   return (
     <>
-      <PageHeader title={isOwner ? 'AI assistant preview' : 'MMK AI Legacy Assistant'}
-        subtitle={isOwner
-          ? 'Ask questions exactly as a beneficiary will after your passing.'
-          : `Ask about ${ownerName}'s life. Answers come only from what ${ownerName} chose to share, with the date of each memory.`} />
+      <PageHeader title={isOwner ? 'AI assistant preview' : 'MMK AI Legacy Assistant'} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">

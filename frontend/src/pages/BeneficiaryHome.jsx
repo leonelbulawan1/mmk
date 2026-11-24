@@ -16,8 +16,7 @@ export default function BeneficiaryHome() {
     // The diary opens only after the owner's passing.
     return (
       <>
-        <PageHeader title={`${d.owner}'s diary`}
-          subtitle={`${d.owner} named you as someone who may remember them through their diary.`} />
+        <PageHeader title={`${d.owner}'s diary`} />
         {letters.data?.length > 0 && (
           <div className="mb-6 space-y-6">
             <h2 className="text-lg font-semibold">Letters from {first}</h2>
@@ -46,8 +45,7 @@ export default function BeneficiaryHome() {
 
   return (
     <>
-      <PageHeader title={`${d.owner}'s diary`}
-        subtitle={`${d.owner} chose to share some of their life with you. What you can see follows their wishes, and some of it may open on a later date.`} />
+      <PageHeader title={`${d.owner}'s diary`} />
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <p className="text-sm font-medium text-ink-500">Shared with you</p>

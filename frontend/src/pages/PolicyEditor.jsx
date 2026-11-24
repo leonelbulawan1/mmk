@@ -59,7 +59,6 @@ export default function PolicyEditor() {
   return (
     <>
       <PageHeader title="Legacy policy"
-        subtitle="Who may see what after your passing, and when. Nothing is shared while you are alive, and anything you do not allow stays private."
         meta={<><Tag tone="ink">Version {policy.data.version}</Tag>{frozen && <Tag tone="bark">Frozen</Tag>}</>}
         actions={!frozen && <>
           <Link to="/access" className="btn-ghost">See access</Link>

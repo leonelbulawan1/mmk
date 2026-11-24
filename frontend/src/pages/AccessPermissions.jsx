@@ -12,7 +12,6 @@ export default function AccessPermissions() {
   return (
     <>
       <PageHeader title="Access permissions"
-        subtitle="What each beneficiary will be able to see after your passing, decided by the Prolog rules. Choose a later date to see what date-based releases will open."
         actions={<Link to="/policy" className="btn-secondary">Edit policy</Link>} />
 
       <div className="card mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
@@ -26,9 +25,9 @@ export default function AccessPermissions() {
       </div>
 
       {m.loading ? <Spinner label="Checking access with the Prolog rules" /> : m.error ? <Alert>{m.error}</Alert> : !m.data.beneficiaries.length ? (
-        <Empty title="No beneficiaries" action={<Link className="btn-primary" to="/beneficiaries">Add one</Link>}>Access is decided per beneficiary.</Empty>
+        <Empty title="No beneficiaries" action={<Link className="btn-primary" to="/beneficiaries">Add one</Link>} />
       ) : !m.data.entries.length ? (
-        <Empty title="No entries yet">Write something first.</Empty>
+        <Empty title="No entries yet" />
       ) : (
         <>
           <div className="mb-4"><Alert kind="info">{m.data.death_triggered

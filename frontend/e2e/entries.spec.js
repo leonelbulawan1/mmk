@@ -42,7 +42,7 @@ test('a letter opens read-only in a window', async ({ page }) => {
   await expect(dialog.getByRole('button', { name: 'Delete' })).toHaveCount(0)
 })
 
-test('search highlights the words and month headings stay in view', async ({ page }) => {
+test('search highlights the words and year headings stay in view', async ({ page }) => {
   await page.getByLabel('Search entries and letters').fill('hospital')
   await expect(page.locator('mark').first()).toBeVisible()
   await page.getByLabel('Clear search').click()
@@ -52,7 +52,7 @@ test('search highlights the words and month headings stay in view', async ({ pag
   await page.waitForTimeout(300)
   const box = await first.boundingBox()
   const bar = await page.locator('form[role=search]').boundingBox()
-  expect(box.y).toBeGreaterThan(bar.y)   // a month heading is pinned under the toolbar, not scrolled away
+  expect(box.y).toBeGreaterThan(bar.y)   // a year heading is pinned under the toolbar, not scrolled away
 })
 
 test('search has one clear button, and Esc clears too', async ({ page }) => {
@@ -71,4 +71,16 @@ test('search has one clear button, and Esc clears too', async ({ page }) => {
   await box.fill('hospital')
   await box.press('Escape')
   await expect(box).toHaveValue('')
+})
+
+test('diary is grouped by year; needs review is a filter, not a tab', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Diary' }).click()
+  await expect(page.locator('li.sticky h3').first()).toHaveText(/^\d{4}$/)
+  await expect(page.getByRole('tab', { name: /review/i })).toHaveCount(0)
+  const review = page.locator('button[aria-pressed]', { hasText: /review/i })
+  if (await review.count()) {
+    await review.click()
+    await expect(review).toHaveAttribute('aria-pressed', 'true')
+    await expect(page).toHaveURL(/review=1/)
+  }
 })

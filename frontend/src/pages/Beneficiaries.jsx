@@ -99,7 +99,6 @@ export default function Beneficiaries() {
   return (
     <>
       <PageHeader title="Beneficiaries"
-        subtitle="People you trust with your letters and memories. They can't see your diary while you're alive. After your passing, they see only what your legacy policy allows."
         meta={list.data?.length ? <Tag>{list.data.length}</Tag> : null}
         actions={!sealed && <button type="button" className="btn-primary" onClick={() => setAdding(true)}><NavIcon name="people" size={16} />Add beneficiary</button>} />
       <div className="mb-4 space-y-3">
@@ -107,7 +106,6 @@ export default function Beneficiaries() {
         {invite && (invite.emailed ? (
           <Alert kind="success" onClose={() => setInvite(null)}>
             Invitation sent to <b>{invite.email}</b>. {invite.name} can activate their account from the link in the email.
-            <span className="mt-1 block text-xs">Not in their inbox? Ask them to check Spam, or send them the link yourself (it works once).</span>
             {invite.link && !WEB && (
               <button type="button" className="btn-secondary btn-sm mt-2"
                 onClick={() => navigator.clipboard?.writeText(invite.link).catch(() => {})}>Copy invite link</button>
@@ -131,9 +129,9 @@ export default function Beneficiaries() {
       </div>
 
       <div>
-        <Section className="min-w-0" title="Your beneficiaries" description="Invite status, executor and quick actions" bodyClassName="p-0">
+        <Section className="min-w-0" title="Your beneficiaries" bodyClassName="p-0">
           {list.loading ? <div className="px-6"><Spinner label="Loading beneficiaries" /></div> : !list.data?.length ? (
-            <div className="p-6"><Empty title="No beneficiaries yet" action={!sealed && <button type="button" className="btn-primary" onClick={() => setAdding(true)}>Add beneficiary</button>}>Add the people you trust, then choose what they may see in your legacy policy.</Empty></div>
+            <div className="p-6"><Empty title="No beneficiaries yet" action={!sealed && <button type="button" className="btn-primary" onClick={() => setAdding(true)}>Add beneficiary</button>} /></div>
           ) : (
             <ul className="divide-y divide-cream-200">
               {list.data.map((b) => (
@@ -177,16 +175,15 @@ export default function Beneficiaries() {
         {/* Same card as the writing window: fields on top, actions in a bar at the bottom. */}
         <form id="add-beneficiary" onSubmit={create} noValidate className="card flex flex-col overflow-hidden p-0 sm:min-h-[calc(40vh+231px)]">
           <div className="flex-1 space-y-5 px-5 py-6 sm:px-6">
-            <p className="text-sm text-ink-500">We'll email them an invitation to activate their account. They can't see your diary while you're alive.</p>
             <Alert onClose={() => setError('')}>{error}</Alert>
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Full name" error={fields.display_name}><input id="ben-name" data-autofocus className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={form.display_name} onChange={set('display_name')} /></Field>
-              <Field label="Email" hint="Any email works: Gmail, Yahoo, Outlook, school or work." error={fields.email || emailError}>
+              <Field label="Email" error={fields.email || emailError}>
                 <input id="ben-email" className={`input ${fields.email || emailError ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} type="email" required value={form.email} onChange={set('email')} aria-invalid={!!(fields.email || emailError)} /></Field>
             </div>
             <div className="sm:w-1/2 sm:pr-2.5">
-              <Field label="Policy handle" hint="A short name used in your legacy policy, like maria (lowercase)." error={fields.handle}>
-                <input id="ben-handle" className={`input font-mono ${fields.handle ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.handle} value={form.handle} onChange={set('handle')} /></Field>
+              <Field label="Policy handle" error={fields.handle}>
+                <input id="ben-handle" className={`input font-mono ${fields.handle ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required placeholder="maria" aria-invalid={!!fields.handle} value={form.handle} onChange={set('handle')} /></Field>
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3 border-t border-cream-300 bg-cream-100/70 px-4 py-3 sm:px-5">

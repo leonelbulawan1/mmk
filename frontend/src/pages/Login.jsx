@@ -75,7 +75,7 @@ export default function Login() {
   const set = (k) => (e) => { setError(''); setFields((f) => ({ ...f, [k]: '' })); setForm({ ...form, [k]: e.target.value }) }
 
   return (
-    <AuthShell title="Welcome back" subtitle="Sign in to continue to your account."
+    <AuthShell title="Welcome back"
       footer={<>Don't have an account? <Link className="whitespace-nowrap font-medium text-bark-500 hover:underline" to="/register">Create an account</Link></>}>
       <form onSubmit={submit} noValidate className="space-y-4">
         <ErrorSlot error={error}>

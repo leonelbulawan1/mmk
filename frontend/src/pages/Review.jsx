@@ -118,10 +118,9 @@ export default function Review() {
   )
   return (
     <>
-      <PageHeader title="Review reports"
-        subtitle="Reports that an owner has passed away. Approve only after checking the documents. Approval starts a waiting period; the owner can cancel and beneficiaries can dispute until it ends." />
+      <PageHeader title="Review reports" />
       {list.loading ? <Spinner label="Loading reports" /> : list.error ? <Alert>{list.error}</Alert> : !list.data.length ? (
-        <Empty title="No reports">When an executor reports a passing, it appears here.</Empty>
+        <Empty title="No reports" />
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="h-fit p-3">
@@ -130,7 +129,7 @@ export default function Review() {
             {closed.length > 0 && <><p className="px-3 pb-1 pt-3 text-xs uppercase tracking-wider text-ink-400">Closed</p><ul>{closed.map((c) => <Row key={c.id} c={c} />)}</ul></>}
           </Card>
           <div className="lg:col-span-2">
-            {selected ? <CaseView key={selected} id={selected} onChanged={list.reload} /> : <Empty title="Choose a report">Select a report on the left.</Empty>}
+            {selected ? <CaseView key={selected} id={selected} onChanged={list.reload} /> : <Empty title="No report selected" />}
           </div>
         </div>
       )}

@@ -31,7 +31,7 @@ export default function Register() {
   }
 
   return (
-    <AuthShell title="Create your account" subtitle="Start your private diary."
+    <AuthShell title="Create your account"
       footer={<>Already have an account? <Link className="whitespace-nowrap font-medium text-bark-500 hover:underline" to="/login">Sign in</Link></>}>
       <form onSubmit={submit} noValidate className="space-y-4">
         <ErrorSlot error={error} />

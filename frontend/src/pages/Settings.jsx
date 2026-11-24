@@ -68,7 +68,7 @@ export default function Settings() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle={isOwner ? 'Your profile, sign-in, executor and vault.' : 'Your profile and sign-in.'} />
+      <PageHeader title="Settings" />
       <div className="grid items-start gap-8 lg:grid-cols-[200px_minmax(0,1fr)]">
         <nav aria-label="Settings sections" className="hidden lg:sticky lg:top-8 lg:block">
           <ul className="space-y-1 text-sm">
@@ -78,13 +78,13 @@ export default function Settings() {
           </ul>
         </nav>
         <div className="min-w-0 space-y-6">
-        <Section id="profile" title="Profile" description="How you appear in MMK">
+        <Section id="profile" title="Profile">
           {note('profile')}
           <form onSubmit={saveProfile} noValidate className="space-y-4">
             <Field label="Display name" error={fields.display_name}><input className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={profile.display_name} onChange={(e) => { setFields({}); setProfile({ ...profile, display_name: e.target.value }) }} /></Field>
             <Field label="Email"><input className="input" value={user.email} disabled /></Field>
             {isOwner && (
-              <Field label="Default writing mode" hint="Pre-selected when you start a new entry.">
+              <Field label="Default writing mode">
                 <select className="input" value={profile.default_writing_mode} onChange={(e) => setProfile({ ...profile, default_writing_mode: e.target.value })}>
                   <option value="verbatim">Verbatim</option><option value="light_fix">Light Fix</option><option value="review">Review</option>
                 </select>
@@ -94,8 +94,7 @@ export default function Settings() {
               <label className="flex items-start gap-3 text-sm">
                 <input type="checkbox" className="checkbox mt-0.5" checked={profile.allow_ai_answers} disabled={!!user.death_triggered_at}
                   onChange={(e) => setProfile({ ...profile, allow_ai_answers: e.target.checked })} />
-                <span>Let the AI assistant answer my beneficiaries' questions
-                  <span className="block text-xs text-ink-400">It only uses entries your legacy policy lets each person see, never pretends to be you, and shows where each answer comes from. Turn this off and beneficiaries can still read what you shared, but cannot ask questions. The change is recorded in your audit log.</span></span>
+                <span>Let the AI assistant answer my beneficiaries' questions</span>
               </label>
             ) : (
               <label className="flex items-start gap-3 text-sm">
@@ -169,7 +168,7 @@ function YourData({ isOwner }) {
     catch (e) { toast(e.message, 'error') } finally { setBusy(false) }
   }
   return (
-    <Section id="data" title="Your data" description="A copy of everything MMK keeps about you">
+    <Section id="data" title="Your data">
       <p className="max-w-3xl text-sm text-ink-500">
         {isOwner
           ? 'One file (JSON) with your profile, every entry and letter with all its revisions, your beneficiaries, every version of your legacy policy, your drafts and your activity log.'

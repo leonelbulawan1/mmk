@@ -64,7 +64,6 @@ export function EntryModal({ entry, onClose, onDeleted }) {
       <ConfirmDialog open={confirm} danger busy={busy} title="Delete this entry?" confirmLabel="Delete entry" cancelLabel="Keep it"
         onConfirm={remove} onCancel={() => setConfirm(false)}>
         “{entryTitle(e)}” will be removed from your diary and never shared with anyone. This can’t be undone.
-        <span className="mt-2 block text-xs text-ink-400">For the vault's integrity, a record that it was deleted stays in your vault.</span>
       </ConfirmDialog>
     </>
   )

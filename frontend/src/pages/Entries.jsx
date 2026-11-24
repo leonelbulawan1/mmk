@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import { Alert, ConfirmDialog, Empty, Spinner, Tag, useToast } from '../components/ui'
 import { DraftModal, EntryModal, LetterModal } from '../components/EntryModal'
 import NavIcon from '../components/NavIcon'
+import NewMenu from '../components/NewMenu'
 
 function GroupHeader({ id, title, count, note, sub }) {
   const H = sub ? 'h3' : 'h2'
@@ -41,18 +42,17 @@ function Row({ to, lead, title, snippet, meta, menu, stack, linkState, onOpen })
   )
 }
 
-// All · Diary · Letters, with how many of each.
-function KindTabs({ value, counts, onChange, review }) {
-  const tabs = [['all', 'All'], ['text', 'Diary'], ['letter', 'Letters'], ['draft', 'Drafts'], ...(review ? [['review', 'Needs review']] : [])]
+// All · Diary · Letters · Drafts.
+function KindTabs({ value, onChange }) {
+  const tabs = [['all', 'All'], ['text', 'Diary'], ['letter', 'Letters'], ['draft', 'Drafts']]
   return (
     <div role="tablist" aria-label="Show" className="flex h-[42px] min-w-0 flex-1 overflow-x-auto rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
       {tabs.map(([v, label]) => {
         const on = value === v
         return (
           <button key={v} type="button" role="tab" aria-selected={on} onClick={() => onChange(v)}
-            className={`flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2 text-sm sm:gap-1.5 sm:px-3 font-medium transition-colors sm:flex-none ${on ? 'bg-ink-700 text-cream-50' : v === 'review' ? 'text-bark-600 hover:bg-[#FBF0D9]' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
-            {v === 'review' && !on && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />}
-            {v === 'review' ? <><span className="sm:hidden">Review</span><span className="hidden sm:inline">Needs review</span></> : label}
+            className={`flex flex-1 items-center justify-center whitespace-nowrap rounded-lg px-2 text-sm font-medium transition-colors sm:flex-none sm:px-3 ${on ? 'bg-ink-700 text-cream-50' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
+            {label}
           </button>
         )
       })}
@@ -60,7 +60,18 @@ function KindTabs({ value, counts, onChange, review }) {
   )
 }
 
-const shortDate = (iso) => new Date(iso + 'T00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })
+// A filter beside the tabs: only what still needs review.
+function ReviewFilter({ on, onChange }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={() => onChange(!on)}
+      className={`flex h-[42px] shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-3 text-sm font-medium transition-colors ${on ? 'border-gold-500 bg-[#FBF0D9] text-bark-600' : 'border-cream-300 bg-cream-50 text-bark-600 hover:bg-[#FBF0D9]'}`}>
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />
+      <span className="sm:hidden">Review</span><span className="hidden sm:inline">Needs review</span>
+    </button>
+  )
+}
+
+const shortDate = (iso) => new Date(iso + 'T00:00').toLocaleDateString('en', { month: 'short', day: 'numeric', ...(iso.slice(0, 4) !== String(new Date().getFullYear()) && { year: 'numeric' }) })
 
 // Where a letter stands: already on the recipient's home page, waiting for a date, or after passing.
 function letterStatus(e) {
@@ -72,13 +83,14 @@ function letterStatus(e) {
   return { label: 'After passing' }
 }
 
-// Day number over weekday, at the start of a row.
-function DateLead({ iso, month }) {
+// Day number over month (and year, where the group doesn't already say it), at the start of a row.
+function DateLead({ iso, year }) {
   const d = new Date(iso + 'T00:00')
   return (
     <div className="w-10 text-center" aria-hidden>
       <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
-      <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', month ? { month: 'short' } : { weekday: 'short' })}</p>
+      <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { month: 'short' })}</p>
+      {year && <p className="text-[11px] leading-tight text-ink-400">{d.getFullYear()}</p>}
     </div>
   )
 }
@@ -100,7 +112,8 @@ function Divider({ id, title, top = 0 }) {
 // The line under the title; for an untitled entry, the words after the ones used as its title.
 const snippetOf = (e) => e.title?.trim() ? e.snippet : (e.snippet || '').split(/\s+/).slice(7).join(' ')
 
-// When it was written, as a time of day (the date is already on the left of the row).
+// The time it was saved, shown only when it was saved on the entry's own date.
+const sameDay = (iso, day) => !!iso && new Date(iso).toLocaleDateString('en-CA') === day
 const timeOf = (iso) => (iso ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '')
 const Time = ({ iso, title }) => iso ? <time dateTime={iso} title={title || new Date(iso).toLocaleString()} className="whitespace-nowrap text-xs text-ink-400">{timeOf(iso)}</time> : null
 
@@ -133,7 +146,6 @@ export default function Entries() {
   const [state, setState] = useState({ loading: true, data: [], error: '' })
   const topic = params.get('topic') || ''
   const reviewOnly = params.get('review') === '1'
-  // Tabs: Diary (the default), Letters, Drafts; "Needs review" shows both kinds that need review.
   // Tabs: All (the default: diary and letters side by side), Diary, Letters, Drafts; "Needs review" shows both kinds that need review.
   const kind = reviewOnly ? '' : ['text', 'letter', 'draft'].includes(params.get('kind')) ? params.get('kind') : 'all'
   const both = kind === 'all' || reviewOnly
@@ -184,13 +196,11 @@ export default function Entries() {
 
   const needReview = state.data.filter((e) => e.pending_review).length
   const isLetter = (e) => e.kind === 'letter'
-  const counts = { all: state.data.length, text: state.data.filter((e) => !isLetter(e)).length, letter: state.data.filter(isLetter).length, draft: draftList.length, review: needReview }
   const filtered = kind === 'draft' ? [] : state.data.filter((e) => (both || (isLetter(e) ? 'letter' : 'text') === kind) && (!reviewOnly || e.pending_review))
   const ql = (params.get('q') || '').toLowerCase()
   const draftShown = draftList.filter((d) => !ql || `${d.form.title || ''} ${d.form.text || ''}`.toLowerCase().includes(ql))
   const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
   const shown = sorted.slice(0, limit)
-  const monthName = (ym) => new Date(ym + '-01T00:00').toLocaleString('en', { month: 'long', year: 'numeric' })
 
   const canWrite = !user.death_triggered_at
   const ColumnHead = ({ label }) => (
@@ -202,30 +212,27 @@ export default function Entries() {
     </div>
   )
 
-  // Diary entries: one card, a divider for each month.
+  // Diary entries: one card, a divider for each year.
   const DiaryColumn = ({ list, heading }) => {
-    const groups = list.reduce((acc, e) => { (acc[e.entry_date.slice(0, 7)] ||= []).push(e); return acc }, {})
-    const ms = Object.keys(groups).sort()
-    if (!oldest) ms.reverse()
-    const seenYear = new Set()
+    const groups = list.reduce((acc, e) => { (acc[e.entry_date.slice(0, 4)] ||= []).push(e); return acc }, {})
+    const ys = Object.keys(groups).sort()
+    if (!oldest) ys.reverse()
     return (
       <div className="min-w-0">
         {heading && <ColumnHead label="Diary entries" />}
         {!list.length ? <Blank text="No diary entries here" to="/entries/new" action="Write an entry" /> : (
           <div className="card mb-6 p-0">
             <ol>
-              {ms.map((ym) => {
-                const y = ym.slice(0, 4)
-                const first = !seenYear.has(y); seenYear.add(y)
+              {ys.map((y) => {
                 return [
-                  <Divider key={`d-${ym}`} id={first ? `year-${y}` : undefined} title={monthName(ym)} top={barH} />,
-                  ...groups[ym].map((e) => (
+                  <Divider key={`d-${y}`} id={`year-${y}`} title={y} top={barH} />,
+                  ...groups[y].map((e) => (
                     <Row key={e.id} onOpen={() => setOpenEntry(e)} lead={<DateLead iso={e.entry_date} />}
                       title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span><Mark text={titleOf(e)} q={ql} /></>}
                       snippet={<Mark text={snippetOf(e)} q={ql} />}
                       meta={<>
                         {e.pending_review && <Pill tone="gold">Needs review</Pill>}
-                        <Time iso={e.created_at} />
+                        {sameDay(e.created_at, e.entry_date) && <Time iso={e.created_at} />}
                       </>} />
                   )),
                 ]
@@ -252,13 +259,13 @@ export default function Entries() {
                 ...groups[who].map((e) => {
                   const st = letterStatus(e)
                   return (
-                    <Row key={e.id} onOpen={() => setOpenLetter(e)} lead={<DateLead iso={e.entry_date} />}
+                    <Row key={e.id} onOpen={() => setOpenLetter(e)} lead={<DateLead iso={e.entry_date} year />}
                       title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span><Mark text={titleOf(e)} q={ql} /></>}
                       snippet={<Mark text={snippetOf(e)} q={ql} />}
                       meta={<>
                         {e.pending_review && <Pill tone="gold">Needs review</Pill>}
                         <Pill tone={st.tone}>{st.label}</Pill>
-                        <Time iso={e.created_at} />
+                        {sameDay(e.created_at, e.entry_date) && <Time iso={e.created_at} />}
                       </>} stack={heading} />
                   )
                 }),
@@ -318,8 +325,9 @@ export default function Entries() {
           </form>
         </div>
         <div className="flex gap-2 sm:gap-3">
-          <KindTabs value={reviewOnly ? 'review' : kind} counts={state.loading ? null : counts} review={needReview > 0 || reviewOnly}
-            onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); if (v === 'review') p.set('review', '1'); else if (v !== 'all') p.set('kind', v); setParams(p, { replace: true }) }} />
+          <KindTabs value={reviewOnly ? '' : kind}
+            onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); if (v !== 'all') p.set('kind', v); setParams(p, { replace: true }) }} />
+          {(needReview > 0 || reviewOnly) && <ReviewFilter on={reviewOnly} onChange={(on) => update('review', on ? '1' : '')} />}
         </div>
       </div>
       </div>
@@ -337,7 +345,8 @@ export default function Entries() {
       <Alert>{state.error}</Alert>
       {kind === 'draft' ? (
         !draftShown.length ? (
-          <Empty title={ql ? 'No matches' : 'No drafts'}>{ql ? '' : 'When you close something you are writing, it waits here so you can finish it later, on any device.'}</Empty>
+          <Empty title={ql ? 'No matches' : 'No drafts'}
+            action={canWrite && !ql && <div className="flex justify-center"><NewMenu label="Write" icon="write" /></div>} />
         ) : (
           draftCard(draftShown)
         )

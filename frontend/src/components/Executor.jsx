@@ -85,7 +85,7 @@ export function ExecutorSettings() {
   }
 
   return (
-    <Section id="executor" title="Executor" description="Someone you trust to report your passing">
+    <Section id="executor" title="Executor">
       <p className="max-w-3xl text-sm text-ink-500">
         Choose a beneficiary you trust to report your passing. When they do, you are emailed and have a waiting period
         of {waitText(user.death_report_wait_minutes || 20160)} to press <b>“I'm still here”</b>. If nobody cancels, the death trigger
@@ -96,7 +96,7 @@ export function ExecutorSettings() {
         <p className="mt-3 text-sm">Executor: <b>{user.executor?.display_name || 'none'}</b> (the vault is sealed).</p>
       ) : (
         <form onSubmit={save} className="mt-4 grid gap-4 sm:max-w-xl sm:grid-cols-[1fr_auto] sm:items-end">
-          <Field label="Your executor" hint={eligible.length ? '' : 'Only beneficiaries who have activated their account can be chosen.'}>
+          <Field label="Your executor" hint={eligible.length ? '' : 'No activated beneficiaries yet.'}>
             <select className="input" value={choice} onChange={(e) => setChoice(e.target.value)} disabled={!!user.pending_report}>
               <option value="">No executor</option>
               {eligible.map((b) => <option key={b.id} value={b.id}>{b.display_name}{b.relationship ? ` (${b.relationship})` : ''}</option>)}
@@ -212,7 +212,7 @@ export function DisputePanel() {
         {rep.activates_at && <> If no one disputes it, {first}'s diary opens as {first} wished on {fmtWhen(rep.activates_at)}.</>}</p>
       {rep.can_dispute ? (
         <form onSubmit={send} className="mt-4 space-y-3">
-          <Field label="Is this not true? Tell the reviewer why" hint="A dispute stops the report until an MMK reviewer looks again.">
+          <Field label="Is this not true? Tell the reviewer why">
             <textarea className="input min-h-24" required maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} />
           </Field>
           {error && <Alert>{error}</Alert>}

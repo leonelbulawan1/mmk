@@ -7,12 +7,10 @@ export default function Letters() {
   const letters = useAsync(() => api('/api/letters'))
   return (
     <>
-      <PageHeader title="Letters" subtitle={`Letters ${user.owner?.display_name || ''} wrote to you appear here once they are released.`} />
+      <PageHeader title="Letters" />
       <LegalDisclaimer className="mb-6" />
       {letters.loading ? <Spinner label="Loading letters" /> : letters.error ? <Alert>{letters.error}</Alert> : !letters.data.length ? (
-        <Empty title="No letters yet">{user.owner?.death_triggered
-          ? 'Some letters open on a particular day; they will appear here when they do.'
-          : `When ${user.owner?.display_name || 'the owner'} sends you a letter, it will appear here and you will get an email.`}</Empty>
+        <Empty title="No letters yet" />
       ) : (
         <div className="space-y-8">
           {letters.data.map((l) => (
