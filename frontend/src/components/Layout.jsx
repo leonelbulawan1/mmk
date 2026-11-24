@@ -64,10 +64,11 @@ export default function Layout() {
     </nav>
   )
 
-  const initial = (user?.display_name || '?').slice(0, 1).toUpperCase()
+  // Square like the logo (same corner ratio and colours), with the first letter of the name.
+  const initial = (user?.first_name || user?.display_name || '?').slice(0, 1).toUpperCase()
   const footer = (
     <div className="flex items-center gap-3 border-t border-cream-300 pt-4">
-      <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-700 text-sm font-semibold text-cream-50">{initial}</span>
+      <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[23%] bg-gradient-to-b from-[#27324F] to-[#151C30] text-sm font-semibold text-cream-50">{initial}</span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-ink-700">{user?.display_name}</p>
         <p className="truncate text-xs text-ink-400">{user?.role === 'owner' ? 'Diary owner' : `Beneficiary of ${user?.owner?.display_name || ''}`}</p>
@@ -77,7 +78,7 @@ export default function Layout() {
   )
   const compactFooter = (
     <div className="flex flex-col items-center gap-1 border-t border-cream-300 pt-4">
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 text-sm font-semibold text-cream-50" title={user?.display_name}>{initial}</span>
+      <span className="flex h-9 w-9 items-center justify-center rounded-[23%] bg-gradient-to-b from-[#27324F] to-[#151C30] text-sm font-semibold text-cream-50" title={user?.display_name}>{initial}</span>
       <button className="btn-ghost btn-icon" onClick={() => setConfirmOut(true)} aria-label="Sign out" title="Sign out"><NavIcon name="signout" /></button>
     </div>
   )

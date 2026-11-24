@@ -136,7 +136,7 @@ export default function Beneficiaries() {
               {list.data.map((b) => (
                 <li key={b.id} className={`px-5 py-4 sm:px-6 ${b.active ? '' : 'opacity-60'}`}>
                   <div className="flex flex-wrap items-start gap-4">
-                    <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cream-200 text-base font-semibold text-ink-600">
+                    <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[23%] bg-cream-200 text-base font-semibold text-ink-600">
                       {b.display_name.slice(0, 1).toUpperCase()}
                     </span>
                     <div className="min-w-0 flex-1">
