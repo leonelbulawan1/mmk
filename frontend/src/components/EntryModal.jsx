@@ -43,7 +43,7 @@ export function EntryModal({ entry, onClose, onDeleted }) {
   }
   return (
     <>
-      <Dialog open={!confirm} wide closeButton onClose={onClose} eyebrow="Diary entry" title={entryTitle(e)}
+      <Dialog open={!confirm} wide onClose={onClose} eyebrow="Diary entry" title={entryTitle(e)}
         meta={<span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{day(e.entry_date)}</span>{sameDay(e.created_at, e.entry_date) && <><span aria-hidden>·</span><span>{time(e.created_at)}</span></>}
           {e.writing_mode && <><span aria-hidden>·</span><span>{MODE[e.writing_mode]}</span></>}
@@ -80,7 +80,7 @@ export function DraftModal({ draft, onClose, onDelete }) {
   const saved = draft.saved_at ? new Date(draft.saved_at) : null
   const edit = () => { onClose(); navigate(`/entries/new?draft=${draft.id}${letter ? '&kind=letter' : ''}`, { state: { background: location } }) }
   return (
-    <Dialog open wide closeButton onClose={onClose} eyebrow={letter ? 'Letter draft' : 'Diary draft'} title={draft.form.title?.trim() || 'Untitled'}
+    <Dialog open wide onClose={onClose} eyebrow={letter ? 'Letter draft' : 'Diary draft'} title={draft.form.title?.trim() || 'Untitled'}
       meta={saved && <>Last saved {saved.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · {time(draft.saved_at)}</>}
       footer={<Actions onClose={onClose} onDelete={onDelete} onEdit={edit} editLabel="Continue writing" />}>
       <div className="max-w-2xl whitespace-pre-wrap text-lg leading-[1.8] text-ink-600">{draft.form.text?.trim() || <span className="text-ink-400">Nothing written yet.</span>}</div>
@@ -102,7 +102,7 @@ export function LetterModal({ letter, onClose }) {
     ? (e.release_days_after_death ? `${e.release_days_after_death} days after your passing` : 'After your passing')
     : e.release_on ? fmtDate(e.release_on) : ''
   return (
-    <Dialog open wide closeButton onClose={onClose} eyebrow="Letter" title={entryTitle(e)}
+    <Dialog open wide onClose={onClose} eyebrow="Letter" title={entryTitle(e)}
       meta={<span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{day(e.entry_date)}</span>{sameDay(e.created_at, e.entry_date) && <><span aria-hidden>·</span><span>{time(e.created_at)}</span></>}</span>}
       footer={<>
         
