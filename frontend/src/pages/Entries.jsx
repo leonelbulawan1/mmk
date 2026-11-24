@@ -52,7 +52,7 @@ function KindTabs({ value, counts, onChange, review }) {
           <button key={v} type="button" role="tab" aria-selected={on} onClick={() => onChange(v)}
             className={`flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2 text-sm sm:gap-1.5 sm:px-3 font-medium transition-colors sm:flex-none ${on ? 'bg-ink-700 text-cream-50' : v === 'review' ? 'text-bark-600 hover:bg-[#FBF0D9]' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>
             {v === 'review' && !on && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />}
-            {v === 'review' ? <><span className="sm:hidden">Review</span><span className="hidden sm:inline">Needs review</span></> : label}{counts && <span className={`text-xs ${on ? 'text-cream-200' : 'text-ink-400'}`}>{counts[v]}</span>}
+            {v === 'review' ? <><span className="sm:hidden">Review</span><span className="hidden sm:inline">Needs review</span></> : label}
           </button>
         )
       })}
@@ -170,11 +170,8 @@ export default function Entries() {
   const monthName = (ym) => new Date(ym + '-01T00:00').toLocaleString('en', { month: 'long', year: 'numeric' })
 
   const canWrite = !user.death_triggered_at
-  const ColumnHead = ({ icon, label, count, note }) => (
-    <h2 className="mb-3 flex items-baseline gap-2 px-1 text-lg font-semibold text-ink-700">
-      <span className="self-center text-bark-500"><NavIcon name={icon} size={20} /></span>{label}
-      <span className="text-sm font-normal text-ink-400">{count}{note && ` · ${note}`}</span>
-    </h2>
+  const ColumnHead = ({ label }) => (
+    <h2 className="mb-3 px-1 text-lg font-semibold text-ink-700">{label}</h2>
   )
   const Blank = ({ text, to, action }) => (
     <div className="card mb-6 flex flex-col items-center gap-3 py-8 text-center text-sm text-ink-400">
@@ -190,7 +187,7 @@ export default function Entries() {
     const seenYear = new Set()
     return (
       <div className="min-w-0">
-        {heading && <ColumnHead icon="entries" label="Diary entries" count={list.length} />}
+        {heading && <ColumnHead label="Diary entries" />}
         {!list.length ? <Blank text="No diary entries here" to="/entries/new" action="Write an entry" /> : (
           <div className="card mb-6 overflow-hidden p-0">
             <ol>
@@ -223,7 +220,7 @@ export default function Entries() {
     const people = Object.keys(groups).sort((a, b) => a.localeCompare(b))
     return (
       <div className="min-w-0">
-        {heading && <ColumnHead icon="letters" label="Letters" count={list.length} />}
+        {heading && <ColumnHead label="Letters" />}
         {!list.length ? <Blank text="No letters here" to="/entries/new?kind=letter" action="Write a letter" /> : (
           <div className={`card mb-6 overflow-hidden p-0 `}>
             <ol>
