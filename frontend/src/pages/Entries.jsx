@@ -120,6 +120,8 @@ export default function Entries() {
   const [q, setQ] = useState(params.get('q') || '')
   // Height of the sticky toolbar, so the month dividers stick just below it.
   const barRef = useRef(null)
+  const searchRef = useRef(null)
+  const clearSearch = () => { setQ(''); update('q', ''); searchRef.current?.focus() }
   const [barH, setBarH] = useState(0)
   useEffect(() => {
     const el = barRef.current
@@ -305,9 +307,10 @@ export default function Entries() {
           <form role="search" className="relative flex-1" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
               className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-            <input className="input pl-10 pr-10" type="search" placeholder="Search entries and letters" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entries and letters" />
+            <input ref={searchRef} className="input pl-10 pr-10" type="search" placeholder="Search entries and letters" value={q} onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape' && q) { e.preventDefault(); clearSearch() } }} aria-label="Search entries and letters" />
             {q && (
-              <button type="button" onClick={() => { setQ(''); update('q', '') }} aria-label="Clear search"
+              <button type="button" onClick={clearSearch} aria-label="Clear search" title="Clear search"
                 className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-400 hover:bg-cream-200 hover:text-ink-600">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
               </button>

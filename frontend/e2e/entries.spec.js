@@ -54,3 +54,21 @@ test('search highlights the words and month headings stay in view', async ({ pag
   const bar = await page.locator('form[role=search]').boundingBox()
   expect(box.y).toBeGreaterThan(bar.y)   // a month heading is pinned under the toolbar, not scrolled away
 })
+
+test('search has one clear button, and Esc clears too', async ({ page }) => {
+  const box = page.getByLabel('Search entries and letters')
+  await box.fill('hospital')
+  await expect(page.getByLabel('Clear search')).toHaveCount(1)
+  const hidden = await page.evaluate(() => [...document.styleSheets].some((sh) => {
+    let rules = []; try { rules = [...sh.cssRules] } catch { /* a font sheet from another site */ }
+    return rules.some((r) => r.cssText.includes('::-webkit-search-cancel-button') && r.cssText.includes('appearance: none'))
+  }))
+  expect(hidden).toBe(true)   // the browser's own × is hidden
+  await page.screenshot({ path: 'test-results/search-one-clear.png', clip: await page.locator('form[role=search]').boundingBox() })
+  await page.getByLabel('Clear search').click()
+  await expect(box).toHaveValue('')
+  await expect(box).toBeFocused()
+  await box.fill('hospital')
+  await box.press('Escape')
+  await expect(box).toHaveValue('')
+})
