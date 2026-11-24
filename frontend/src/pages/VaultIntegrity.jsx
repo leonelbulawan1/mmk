@@ -47,7 +47,7 @@ export default function VaultIntegrity() {
       <PageHeader title="Vault integrity"
         actions={<>
           <button className="btn-secondary" onClick={() => { v.reload(); audit.reload() }}>Verify again</button>
-          <button className="btn-secondary" onClick={exportVault} disabled={exporting}>{exporting ? 'Exporting…' : copied ? 'Copied to clipboard ✓' : import.meta.env.VITE_WEB_RUNTIME === '1' ? 'Copy vault export (JSON)' : 'Export vault (JSON)'}</button>
+          <button className="btn-secondary" onClick={exportVault} disabled={exporting}>{exporting ? 'Exporting…' : copied ? 'Copied to clipboard' : import.meta.env.VITE_WEB_RUNTIME === '1' ? 'Copy vault export (JSON)' : 'Export vault (JSON)'}</button>
         </>} />
       <Alert onClose={() => setError('')}>{error}</Alert>
       {v.loading ? <Spinner label="Verifying your vault" /> : v.error ? (

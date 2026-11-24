@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { Alert, PageHeader, Section, Spinner, Tag, useAsync, useToast } from '../components/ui'
+import { Icon } from '../components/NavIcon'
 
 const CHEATSHEET = [
   ['group family = maria, jose;', 'Name a set of beneficiaries'],
@@ -126,7 +127,7 @@ export default function PolicyEditor() {
             <Section title="Samples">
               <div className="grid gap-2">
                 {samples.data?.map((s) => (
-                  <button key={s.file} className="btn-secondary w-full justify-between text-left" onClick={() => setSource(s.source)}>{s.name}<span aria-hidden className="text-ink-400">→</span></button>
+                  <button key={s.file} className="btn-secondary w-full justify-between text-left" onClick={() => setSource(s.source)}>{s.name}<span className="text-ink-400"><Icon name="arrow-right" size={14} /></span></button>
                 ))}
               </div>
             </Section>

@@ -6,6 +6,7 @@ import WhoCanRead from '../components/WhoCanRead'
 import DiffView from '../components/DiffView'
 import { Alert, Card, Hash, PageHeader, Spinner, Tag, useAsync, useToast } from '../components/ui'
 import NavIcon from '../components/NavIcon'
+import { Icon } from '../components/NavIcon'
 
 const MODE_LABEL = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Review' }
 
@@ -64,7 +65,7 @@ export default function EntryDetail() {
       <>
         <div className="flex h-[42px] items-center justify-between gap-3">
           <Link to="/entries?kind=letter" className="inline-flex items-center gap-2 text-sm font-medium text-ink-500 hover:text-ink-700">
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
+            <Icon name="chevron-left" size={14} />
             Letters
           </Link>
         </div>
@@ -116,7 +117,7 @@ export default function EntryDetail() {
         </nav>}
         title={e.title || 'Untitled'}
         actions={<>
-          <Link to="/entries" className="btn-ghost">← All entries</Link>
+          <Link to="/entries" className="btn-ghost"><Icon name="arrow-left" size={14} />All entries</Link>
           {!sealed && !editing && e.kind !== 'letter' && <button className="btn-primary" onClick={() => { setDraft(e.current_text); setEditing(true); setView('current') }}><NavIcon name="edit" size={16} />Edit</button>}
         </>} />
       {msg.text && <div className="mb-4"><Alert kind={msg.kind || 'success'} onClose={() => setMsg({})}>{msg.text}</Alert></div>}

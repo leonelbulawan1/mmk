@@ -75,7 +75,7 @@ export default function Dashboard() {
 
       <div className="mt-4 flex min-h-0 flex-1 flex-col">
         <Section className="flex min-h-0 min-w-0 flex-1 flex-col" title="Recent entries" bodyClassName="relative min-h-0 flex-1 overflow-y-auto p-0"
-          actions={<Link to="/entries" className="link">View all →</Link>}>
+          actions={<Link to="/entries" className="link inline-flex items-center gap-1.5">View all<NavIcon name="arrow-right" size={14} /></Link>}>
           {data.recent.length === 0 ? (
             <div className="p-6">
               <Empty title="Your diary is empty" action={!sealed && <Link to="/entries/new" className="btn-primary">Write your first entry</Link>} />

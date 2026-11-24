@@ -23,8 +23,8 @@ export default function NewMenu({ label = 'New', icon = 'plus' }) {
     <div ref={ref} className="relative">
       <button type="button" onClick={(e) => { byKeyboard.current = e.detail === 0; setOpen(!open) }} aria-haspopup="menu" aria-expanded={open}
         className="btn-primary">
-        {icon === 'write' ? <NavIcon name="write" size={16} /> : <span aria-hidden className="text-lg leading-none">+</span>}{label}
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        <NavIcon name={icon === 'write' ? 'write' : 'plus'} size={16} />{label}
+        <NavIcon name="chevron-down" size={12} />
       </button>
       {open && (
         <div role="menu" className="absolute right-0 top-full z-40 mt-2 w-44 overflow-hidden rounded-xl border border-cream-300 bg-cream-50 py-1 shadow-paper">

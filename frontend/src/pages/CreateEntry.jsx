@@ -271,7 +271,7 @@ export default function CreateEntry({ modal = false }) {
               )}
               {!opensOnDate && release?.released && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-sage-100 px-2.5 py-0.5 text-xs font-medium text-sage-600" title="Allowed in your legacy policy">
-                  ✓ Can receive letters
+                  <NavIcon name="check" size={12} />Can receive letters
                 </span>
               )}
             </div>

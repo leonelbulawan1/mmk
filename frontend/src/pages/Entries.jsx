@@ -4,7 +4,7 @@ import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, ConfirmDialog, Empty, Spinner, Tag, useToast } from '../components/ui'
 import { DraftModal, EntryModal, LetterModal } from '../components/EntryModal'
-import NavIcon from '../components/NavIcon'
+import NavIcon, { Icon } from '../components/NavIcon'
 import NewMenu from '../components/NewMenu'
 
 function GroupHeader({ id, title, count, note, sub }) {
@@ -353,15 +353,14 @@ export default function Entries() {
       <div className="flex flex-col gap-2 border-b border-cream-300 pb-3 sm:flex-row sm:gap-3">
         <div className="flex flex-1 gap-2">
           <form role="search" className="relative flex-1" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            <Icon name="search" size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" />
             <input ref={searchRef} aria-keyshortcuts="/" className="input pl-10 pr-10" type="search" placeholder="Search entries and letters" value={q} onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Escape' && q) { e.preventDefault(); clearSearch() } }} aria-label="Search entries and letters" />
             {!q && <kbd aria-hidden className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-cream-300 bg-cream-100 px-1.5 font-sans text-xs text-ink-400 sm:block">/</kbd>}
             {q && (
               <button type="button" onClick={clearSearch} aria-label="Clear search" title="Clear search"
                 className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-400 hover:bg-cream-200 hover:text-ink-600">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                <Icon name="close" size={14} />
               </button>
             )}
           </form>

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { FieldMessage } from './icons'
+import { Icon } from './NavIcon'
 
 // Title of a page: name, one short line about it, and the page's main actions on the right.
 export function PageHeader({ eyebrow, title, subtitle, actions, meta }) {
@@ -51,11 +52,8 @@ export function Field({ label, hint, error, children }) {
   )
 }
 
-const AlertIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-    strokeLinejoin="round" aria-hidden="true" className="mt-px shrink-0">
-    <circle cx="12" cy="12" r="9.5" /><path d="M12 7.5v5.5M12 16.5h.01" />
-  </svg>
+const AlertIcon = ({ kind }) => (
+  <Icon name={{ success: 'check-circle', info: 'info', warn: 'warning' }[kind] || 'error'} size={18} className="mt-px" />
 )
 
 export function Alert({ kind = 'error', children, onClose }) {
@@ -68,8 +66,8 @@ export function Alert({ kind = 'error', children, onClose }) {
   }
   return (
     <div role={kind === 'error' ? 'alert' : 'status'} className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${styles[kind]}`}>
-      <div className="flex items-start gap-2.5">{(kind === 'error' || kind === 'warn') && <AlertIcon />}<div>{children}</div></div>
-      {onClose && <button onClick={onClose} className="opacity-60 hover:opacity-100" aria-label="Dismiss">×</button>}
+      <div className="flex items-start gap-2.5"><AlertIcon kind={kind} /><div>{children}</div></div>
+      {onClose && <button onClick={onClose} className="mt-0.5 opacity-60 hover:opacity-100" aria-label="Dismiss"><Icon name="close" size={14} /></button>}
     </div>
   )
 }
@@ -108,11 +106,9 @@ export function ToastProvider({ children }) {
       <div className="pointer-events-none fixed inset-x-3 bottom-3 z-[60] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:items-end" aria-live="polite" role="status">
         {items.map((t) => (
           <div key={t.id} className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-cream-50 px-4 py-3 text-sm font-medium shadow-paper fade-in ${tone[t.kind] || tone.info}`}>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-px shrink-0">
-              {t.kind === 'error' ? <><circle cx="12" cy="12" r="9.5" /><path d="M12 7.5v5.5M12 16.5h.01" /></> : <><circle cx="12" cy="12" r="9.5" /><path d="m8 12.5 2.5 2.5L16 9.5" /></>}
-            </svg>
+            <Icon name={t.kind === 'error' ? 'error' : 'check-circle'} size={18} className="mt-px" />
             <span className="flex-1 text-ink-700">{t.text}</span>
-            <button type="button" onClick={() => remove(t.id)} aria-label="Dismiss" className="-mr-1 text-ink-400 hover:text-ink-700">×</button>
+            <button type="button" onClick={() => remove(t.id)} aria-label="Dismiss" className="-mr-1 mt-0.5 text-ink-400 hover:text-ink-700"><Icon name="close" size={14} /></button>
           </div>
         ))}
       </div>
@@ -175,9 +171,7 @@ export function useAsync(fn, deps = []) {
 export function LetterBadge({ to, className = '' }) {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full bg-ink-700 px-2.5 py-0.5 text-xs font-medium text-cream-50 ${className}`}>
-      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M3.5 7l8.5 6 8.5-6" />
-      </svg>
+      <Icon name="letters" size={13} />
       {to ? <>Letter to {to}</> : 'Letter'}
     </span>
   )
@@ -187,9 +181,7 @@ export function LetterBadge({ to, className = '' }) {
 export function LegalDisclaimer({ compact = false, className = '' }) {
   return (
     <div role="note" className={`flex gap-2.5 rounded-xl border border-cream-300 bg-cream-100 px-3.5 py-3 text-xs leading-relaxed text-ink-500 ${className}`}>
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0 text-bark-500">
-        <circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" />
-      </svg>
+      <Icon name="info" size={16} className="mt-0.5 text-bark-500" />
       <p>
         <b className="font-semibold text-ink-600">Not a legal will.</b>{' '}
         {compact
@@ -246,7 +238,7 @@ export function Dialog({ open, title, onClose, children, footer, wide = false, e
             </div>
             {closeButton && onClose && (
               <button type="button" onClick={onClose} aria-label="Close" className="btn-ghost btn-icon -mr-2 -mt-1 h-10 w-10 text-ink-400">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" style={{ width: 20, height: 20, flexShrink: 0 }}><path d="M6 6l12 12M18 6 6 18" /></svg>
+                <Icon name="close" size={18} />
               </button>
             )}
           </div>

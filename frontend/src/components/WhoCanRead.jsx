@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { reasonText } from './access'
 import { Card, LevelBadge, Spinner, useAsync } from './ui'
+import { Icon } from './NavIcon'
 
 /** For one entry: what each beneficiary will be able to read after the owner's passing (decided by Prolog). */
 export default function WhoCanRead({ entryId, sealed, bare = false }) {
@@ -30,8 +31,8 @@ export default function WhoCanRead({ entryId, sealed, bare = false }) {
       )}
       {!sealed && people.length > 0 && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
-          <Link to="/policy" className="text-bark-500 hover:underline">Legacy policy →</Link>
-          <Link to="/access" className="text-bark-500 hover:underline">Access permissions →</Link>
+          <Link to="/policy" className="inline-flex items-center gap-1 text-bark-500 hover:underline">Legacy policy<Icon name="arrow-right" size={12} /></Link>
+          <Link to="/access" className="inline-flex items-center gap-1 text-bark-500 hover:underline">Access permissions<Icon name="arrow-right" size={12} /></Link>
         </div>
       )}
     </Wrap>
