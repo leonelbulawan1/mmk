@@ -419,6 +419,7 @@ export default function Entries() {
         </>
       )}
       <EntryModal entry={openEntry} onClose={() => setOpenEntry(null)}
+        onSaved={(u) => setState((st) => ({ ...st, data: st.data.map((x) => (x.id === u.id ? { ...x, snippet: (u.current_text || '').slice(0, 180), pending_review: u.pending_review } : x)) }))}
         onDeleted={(id) => { setState((st) => ({ ...st, data: st.data.filter((x) => x.id !== id) })); setOpenEntry(null) }} />
       <LetterModal letter={openLetter} onClose={() => setOpenLetter(null)} />
       <DraftModal draft={toDelete ? null : openDraft} onClose={() => setOpenDraft(null)} onDelete={() => setToDelete(openDraft)} />

@@ -25,7 +25,7 @@ function Stat({ label, value, highlight, className = '' }) {
 export default function Dashboard() {
   const { user } = useAuth()
   const location = useLocation()
-  const { data, error, loading, reload } = useAsync(() => api('/api/dashboard'))
+  const { data, error, loading, reload, setData } = useAsync(() => api('/api/dashboard'))
   const [openEntry, setOpenEntry] = useState(null)
   const [openLetter, setOpenLetter] = useState(null)
   const [draftList, setDraftList] = useState(() => drafts.list(user.id))
@@ -109,7 +109,7 @@ export default function Dashboard() {
 
       </div>
       <LetterModal letter={openLetter} onClose={() => setOpenLetter(null)} />
-      <EntryModal entry={openEntry} onClose={() => setOpenEntry(null)} onDeleted={() => { setOpenEntry(null); reload() }} />
+      <EntryModal entry={openEntry} onClose={() => setOpenEntry(null)} onDeleted={() => { setOpenEntry(null); reload() }} onSaved={(u) => setData({ ...data, recent: data.recent.map((x) => (x.id === u.id ? { ...x, snippet: (u.current_text || '').slice(0, 180) } : x)) })} />
     </div>
   )
 }

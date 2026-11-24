@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
@@ -24,14 +24,19 @@ const Actions = ({ onDelete, onClose, onEdit, editLabel = 'Edit' }) => (
 )
 
 // A diary entry: date and time, the full text, themes and people; Edit and Delete.
+// Edit happens in the same window (saved as a revision; the original stays in the vault).
 // Delete adds a "deleted" record to the vault: the entry is hidden everywhere and shared with no one.
-export function EntryModal({ entry, onClose, onDeleted }) {
+export function EntryModal({ entry, onClose, onDeleted, onSaved }) {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const toast = useToast()
   const [confirm, setConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [text, setText] = useState('')
+  const [editError, setEditError] = useState('')
+  const [confirmDiscard, setConfirmDiscard] = useState(null)  // null, 'view' (back to the entry) or 'close'
   const full = useAsync(() => (entry ? api(`/api/entries/${entry.id}`) : Promise.resolve(null)), [entry?.id])
+  useEffect(() => { setEditing(false); setEditError('') }, [entry?.id])
   if (!entry) return null
   const e = full.data || entry
   const sealed = !!user.death_triggered_at
@@ -41,17 +46,41 @@ export function EntryModal({ entry, onClose, onDeleted }) {
     try { await api(`/api/entries/${e.id}`, { method: 'DELETE' }); setConfirm(false); toast('Entry deleted.'); onDeleted?.(e.id) }
     catch (err) { setConfirm(false); toast(err.message, 'error') } finally { setBusy(false) }
   }
+  const changed = editing && text !== (e.current_text || '')
+  const startEdit = () => { setText(e.current_text || ''); setEditError(''); setEditing(true) }
+  const stopEdit = () => { setEditing(false); setConfirmDiscard(null); setEditError('') }
+  const save = async () => {
+    if (!text.trim()) { setEditError('Write something before saving.'); return }
+    setBusy(true); setEditError('')
+    try {
+      const updated = await api(`/api/entries/${e.id}/revisions`, { method: 'POST', body: { text, source: e.pending_review ? 'review' : 'edit' } })
+      full.setData(updated); setEditing(false); toast('Changes saved.'); onSaved?.(updated)
+    } catch (err) { setEditError(err.message) } finally { setBusy(false) }
+  }
+  // Closing with unsaved changes asks first.
+  const close = () => (changed ? setConfirmDiscard('close') : onClose())
   return (
     <>
-      <Dialog open={!confirm} wide onClose={onClose} eyebrow="Diary entry" title={entryTitle(e)}
+      <Dialog open={!confirm && !confirmDiscard} wide onClose={busy ? undefined : close} eyebrow={editing ? 'Edit diary entry' : 'Diary entry'} title={entryTitle(e)}
         meta={<span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{day(e.entry_date)}</span>{sameDay(e.created_at, e.entry_date) && <><span aria-hidden>·</span><span>{time(e.created_at)}</span></>}
           {e.writing_mode && <><span aria-hidden>·</span><span>{MODE[e.writing_mode]}</span></>}
           {edits > 0 && <><span aria-hidden>·</span><span>Edited {edits} time{edits > 1 ? 's' : ''}</span></>}
         </span>}
         footer={sealed ? <button type="button" data-autofocus className="btn-secondary" onClick={onClose}>Close</button>
-          : <Actions onClose={onClose} onDelete={() => setConfirm(true)} onEdit={() => navigate(`/entries/${e.id}`, { state: { revise: true } })} />}>
-        {full.loading ? <Spinner label="Loading entry" /> : full.error ? <Alert>{full.error}</Alert> : (
+          : editing ? <>
+            <span className="mr-auto self-center text-xs text-ink-400">{text.trim().split(/\s+/).filter(Boolean).length} words</span>
+            <button type="button" className="btn-secondary" disabled={busy} onClick={() => (changed ? setConfirmDiscard('view') : stopEdit())}>Cancel</button>
+            <button type="button" className="btn-primary" disabled={busy || !changed} onClick={save}>{busy ? 'Saving…' : 'Save changes'}</button>
+          </>
+          : <Actions onClose={onClose} onDelete={() => setConfirm(true)} onEdit={startEdit} />}>
+        {full.loading ? <Spinner label="Loading entry" /> : full.error ? <Alert>{full.error}</Alert> : editing ? (
+          <div className="space-y-3">
+            {editError && <Alert onClose={() => setEditError('')}>{editError}</Alert>}
+            <textarea data-autofocus className="input paper-lines min-h-[45vh] resize-y text-lg" value={text} onChange={(ev) => setText(ev.target.value)}
+              aria-label="Entry text" maxLength={20000} />
+          </div>
+        ) : (
           <>
             <div className="max-w-2xl whitespace-pre-wrap text-lg leading-[1.8] text-ink-600">{e.current_text}</div>
             {(e.topics?.length > 0 || e.names?.length > 0) && (
@@ -63,6 +92,10 @@ export function EntryModal({ entry, onClose, onDeleted }) {
           </>
         )}
       </Dialog>
+      <ConfirmDialog open={!!confirmDiscard} title="Discard changes?" confirmLabel="Discard" cancelLabel="Keep editing" danger
+        onConfirm={() => { const then = confirmDiscard; stopEdit(); if (then === 'close') onClose() }} onCancel={() => setConfirmDiscard(null)}>
+        Your changes to “{entryTitle(e)}” won’t be saved.
+      </ConfirmDialog>
       <ConfirmDialog open={confirm} danger busy={busy} title="Delete this entry?" confirmLabel="Delete entry" cancelLabel="Keep it"
         onConfirm={remove} onCancel={() => setConfirm(false)}>
         “{entryTitle(e)}” will be deleted. This can’t be undone.
