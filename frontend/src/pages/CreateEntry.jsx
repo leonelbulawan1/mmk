@@ -320,10 +320,12 @@ export default function CreateEntry({ modal = false }) {
           </Row>
 
           {/* Body */}
-          <textarea required className={`paper-lines block w-full resize-y border-0 bg-transparent px-5 py-4 text-lg text-ink-600 ${modal ? (isLetter ? 'min-h-[260px] sm:min-h-[40vh]' : 'min-h-[320px] sm:min-h-[48vh]') : isLetter ? 'min-h-[386px] lg:min-h-[443px]' : 'min-h-[500px]'} placeholder:text-ink-400/50 focus:outline-none sm:px-6`}
+          <div className="px-4 pt-4 sm:px-5">
+          <textarea required className="writing-area"
             placeholder={isLetter ? 'Dear…' : 'Write about your day…'} value={form.text} onChange={onText} ref={textRef} spellCheck autoCorrect="on" autoCapitalize="sentences"
             aria-label={isLetter ? 'Letter text' : 'Entry text'} aria-describedby="autofix-status" />
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2 text-xs text-ink-400 sm:px-6">
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs text-ink-400 sm:px-5">
             <label className="inline-flex items-center gap-2">
               <input type="checkbox" className="checkbox" checked={autoFix} onChange={toggleAutoFix} /> Auto-correct
             </label>

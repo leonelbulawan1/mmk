@@ -61,26 +61,37 @@ export function EntryModal({ entry, onClose, onDeleted, onSaved }) {
   const close = () => (changed ? setConfirmDiscard('close') : onClose())
   return (
     <>
-      <Dialog open={!confirm && !confirmDiscard} wide onClose={busy ? undefined : close} eyebrow={editing ? 'Edit diary entry' : 'Diary entry'} title={entryTitle(e)}
+      {/* Edit: the same window and writing box as Write → Diary. */}
+      <Dialog open={editing && !confirmDiscard} size="xl" icon={<NavIcon name="write" size={18} />} title="Edit diary" onClose={busy ? undefined : close}>
+        <div className="overflow-hidden rounded-lg border border-cream-300 bg-cream-50">
+          <div className="border-b border-cream-300 px-5 py-2.5 sm:px-6">
+            <div className="flex min-h-[2.25rem] flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="w-16 shrink-0 text-sm text-ink-400">Title</span>
+              <span className="min-w-0 flex-1 truncate text-lg font-semibold text-ink-700">{entryTitle(e)}</span>
+              <span className="text-sm text-ink-400">{day(e.entry_date)}</span>
+            </div>
+          </div>
+          {editError && <div className="px-4 pt-4 sm:px-5"><Alert onClose={() => setEditError('')}>{editError}</Alert></div>}
+          <div className="px-4 py-4 sm:px-5">
+            <textarea data-autofocus className="writing-area" value={text} onChange={(ev) => setText(ev.target.value)}
+              aria-label="Entry text" maxLength={20000} spellCheck autoCapitalize="sentences" />
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-cream-300 bg-cream-100/70 px-4 py-3 sm:px-5">
+            <span className="text-xs text-ink-400">{text.trim().split(/\s+/).filter(Boolean).length} words</span>
+            <button type="button" className="btn-secondary" disabled={busy} onClick={() => (changed ? setConfirmDiscard('view') : stopEdit())}>Cancel</button>
+            <button type="button" className="btn-primary" disabled={busy || !changed} onClick={save}><NavIcon name="write" size={16} />{busy ? 'Saving…' : 'Save changes'}</button>
+          </div>
+        </div>
+      </Dialog>
+      <Dialog open={!editing && !confirm && !confirmDiscard} wide onClose={onClose} eyebrow="Diary entry" title={entryTitle(e)}
         meta={<span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{day(e.entry_date)}</span>{sameDay(e.created_at, e.entry_date) && <><span aria-hidden>·</span><span>{time(e.created_at)}</span></>}
           {e.writing_mode && <><span aria-hidden>·</span><span>{MODE[e.writing_mode]}</span></>}
           {edits > 0 && <><span aria-hidden>·</span><span>Edited {edits} time{edits > 1 ? 's' : ''}</span></>}
         </span>}
         footer={sealed ? <button type="button" data-autofocus className="btn-secondary" onClick={onClose}>Close</button>
-          : editing ? <>
-            <span className="mr-auto self-center text-xs text-ink-400">{text.trim().split(/\s+/).filter(Boolean).length} words</span>
-            <button type="button" className="btn-secondary" disabled={busy} onClick={() => (changed ? setConfirmDiscard('view') : stopEdit())}>Cancel</button>
-            <button type="button" className="btn-primary" disabled={busy || !changed} onClick={save}>{busy ? 'Saving…' : 'Save changes'}</button>
-          </>
           : <Actions onClose={onClose} onDelete={() => setConfirm(true)} onEdit={startEdit} />}>
-        {full.loading ? <Spinner label="Loading entry" /> : full.error ? <Alert>{full.error}</Alert> : editing ? (
-          <div className="space-y-3">
-            {editError && <Alert onClose={() => setEditError('')}>{editError}</Alert>}
-            <textarea data-autofocus className="input paper-lines min-h-[45vh] resize-y text-lg" value={text} onChange={(ev) => setText(ev.target.value)}
-              aria-label="Entry text" maxLength={20000} />
-          </div>
-        ) : (
+        {full.loading ? <Spinner label="Loading entry" /> : full.error ? <Alert>{full.error}</Alert> : (
           <>
             <div className="max-w-2xl whitespace-pre-wrap text-lg leading-[1.8] text-ink-600">{e.current_text}</div>
             {(e.topics?.length > 0 || e.names?.length > 0) && (

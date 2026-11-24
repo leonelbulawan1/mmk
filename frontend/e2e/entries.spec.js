@@ -19,12 +19,13 @@ test('a diary entry opens in a window with Edit and Delete', async ({ page }) =>
   await dialog.getByRole('button', { name: 'Edit' }).click()
   // Edit stays in the same window, on the same page.
   await expect(page).toHaveURL(/\/entries(\?|$)/)
-  const box = dialog.getByLabel('Entry text')
+  const editor = page.getByRole('dialog', { name: 'Edit diary' })
+  const box = editor.getByLabel('Entry text')
   await expect(box).toBeVisible()
   await box.fill('Another hospital check-up. The doctor is happy with the new medicine.')
-  await dialog.getByRole('button', { name: 'Save changes' }).click()
+  await editor.getByRole('button', { name: 'Save changes' }).click()
   await expect(page.getByText('Changes saved.')).toBeVisible()
-  await expect(dialog.getByText('Edited 1 time')).toBeVisible()
+  await expect(page.getByRole('dialog').getByText('Edited 1 time')).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Edit' })).toBeVisible()
 })
 
