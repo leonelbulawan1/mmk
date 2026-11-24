@@ -38,7 +38,7 @@ export default function Register() {
         <IconInput id="reg-name" icon={UserIcon} required autoComplete="name" placeholder="Full name" aria-label="Full name" value={form.display_name} onChange={set('display_name')} error={fields.display_name} />
         <IconInput id="reg-email" icon={MailIcon} type="email" required autoComplete="email" placeholder="Email address" aria-label="Email address" value={form.email} onChange={set('email')} error={fields.email} />
         <PasswordInput id="reg-password" icon={LockIcon} required minLength={8} autoComplete="new-password" placeholder="Password" aria-label="Password" value={form.password} onChange={set('password')}
-          error={fields.password} hint="At least 8 characters, with letters and numbers." />
+          error={fields.password} hint="8+ characters, letters and numbers" />
         <button className="btn-primary btn-lg w-full" disabled={busy}>{busy ? <><Spinner /> Creating your account…</> : 'Create my account'}</button>
       </form>
     </AuthShell>

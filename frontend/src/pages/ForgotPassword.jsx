@@ -80,7 +80,7 @@ export default function ForgotPassword() {
           onChange={(e) => { setError(''); setFields((f) => ({ ...f, code: '' })); setCode(e.target.value.replace(/\D/g, '').slice(0, 6)) }} />
         <PasswordInput id="fp-password" icon={LockIcon} required minLength={8} autoComplete="new-password" placeholder="New password" aria-label="New password"
           value={password} onChange={(e) => { setError(''); setFields((f) => ({ ...f, password: '' })); setPassword(e.target.value) }}
-          error={fields.password} hint="At least 8 characters, with letters and numbers." />
+          error={fields.password} hint="8+ characters, letters and numbers" />
         <button className="btn-primary btn-lg w-full" disabled={busy}>{busy ? <><Spinner /> Resetting password…</> : 'Reset password'}</button>
         <p className="text-center text-sm text-ink-400">Wrong email? <button type="button" className="font-medium text-bark-500 hover:underline" onClick={() => { setStep('email'); setError(''); setInfo('') }}>Change it</button></p>
       </form>

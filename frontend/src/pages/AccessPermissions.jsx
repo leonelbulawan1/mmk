@@ -24,7 +24,7 @@ export default function AccessPermissions() {
         </div>
       </div>
 
-      {m.loading ? <Spinner label="Checking access with the Prolog rules" /> : m.error ? <Alert>{m.error}</Alert> : !m.data.beneficiaries.length ? (
+      {m.loading ? <Spinner label="Loading" /> : m.error ? <Alert>{m.error}</Alert> : !m.data.beneficiaries.length ? (
         <Empty title="No beneficiaries" action={<Link className="btn-primary" to="/beneficiaries">Add one</Link>} />
       ) : !m.data.entries.length ? (
         <Empty title="No entries yet" />

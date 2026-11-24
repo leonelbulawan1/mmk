@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { DisputePanel, ExecutorPanel } from '../components/Executor'
-import { Alert, Card, PageHeader, Spinner, useAsync } from '../components/ui'
+import { Alert, Card, Empty, PageHeader, Spinner, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 
 export default function BeneficiaryHome() {
@@ -29,14 +29,7 @@ export default function BeneficiaryHome() {
             ))}
           </div>
         )}
-        <Card className="flex items-start gap-4">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cream-200 text-bark-500"><NavIcon name="letters" size={20} /></span>
-          <p className="max-w-2xl text-ink-500">
-            {letters.data?.length
-              ? <>{first}'s diary entries stay private while {first} is alive. When {first} sends you another letter, you will get an email and it will appear here.</>
-              : <>Nothing has been sent to you yet. When {first} sends you a letter, you will get an email and it will appear here. {first}'s diary entries stay private while {first} is alive.</>}
-          </p>
-        </Card>
+        {!letters.loading && !letters.data?.length && <Empty title="No letters yet" />}
         <ExecutorPanel />
         <DisputePanel />
       </>
@@ -50,13 +43,13 @@ export default function BeneficiaryHome() {
         <Card>
           <p className="text-sm font-medium text-ink-500">Shared with you</p>
           <p className="mt-2 text-5xl font-semibold">{d.shared_entries}</p>
-          <p className="text-sm text-ink-400">entr{d.shared_entries === 1 ? 'y' : 'ies'} shared with you</p>
+          <p className="text-sm text-ink-400">entr{d.shared_entries === 1 ? 'y' : 'ies'}</p>
           <Link to="/assistant" className="btn-primary mt-6"><NavIcon name="assistant" size={16} />Ask about {first}</Link>
         </Card>
         <Card>
           <p className="text-sm font-medium text-ink-500">Letters for you</p>
           <p className="mt-2 text-5xl font-semibold">{d.released_letters}</p>
-          <p className="text-sm text-ink-400">letter{d.released_letters === 1 ? '' : 's'} addressed to you, opened</p>
+          <p className="text-sm text-ink-400">letter{d.released_letters === 1 ? '' : 's'}</p>
           <Link to="/letters" className="btn-secondary mt-6">Read letters</Link>
         </Card>
       </div>

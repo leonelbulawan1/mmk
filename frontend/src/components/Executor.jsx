@@ -138,16 +138,15 @@ export function ExecutorPanel() {
 
   return (
     <Card className="mt-6 border-gold-500/40">
-      <h2 className="text-lg font-semibold">You are {first}'s executor</h2>
+      <h2 className="text-lg font-semibold">Executor</h2>
       {rep ? (
         <>
           <p className="mt-2 text-sm text-ink-500">
-            You reported {first}'s passing on {fmtDate(rep.reported_at)}. {first} has been emailed.{' '}
-            {rep.activates_at
-              ? <>Unless {first} signs in and cancels it, or someone disputes it, the diary will be sealed and opened as {first} wished <b>{left}</b> ({fmtWhen(rep.activates_at)}).</>
-              : <>The report is <b>{STATE_TEXT[rep.status] || rep.status}</b>.</>}
+            Reported {fmtDate(rep.reported_at)} · {rep.activates_at
+              ? <>Opens <b>{left}</b> ({fmtWhen(rep.activates_at)})</>
+              : <b>{STATE_TEXT[rep.status] || rep.status}</b>}
           </p>
-          {rep.decision_note && <p className="mt-2 text-sm text-ink-500">Reviewer's note: {rep.decision_note}</p>}
+          {rep.decision_note && <p className="mt-2 text-sm text-ink-500">Note: {rep.decision_note}</p>}
           {reviewed && (
             <div className="mt-4 rounded-xl bg-cream-100 p-4 text-sm">
               <p className="font-medium">Documents</p>
@@ -168,10 +167,6 @@ export function ExecutorPanel() {
         </>
       ) : (
         <>
-          <p className="mt-2 max-w-3xl text-sm text-ink-500">
-            {ownerName} trusted you to tell MMK when they pass away. After reporting, you will be asked for a document such as the death certificate, which an MMK reviewer checks. Only do this when it has happened. {first} will be emailed and
-            can cancel it during a waiting period; after that, their diary is sealed and shared as they wished, and the other beneficiaries are emailed.
-          </p>
           {error && <div className="mt-3"><Alert>{error}</Alert></div>}
           <form className="mt-4 grid gap-4 sm:grid-cols-3 sm:items-end" onSubmit={(e) => { e.preventDefault(); call('/api/executor/report', form) }}>
             <Field label="Your password"><PasswordInput required autoComplete="current-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
@@ -202,16 +197,15 @@ export function DisputePanel() {
   }
   return (
     <Card className="mt-6 border-rose-600/30">
-      <h2 className="text-lg font-semibold">{first}'s passing was reported</h2>
-      <p className="mt-2 text-sm text-ink-500">The report is {STATE_TEXT[rep.status] || rep.status}.
-        {rep.activates_at && <> If no one disputes it, {first}'s diary opens as {first} wished on {fmtWhen(rep.activates_at)}.</>}</p>
+      <h2 className="text-lg font-semibold">Passing reported</h2>
+      <p className="mt-2 text-sm text-ink-500">Status: {STATE_TEXT[rep.status] || rep.status}{rep.activates_at && <> · Opens {fmtWhen(rep.activates_at)}</>}</p>
       {rep.can_dispute ? (
         <form onSubmit={send} className="mt-4 space-y-3">
-          <Field label="Is this not true? Tell the reviewer why">
+          <Field label="Reason">
             <textarea className="input min-h-24" required maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} />
           </Field>
           {error && <Alert>{error}</Alert>}
-          <button className="btn-secondary" disabled={busy || !reason.trim()}>{busy ? 'Sending…' : 'Dispute this report'}</button>
+          <button className="btn-secondary" disabled={busy || !reason.trim()}>{busy ? 'Sending…' : 'Dispute'}</button>
         </form>
       ) : <p className="mt-2 text-sm text-ink-500">Dispute submitted.</p>}
     </Card>

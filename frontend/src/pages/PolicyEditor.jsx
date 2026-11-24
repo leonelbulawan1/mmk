@@ -98,7 +98,7 @@ export default function PolicyEditor() {
         <div className="min-w-0 space-y-6 xl:col-span-2">
           <Section bodyClassName="p-5">
             <div role="tablist" className="mb-4 flex rounded-xl border border-cream-300 bg-cream-100 p-1 text-sm">
-              {[['rules', 'Meaning'], ['prolog', 'Prolog'], ['help', 'Cheatsheet'], ['history', 'History']].map(([k, l]) => (
+              {[['rules', 'Rules'], ['prolog', 'Prolog'], ['help', 'Syntax'], ['history', 'History']].map(([k, l]) => (
                 <button key={k} role="tab" aria-selected={tab === k} onClick={() => { setTab(k); if (k === 'help' && !grammar) api('/api/policy/grammar').then((g) => setGrammar(g.ebnf)) }}
                   className={`flex-1 rounded-lg px-2 py-1.5 font-medium transition ${tab === k ? 'bg-ink-700 text-cream-50' : 'text-ink-500 hover:bg-cream-200'}`}>{l}</button>
               ))}
@@ -110,11 +110,11 @@ export default function PolicyEditor() {
             {tab === 'prolog' && <pre className="max-h-[28rem] overflow-auto whitespace-pre-wrap rounded-xl bg-ink-800 p-4 text-xs text-cream-100">{(result?.prolog || []).join('\n') || '% no facts'}</pre>}
             {tab === 'help' && (
               <div className="space-y-3 text-sm">
-                <p className="flex flex-wrap items-center gap-1.5">Your handles: {policy.data.handles.length ? policy.data.handles.map((h) => <Tag key={h} tone="ink">{h}</Tag>) : <Link className="underline" to="/beneficiaries">add beneficiaries</Link>}</p>
-                {CHEATSHEET.map(([code, note]) => (
-                  <div key={code}><code className="block rounded-lg bg-cream-200 px-2 py-1 text-xs">{code}</code><span className="text-xs text-ink-400">{note}</span></div>
+                <p className="flex flex-wrap items-center gap-1.5">Handles: {policy.data.handles.length ? policy.data.handles.map((h) => <Tag key={h} tone="ink">{h}</Tag>) : <Link className="underline" to="/beneficiaries">add beneficiaries</Link>}</p>
+                {CHEATSHEET.map(([code]) => (
+                  <code key={code} className="block rounded-lg bg-cream-200 px-2 py-1 text-xs">{code}</code>
                 ))}
-                {grammar && <details><summary className="cursor-pointer text-bark-500">Full EBNF grammar</summary><pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs">{grammar}</pre></details>}
+                {grammar && <details><summary className="cursor-pointer text-bark-500">Grammar (EBNF)</summary><pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs">{grammar}</pre></details>}
               </div>
             )}
             {tab === 'history' && (policy.data.history.length ? (

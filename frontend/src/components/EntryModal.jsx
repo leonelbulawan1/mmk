@@ -11,6 +11,8 @@ const firstWords = (t, n = 7) => { const w = (t || '').split(/\s+/).filter(Boole
 export const entryTitle = (e) => e.title?.trim() || firstWords(e.current_text || e.snippet) || 'Untitled'
 const day = (iso) => new Date(iso + 'T00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 const time = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+// The saved time, only when it was saved on the entry's own date.
+const sameDay = (iso, day) => !!iso && new Date(iso).toLocaleDateString('en-CA') === day
 const MODE = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Review' }
 
 const Actions = ({ onDelete, onClose, onEdit, editLabel = 'Edit' }) => (
@@ -43,7 +45,7 @@ export function EntryModal({ entry, onClose, onDeleted }) {
     <>
       <Dialog open={!confirm} wide closeButton onClose={onClose} eyebrow="Diary entry" title={entryTitle(e)}
         meta={<span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span>{day(e.entry_date)}</span><span aria-hidden>·</span><span>{time(e.created_at)}</span>
+          <span>{day(e.entry_date)}</span>{sameDay(e.created_at, e.entry_date) && <><span aria-hidden>·</span><span>{time(e.created_at)}</span></>}
           {e.writing_mode && <><span aria-hidden>·</span><span>{MODE[e.writing_mode]}</span></>}
           {edits > 0 && <><span aria-hidden>·</span><span>Edited {edits} time{edits > 1 ? 's' : ''}</span></>}
         </span>}
@@ -101,7 +103,7 @@ export function LetterModal({ letter, onClose }) {
     : e.release_on ? fmtDate(e.release_on) : ''
   return (
     <Dialog open wide closeButton onClose={onClose} eyebrow="Letter" title={entryTitle(e)}
-      meta={<span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{day(e.entry_date)}</span><span aria-hidden>·</span><span>{time(e.created_at)}</span></span>}
+      meta={<span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{day(e.entry_date)}</span>{sameDay(e.created_at, e.entry_date) && <><span aria-hidden>·</span><span>{time(e.created_at)}</span></>}</span>}
       footer={<>
         
         <button type="button" data-autofocus className="btn-secondary" onClick={onClose}>Close</button>

@@ -66,7 +66,7 @@ export default function Assistant() {
     return (
       <>
         <PageHeader title="Ask MMK" />
-        <Card className="text-center text-ink-500">{ownerName}'s diary opens only after their passing. You will receive an email when it does.</Card>
+        <Card className="text-center text-ink-500">Not available yet.</Card>
       </>
     )
   }
@@ -109,7 +109,7 @@ export default function Assistant() {
                   )}
                 </div>
               ))}
-              {busy && <p className="text-sm text-ink-400">Looking through the pages…</p>}
+              {busy && <p className="text-sm text-ink-400">Searching…</p>}
               <div ref={endRef} />
             </div>
             <form className="flex gap-2 border-t border-cream-300 p-4" onSubmit={(e) => { e.preventDefault(); ask() }}>

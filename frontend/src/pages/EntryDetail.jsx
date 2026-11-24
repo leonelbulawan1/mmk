@@ -201,7 +201,7 @@ export default function EntryDetail() {
             ]).map(([k, v]) => (
               <div key={k} className="flex items-start justify-between gap-4"><dt className="shrink-0 text-ink-400">{k}</dt><dd className="text-right text-ink-700">{v}</dd></div>
             ))}
-            <div className="pt-1"><dt className="text-ink-400">Summary <span className="text-xs">(what “summary” access shows)</span></dt><dd className="mt-1 italic text-ink-600">{e.summary}</dd></div>
+            <div className="pt-1"><dt className="text-ink-400">Summary</dt><dd className="mt-1 italic text-ink-600">{e.summary}</dd></div>
           </dl>
           <div className="px-5 py-4"><WhoCanRead entryId={e.id} sealed={sealed} bare /></div>
           <div className="space-y-1.5 px-5 py-4 text-sm">

@@ -112,7 +112,7 @@ export default function Settings() {
           <form onSubmit={changePw} noValidate className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Current password"><PasswordInput required autoComplete="current-password" value={pw.current_password} error={fields.current_password} onChange={(e) => { setFields({}); setPw({ ...pw, current_password: e.target.value }) }} /></Field>
-            <Field label="New password"><PasswordInput required minLength={8} autoComplete="new-password" value={pw.new_password} error={fields.new_password} hint="At least 8 characters, with letters and numbers." onChange={(e) => { setFields({}); setPw({ ...pw, new_password: e.target.value }) }} /></Field>
+            <Field label="New password"><PasswordInput required minLength={8} autoComplete="new-password" value={pw.new_password} error={fields.new_password} hint="8+ characters, letters and numbers" onChange={(e) => { setFields({}); setPw({ ...pw, new_password: e.target.value }) }} /></Field>
             </div>
             <div className="flex justify-end border-t border-cream-300/80 pt-4"><button className="btn-primary" disabled={busy === 'pw'}>{busy === 'pw' ? 'Changing password…' : 'Change password'}</button></div>
           </form>
@@ -124,7 +124,7 @@ export default function Settings() {
         <YourData isOwner={isOwner} />
 
         {isOwner && (
-          <Section id="seal" className="border-rose-600/30" title={<h2 id="seal-h" className="text-lg font-semibold text-rose-600">Seal vault (death trigger)</h2>}
+          <Section id="seal" className="border-rose-600/30" title={<h2 id="seal-h" className="text-lg font-semibold text-rose-600">Seal vault</h2>}
             description="Permanent.">
             {note('death')}
             {user.death_triggered_at ? (

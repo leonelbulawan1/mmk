@@ -48,7 +48,7 @@ export default function Activate() {
             placeholder="Invite code" aria-label="Invite code" value={form.invite_code} onChange={set('invite_code')} />
         )}
         <PasswordInput id="act-password" icon={LockIcon} required minLength={8} autoComplete="new-password" placeholder="Create a password" aria-label="Create a password"
-          value={form.password} onChange={set('password')} error={fields.password} hint="At least 8 characters, with letters and numbers." />
+          value={form.password} onChange={set('password')} error={fields.password} hint="8+ characters, letters and numbers" />
         <button className="btn-primary btn-lg w-full" disabled={busy}>{busy ? <><Spinner /> Activating your account…</> : 'Activate my account'}</button>
       </form>
     </AuthShell>
