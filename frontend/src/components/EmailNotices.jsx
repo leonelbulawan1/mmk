@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, fmtDate } from '../api'
-import { Alert, Tag, useAsync } from './ui'
+import { Alert, useAsync } from './ui'
 
 const STATUS = {
   sent: ['Accepted for delivery', 'bg-sage-100 text-sage-600'],
@@ -32,16 +32,13 @@ export default function EmailNotices() {
   const { notices, email_configured: configured } = n.data
   return (
     <div className="mt-6 border-t border-cream-300 pt-5">
-      <h3 className="text-lg font-semibold">Email notices to beneficiaries</h3>
-      <p className="mt-1 text-sm text-ink-500">
-        Each beneficiary with something to read gets a short notice and a sign-in link. No diary content is ever put in an email.
-      </p>
+      <h3 className="text-lg font-semibold">Email notices</h3>
       {!configured && notices.some((x) => x.status !== 'sent') && (
-        <div className="mt-3"><Alert kind="warn">Email sending is not set up on this server, so these notices are waiting here. Once SMTP is configured, use Retry to send them.</Alert></div>
+        <div className="mt-3"><Alert kind="warn">Email isn’t configured. Notices are queued.</Alert></div>
       )}
       {error && <div className="mt-3"><Alert>{error}</Alert></div>}
       {notices.length === 0 ? (
-        <p className="mt-3 text-sm text-ink-400">No beneficiary had anything released to them, so no emails were needed.</p>
+        <p className="mt-3 text-sm text-ink-400">No emails sent.</p>
       ) : (
         <ul className="mt-3 divide-y divide-cream-300 rounded-xl border border-cream-300">
           {notices.map((x) => {
@@ -76,7 +73,6 @@ export default function EmailNotices() {
           })}
         </ul>
       )}
-      <p className="mt-3 text-xs text-ink-400"><Tag>Note</Tag> Letters set to open on a later date are not emailed again when they open.</p>
     </div>
   )
 }

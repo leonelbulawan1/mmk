@@ -12,12 +12,12 @@ const MODE_LABEL = { verbatim: 'Verbatim', light_fix: 'Light Fix', review: 'Revi
 function savedText(d) {
   if (!d) return 'Entry saved.'
   if (d.status === 'delivered') {
-    if (d.email === 'sent') return `Letter sent. We emailed ${d.to}, and the letter is on their MMK home page.`
-    if (d.email === 'failed') return `The letter is on their MMK home page, but we couldn't send the email. ${d.email_problem || ''}`
+    if (d.email === 'sent') return `Letter sent to ${d.to}.`
+    if (d.email === 'failed') return `Letter delivered. Email not sent. ${d.email_problem || ''}`
     return 'Letter sent to their MMK home page.'
   }
-  if (d.after_death) return d.days_after_death ? `Letter saved. It opens ${d.days_after_death} days after your passing.` : 'Letter saved. It opens after your passing.'
-  return `Letter saved. It will be delivered on ${fmtDate(d.opens_on)}.`
+  if (d.after_death) return d.days_after_death ? 'Letter saved.' : 'Letter saved.'
+  return `Letter scheduled for ${fmtDate(d.opens_on)}.`
 }
 
 export default function EntryDetail() {
@@ -46,7 +46,7 @@ export default function EntryDetail() {
     setBusy(true)
     try {
       setData(await api(`/api/entries/${id}/revisions`, { method: 'POST', body: { text, source } }))
-      setEditing(false); setMsg({}); toast('Changes saved. Your original words are kept under Original.')
+      setEditing(false); setMsg({}); toast('Changes saved.')
     } catch (err) { setMsg({ kind: 'error', text: err.message }) } finally { setBusy(false) }
   }
   const acceptReview = () => revise(e.review.suggestions.map((op) => (op.op === 'equal' ? op.before : op.after)).join(''), 'review')
@@ -67,7 +67,6 @@ export default function EntryDetail() {
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
             Letters
           </Link>
-          <p className="hidden text-xs text-ink-400 sm:block">Letters can't be edited once they are sent.</p>
         </div>
         {msg.text && <div className="mx-auto mt-4 max-w-[760px]"><Alert kind={msg.kind || 'success'} onClose={() => setMsg({})}>{msg.text}</Alert></div>}
 
@@ -126,8 +125,7 @@ export default function EntryDetail() {
         <div className="min-w-0 space-y-6">
           {e.pending_review && e.review && (
             <Card className="border-gold-500/40">
-              <h2 className="text-lg font-semibold">Suggestions to review</h2>
-              <p className="mb-4 text-sm text-ink-400">Accepting adds a revision; your original words stay in the vault.</p>
+              <h2 className="mb-4 text-lg font-semibold">Suggestions</h2>
               <div className="rounded-xl bg-cream-100 p-4"><DiffView ops={e.review.suggestions} /></div>
               {!sealed && (
                 <div className="mt-4 flex flex-wrap gap-2">

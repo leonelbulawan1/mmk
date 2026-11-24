@@ -32,13 +32,12 @@ export default function Activate() {
     if (Object.keys(bad).length) { focusFirst(bad, { email: 'act-email', invite_code: 'act-code', password: 'act-password' }); return }
     setError(''); setBusy(true)
     try { await activate(form); navigate('/home') }
-    catch (err) { setError(fromLink ? 'This invite link has expired or was already used. Ask the diary owner to send a new invite.' : err.message) }
+    catch (err) { setError(fromLink ? 'This invite link has expired or was already used.' : err.message) }
     finally { setBusy(false) }
   }
 
   return (
     <AuthShell title="Activate your account"
-      subtitle={fromLink ? 'Choose a password to finish.' : 'Use the invite code from the diary owner.'}
       footer={<>Already activated? <Link className="whitespace-nowrap font-medium text-bark-500 hover:underline" to="/login">Sign in</Link></>}>
       <form onSubmit={submit} noValidate className="space-y-4">
         <ErrorSlot error={error} />

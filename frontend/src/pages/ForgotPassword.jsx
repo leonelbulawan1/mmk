@@ -50,7 +50,7 @@ export default function ForgotPassword() {
 
   if (step === 'email') {
     return (
-      <AuthShell title="Forgot your password?" subtitle="Enter your email and we'll send you a code to reset it."
+      <AuthShell title="Forgot your password?"
         footer={<>Remembered it? <Link className="whitespace-nowrap font-medium text-bark-500 hover:underline" to="/login">Sign in</Link></>}>
         <form noValidate onSubmit={(e) => { e.preventDefault(); const bad = check({ email }, { email: rules.email }); setFields(bad); if (bad.email) { focusFirst(bad, { email: 'fp-email' }); return } sendCode() }} className="space-y-4">
           <ErrorSlot error={error} />
@@ -72,7 +72,7 @@ export default function ForgotPassword() {
       <form onSubmit={reset} noValidate className="space-y-4">
         <ErrorSlot error={error}>
           {info ? <Alert kind="success">{info}</Alert>
-            : demoCode ? <Alert kind="info">Demo: email can't be sent here, so your code is <b className="font-mono tracking-widest">{demoCode}</b>.</Alert> : null}
+            : demoCode ? <Alert kind="info">Demo code: <b className="font-mono tracking-widest">{demoCode}</b>.</Alert> : null}
         </ErrorSlot>
         <IconInput id="fp-code" error={fields.code} icon={KeyIcon} required inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6}
           className="font-mono text-lg tracking-[0.4em] placeholder:font-sans placeholder:text-base placeholder:tracking-normal"

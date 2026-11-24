@@ -5,12 +5,12 @@ export function reasonText(d) {
   if (d.reason.startsWith('granted_by')) return `Allowed${line}`
   if (d.reason.startsWith('released_by')) return `Letter released${line}`
   if (d.reason.startsWith('denied_by')) return `Explicitly denied${line}`
-  if (d.reason.startsWith('pending')) return `Will open later${line}`
+  if (d.reason.startsWith('pending')) return `Opens later${line}`
   return {
-    default_deny: 'Nothing allows it (deny by default)',
-    owner_alive: 'Opens only after your passing',
-    not_recipient: 'Letter addressed to someone else',
-    letter_sealed: 'Letter not yet due',
-    not_beneficiary: 'Not an active beneficiary',
+    default_deny: 'No rule allows it',
+    owner_alive: 'After passing',
+    not_recipient: 'Not the recipient',
+    letter_sealed: 'Not yet due',
+    not_beneficiary: 'Inactive',
   }[d.reason] || d.reason
 }

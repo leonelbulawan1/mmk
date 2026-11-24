@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { api, drafts, fmtDate, newDraftId, today, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import DiffView from '../components/DiffView'
-import { Alert, Card, ConfirmDialog, Dialog, Field, LegalDisclaimer, PageHeader, useAsync, useToast } from '../components/ui'
+import { Alert, Card, ConfirmDialog, Dialog, Field, PageHeader, useAsync, useToast } from '../components/ui'
 import { correctAll, correctAtCaret, nameMap } from '../autocorrect'
 import NavIcon from '../components/NavIcon'
 
@@ -38,8 +38,7 @@ function ModePreview({ mode, text }) {
           <p className="pt-1.5 text-xs text-ink-400">{preview.changes.length} fix{preview.changes.length === 1 ? '' : 'es'}</p></>
         : <p className="text-ink-400">Nothing to fix.</p>)}
       {preview.mode === 'review' && (preview.suggestions.length
-        ? <><div className="line-clamp-6"><DiffView ops={preview.suggestions} /></div>
-          <p className="pt-1.5 text-xs text-ink-400">You can accept these after saving.</p></>
+        ? <><div className="line-clamp-6"><DiffView ops={preview.suggestions} /></div></>
         : <p className="text-ink-400">No suggestions.</p>)}
     </div>
   )
@@ -165,8 +164,8 @@ export default function CreateEntry({ modal = false }) {
   }
   // Leave the page but keep the writing: it waits under Drafts in All entries.
   const saveDraft = () => {
-    try { drafts.put(user.id, { id: draftId.current, form, mode }) } catch { setDraftSaved('failed'); setError("Your draft couldn't be saved on this device. Copy your text before you leave."); return }
-    toast('Saved to Drafts. You can finish it any time.')
+    try { drafts.put(user.id, { id: draftId.current, form, mode }) } catch { setDraftSaved('failed'); setError("Draft not saved. Copy your text before leaving."); return }
+    toast('Saved to Drafts.')
     if (modal && background) navigate(background.pathname + (background.search || ''), { replace: true, state: { draftSaved: true } })
     else navigate('/entries?kind=draft', { state: { draftSaved: true } })
   }
@@ -199,7 +198,7 @@ export default function CreateEntry({ modal = false }) {
   const canSaveRef = useRef(false)
   const recipientName = active.find((b) => b.handle === form.recipient)?.display_name || form.recipient
 
-  if (user.death_triggered_at) return <Alert kind="warn">The vault is sealed; new entries cannot be written.</Alert>
+  if (user.death_triggered_at) return <Alert kind="warn">The vault is sealed.</Alert>
 
   // The form's Save opens the final check; only "Save permanently" stores the entry.
   const askToSave = (e) => {
@@ -226,7 +225,7 @@ export default function CreateEntry({ modal = false }) {
       drafts.remove(user.id, draftId.current)
       navigate(`/entries/${res.entry.id}`, { replace: modal, state: { justCreated: true, delivery: res.delivery } })
     } catch (err) {
-      setError(err.status ? err.message : "Can't connect to MMK. Check your internet connection and try again. Your draft is still on this device.")
+      setError(err.status ? err.message : "Can't connect. Your draft is saved on this device.")
       setBusy(false)
     }
   }
@@ -337,7 +336,7 @@ export default function CreateEntry({ modal = false }) {
           {/* Toolbar, like an email's bottom bar: writing mode on the left, send on the right */}
           <div className="border-t border-cream-300 bg-cream-100/70 px-4 py-3 sm:px-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              {isLetter ? <p className="text-xs text-ink-400" title="This letter is a personal message. It has no legal effect."><b className="font-semibold text-ink-500">Not a legal will.</b> It has no legal effect.</p> : <div className="flex flex-wrap items-center gap-2">
+              {isLetter ? <span /> : <div className="flex flex-wrap items-center gap-2">
                 <span id="mode-label" className="sr-only">Writing mode</span>
                 <div role="radiogroup" aria-labelledby="mode-label" className="inline-flex h-[42px] rounded-xl border border-cream-300 bg-cream-100 p-1">
                   {MODES.map((m) => (
@@ -388,8 +387,8 @@ export default function CreateEntry({ modal = false }) {
         </dl>
         <div className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap rounded-xl border border-cream-300 bg-white/70 p-4 text-ink-600">{form.text}</div>
         <ul className="mt-4 list-disc space-y-1 pl-5 text-xs text-ink-500">
-          <li>{isLetter ? 'Once sent, the letter cannot be edited or taken back.' : 'The original is kept exactly as written.'}</li>
-          {isLetter && opensOnDate && <li>{recipientName} gets an email and can read the letter on their MMK home page {form.release_on === today() ? 'right away' : `on ${fmtDate(form.release_on)}`}.</li>}
+          <li>{isLetter ? 'Letters can’t be edited after sending.' : ''}</li>
+          
         </ul>
       </Dialog>
     </>

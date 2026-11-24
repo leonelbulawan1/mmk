@@ -30,9 +30,7 @@ export default function AccessPermissions() {
         <Empty title="No entries yet" />
       ) : (
         <>
-          <div className="mb-4"><Alert kind="info">{m.data.death_triggered
-            ? 'The death trigger is active: this is what each beneficiary can see now.'
-            : 'Preview: this is what each beneficiary will see after your passing. Today they see nothing.'}</Alert></div>
+          {m.data.death_triggered && <div className="mb-4"><Alert kind="info">Active</Alert></div>}
           <div className="card overflow-x-auto p-0">
             <table className="w-full min-w-[640px] text-sm">
               <thead>

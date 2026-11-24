@@ -63,9 +63,9 @@ export default function VaultIntegrity() {
             <div>
             <p className="text-xl font-semibold">{v.data.ok ? 'Verified: every record matches its hash' : 'Verification failed'}</p>
             <p className="text-sm">{v.data.ok
-              ? `Checked ${new Date().toLocaleString()}. No entry, revision, policy version or audit event was changed or removed since it was saved.`
-              : 'Some records no longer match their hashes, so they were changed outside MMK. Nothing is shared with beneficiaries until this is resolved. Contact the MMK administrator and keep an exported copy.'}</p>
-            {v.data.sealed && <p className="text-sm">The vault is sealed; no new records can be appended.</p>}
+              ? `Checked ${new Date().toLocaleString()}`
+              : 'Some records don’t match their hashes. Sharing is paused.'}</p>
+            {v.data.sealed && <p className="text-sm">The vault is sealed.</p>}
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
@@ -101,7 +101,7 @@ export default function VaultIntegrity() {
               </li>
             ))}
           </ol>
-        </div> : <p className="text-sm text-ink-400">Run the check to see the chain.</p>) : (
+        </div> : <p className="text-sm text-ink-400">Not checked.</p>) : (
           <>
         {audit.loading ? <Spinner label="Loading audit log" /> : (
           <div className="max-h-[32rem] overflow-y-auto">

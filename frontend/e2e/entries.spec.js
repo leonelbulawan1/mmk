@@ -37,7 +37,6 @@ test('a letter opens read-only in a window', async ({ page }) => {
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText('Letter', { exact: true })).toBeVisible()
   await expect(dialog.getByText('Delivery')).toBeVisible()
-  await expect(dialog.getByText("Letters can't be edited once they are sent.")).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Edit' })).toHaveCount(0)
   await expect(dialog.getByRole('button', { name: 'Delete' })).toHaveCount(0)
 })

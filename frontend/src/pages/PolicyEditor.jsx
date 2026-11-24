@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, fmtDate } from '../api'
-import { Alert, LegalDisclaimer, PageHeader, Section, Spinner, Tag, useAsync, useToast } from '../components/ui'
+import { Alert, PageHeader, Section, Spinner, Tag, useAsync, useToast } from '../components/ui'
 
 const CHEATSHEET = [
   ['group family = maria, jose;', 'Name a set of beneficiaries'],
@@ -43,7 +43,7 @@ export default function PolicyEditor() {
     setBusy(true); setMsg({})
     try {
       const r = await api('/api/policy', { method: 'PUT', body: { source } })
-      toast(`Policy saved as version ${r.version}. Access now follows this policy.`)
+      toast(`Policy saved as version ${r.version}.`)
       policy.reload()
     } catch (e) { setMsg({ kind: 'error', text: e.message }) } finally { setBusy(false) }
   }
@@ -65,7 +65,7 @@ export default function PolicyEditor() {
           <button className="btn-secondary" disabled={!dirty} onClick={() => setSource(policy.data.source)}>Discard changes</button>
           <button className="btn-primary" disabled={busy || !dirty || !result?.ok} onClick={save}>{busy ? 'Saving…' : 'Save new version'}</button>
         </>} />
-      {frozen && <div className="mb-4"><Alert kind="warn">The death trigger was activated, so this policy is frozen and can no longer be changed.</Alert></div>}
+      {frozen && <div className="mb-4"><Alert kind="warn">This policy is frozen.</Alert></div>}
       {msg.text && <div className="mb-4"><Alert kind={msg.kind} onClose={() => setMsg({})}>{msg.text}</Alert></div>}
 
       <div className="grid items-start gap-6 xl:grid-cols-5">
@@ -93,7 +93,6 @@ export default function PolicyEditor() {
               ))}
             </div>
           )}
-          <LegalDisclaimer className="mt-4" />
         </div>
 
         <div className="min-w-0 space-y-6 xl:col-span-2">
@@ -107,7 +106,7 @@ export default function PolicyEditor() {
             {tab === 'rules' && (result?.rules?.length ? (
               <ol className="space-y-2.5 text-sm">{result.rules.map((r, i) => (
                 <li key={i} className="flex gap-3"><span className="w-8 shrink-0 pt-0.5 font-mono text-xs text-ink-400">L{r.line}</span><span><Tag tone={r.type === 'denial' ? 'bark' : 'cream'}>{r.type}</Tag> {r.text}</span></li>
-              ))}</ol>) : <p className="text-sm text-ink-400">No rules yet: everything is private.</p>)}
+              ))}</ol>) : <p className="text-sm text-ink-400">No rules. Everything is private.</p>)}
             {tab === 'prolog' && <pre className="max-h-[28rem] overflow-auto whitespace-pre-wrap rounded-xl bg-ink-800 p-4 text-xs text-cream-100">{(result?.prolog || []).join('\n') || '% no facts'}</pre>}
             {tab === 'help' && (
               <div className="space-y-3 text-sm">
@@ -124,7 +123,7 @@ export default function PolicyEditor() {
               ))}</ul>) : <p className="text-sm text-ink-400">Not saved yet.</p>)}
           </Section>
           {!frozen && (
-            <Section title="Start from a sample" description="Samples use the handles maria, jose and lina; rename them to your own.">
+            <Section title="Samples">
               <div className="grid gap-2">
                 {samples.data?.map((s) => (
                   <button key={s.file} className="btn-secondary w-full justify-between text-left" onClick={() => setSource(s.source)}>{s.name}<span aria-hidden className="text-ink-400">→</span></button>

@@ -43,7 +43,7 @@ export default function Dashboard() {
     <div className="flex h-[calc(100dvh-103px)] min-h-[520px] flex-col lg:h-[calc(100dvh-36px)]">
       <div className="shrink-0">
       <PageHeader eyebrow={`${greeting},`} title={data.owner}
-        subtitle={sealed ? 'Your vault is sealed. Your legacy policy is now in effect.' : 'What would you like to remember today?'}
+        subtitle={sealed ? 'Vault sealed.' : 'What would you like to remember today?'}
         actions={!sealed && <NewMenu label="Write" icon="write" />} />
 
       {draft && !sealed && (

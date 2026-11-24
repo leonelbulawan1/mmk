@@ -63,7 +63,7 @@ export function EntryModal({ entry, onClose, onDeleted }) {
       </Dialog>
       <ConfirmDialog open={confirm} danger busy={busy} title="Delete this entry?" confirmLabel="Delete entry" cancelLabel="Keep it"
         onConfirm={remove} onCancel={() => setConfirm(false)}>
-        “{entryTitle(e)}” will be removed from your diary and never shared with anyone. This can’t be undone.
+        “{entryTitle(e)}” will be deleted. This can’t be undone.
       </ConfirmDialog>
     </>
   )
@@ -103,7 +103,7 @@ export function LetterModal({ letter, onClose }) {
     <Dialog open wide closeButton onClose={onClose} eyebrow="Letter" title={entryTitle(e)}
       meta={<span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{day(e.entry_date)}</span><span aria-hidden>·</span><span>{time(e.created_at)}</span></span>}
       footer={<>
-        <p className="mr-auto self-center text-xs text-ink-400">Letters can't be edited once they are sent.</p>
+        
         <button type="button" data-autofocus className="btn-secondary" onClick={onClose}>Close</button>
       </>}>
       {full.loading ? <Spinner label="Loading letter" /> : full.error ? <Alert>{full.error}</Alert> : (

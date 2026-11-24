@@ -54,10 +54,10 @@ export function PendingReportBanner() {
   return (
     <div role="alert" className="border-b border-rose-600/30 bg-rose-100 px-4 py-3 text-sm text-rose-600 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-        <p><b>{rep.reported_by}</b>, your executor, reported your passing on {fmtWhen(rep.reported_at)}.{' '}
+        <p><b>{rep.reported_by}</b> reported your passing on {fmtWhen(rep.reported_at)}.{' '}
           {rep.activates_at
-            ? <>Your vault will be sealed and your beneficiaries notified {left} ({fmtWhen(rep.activates_at)}) unless you cancel.</>
-            : <>The report is {STATE_TEXT[rep.status] || rep.status}. Nothing is released until it is verified and a waiting period ends. If you are alive, cancel it now.</>}</p>
+            ? <>Vault seals {left} ({fmtWhen(rep.activates_at)}).</>
+            : <>Status: {STATE_TEXT[rep.status] || rep.status}.</>}</p>
         <button className="btn-danger shrink-0" disabled={busy} onClick={cancel}>{busy ? 'Cancelling…' : "I'm still here"}</button>
       </div>
       {error && <p className="mx-auto mt-2 max-w-6xl">{error}</p>}
@@ -86,14 +86,10 @@ export function ExecutorSettings() {
 
   return (
     <Section id="executor" title="Executor">
-      <p className="max-w-3xl text-sm text-ink-500">
-        Choose a beneficiary you trust to report your passing. When they do, you are emailed and have a waiting period
-        of {waitText(user.death_report_wait_minutes || 20160)} to press <b>“I'm still here”</b>. If nobody cancels, the death trigger
-        activates on its own: your vault is sealed, your policy frozen, and your beneficiaries emailed. They never need your password.
-      </p>
+      <p className="text-sm text-ink-500">Waiting period: {waitText(user.death_report_wait_minutes || 20160)}</p>
       {msg.text && <div className="mt-3"><Alert kind={msg.kind} onClose={() => setMsg({})}>{msg.text}</Alert></div>}
       {sealed ? (
-        <p className="mt-3 text-sm">Executor: <b>{user.executor?.display_name || 'none'}</b> (the vault is sealed).</p>
+        <p className="mt-3 text-sm">Executor: <b>{user.executor?.display_name || 'none'}</b> .</p>
       ) : (
         <form onSubmit={save} className="mt-4 grid gap-4 sm:max-w-xl sm:grid-cols-[1fr_auto] sm:items-end">
           <Field label="Your executor" hint={eligible.length ? '' : 'No activated beneficiaries yet.'}>
@@ -154,8 +150,8 @@ export function ExecutorPanel() {
           {rep.decision_note && <p className="mt-2 text-sm text-ink-500">Reviewer's note: {rep.decision_note}</p>}
           {reviewed && (
             <div className="mt-4 rounded-xl bg-cream-100 p-4 text-sm">
-              <p className="font-medium">Documents for the reviewer</p>
-              <p className="mt-1 text-xs text-ink-400">Upload a death certificate or another official document (PDF, JPEG or PNG, under 5 MB). Only MMK reviewers can open it; it is stored encrypted.</p>
+              <p className="font-medium">Documents</p>
+              <p className="mt-1 text-xs text-ink-400">PDF, JPEG or PNG · up to 5 MB</p>
               {rep.evidence?.length > 0 && (
                 <ul className="mt-2 list-disc pl-5 text-xs text-ink-500">{rep.evidence.map((d) => <li key={d.id}>{d.filename} · {Math.ceil(d.size / 1024)} KB · added {fmtDate(d.created_at)}</li>)}</ul>
               )}
@@ -167,7 +163,6 @@ export function ExecutorPanel() {
               )}
             </div>
           )}
-          {rep.wait_minutes < 60 && <p className="mt-2 text-xs text-ink-400">In this demo the waiting period is {waitText(rep.wait_minutes)} instead of 14 days.</p>}
           {error && <div className="mt-3"><Alert>{error}</Alert></div>}
           <button className="btn-secondary mt-4" disabled={busy} onClick={() => call('/api/executor/withdraw')}>Withdraw my report</button>
         </>
@@ -218,7 +213,7 @@ export function DisputePanel() {
           {error && <Alert>{error}</Alert>}
           <button className="btn-secondary" disabled={busy || !reason.trim()}>{busy ? 'Sending…' : 'Dispute this report'}</button>
         </form>
-      ) : <p className="mt-2 text-sm text-ink-500">Your dispute was received. An MMK reviewer will look at the report again.</p>}
+      ) : <p className="mt-2 text-sm text-ink-500">Dispute submitted.</p>}
     </Card>
   )
 }

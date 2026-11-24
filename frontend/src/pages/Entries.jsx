@@ -377,7 +377,7 @@ export default function Entries() {
       <DraftModal draft={toDelete ? null : openDraft} onClose={() => setOpenDraft(null)} onDelete={() => setToDelete(openDraft)} />
       <ConfirmDialog open={!!toDelete} danger title="Delete this draft?" confirmLabel="Delete" cancelLabel="Keep it"
         onConfirm={deleteDraft} onCancel={() => setToDelete(null)}>
-        “{toDelete?.form.title?.trim() || 'Untitled'}” will be deleted from all your devices. This can’t be undone.
+        “{toDelete?.form.title?.trim() || 'Untitled'}” will be deleted. This can’t be undone.
       </ConfirmDialog>
       {!state.loading && filtered.length > shown.length && (
         <div className="text-center">

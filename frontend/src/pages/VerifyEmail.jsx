@@ -36,12 +36,12 @@ export default function VerifyEmail() {
       if (r.demo_code) setDemoCode(r.demo_code)
       if (r.email_sent === false && !r.demo_code) { setProblem(r.email_problem || 'Try again.'); setWait(0); return }
       setProblem('')
-      setInfo(auto ? 'We sent you a new code.' : 'New code sent. The previous code no longer works.')
+      setInfo(auto ? 'We sent you a new code.' : 'New code sent.')
       setWait(RESEND_SECONDS); setCode('')
     } catch (e) {
       if (e.status === 429) {  // a code was sent moments ago: wait instead of showing an error
         setWait(Number((e.message.match(/\d+/) || [RESEND_SECONDS])[0]))
-        setInfo('We sent you a code a moment ago. Check your email.')
+        setInfo('A code was just sent.')
       } else setError(e.message)
     }
   }
@@ -61,17 +61,17 @@ export default function VerifyEmail() {
 
   return (
     <AuthShell title="Verify your email"
-      subtitle={state?.email ? (problem ? <>Your account is saved, but the code to <b className="font-medium text-ink-600">{state.email}</b> was not sent.</>
-        : <>We sent a 6-digit code to <b className="font-medium text-ink-600">{state.email}</b>. Not in your inbox? Check Spam and Promotions.</>) : 'Enter the 6-digit code we emailed you.'}
+      subtitle={state?.email ? (problem ? <>Code not sent to <b className="font-medium text-ink-600">{state.email}</b></>
+        : <>Code sent to <b className="font-medium text-ink-600">{state.email}</b></>) : undefined}
       footer={<>Didn't get the code?{' '}
         {wait > 0 ? <span className="whitespace-nowrap">Resend in {wait}s</span>
           : <button type="button" disabled={!email} onClick={() => resend()} className="whitespace-nowrap font-medium text-bark-500 hover:underline disabled:opacity-50">Resend code</button>}
       </>}>
       <form onSubmit={submit} noValidate className="space-y-4">
         <ErrorSlot error={error}>
-          {problem ? <Alert kind="warn">We couldn't send the code. {problem} Then tap <b>Resend code</b>.</Alert>
+          {problem ? <Alert kind="warn">We couldn't send the code. {problem}</Alert>
             : info ? <Alert kind="success">{info}</Alert>
-            : demoCode ? <Alert kind="info">Demo: email can't be sent here, so your code is <b className="font-mono tracking-widest">{demoCode}</b>.</Alert> : null}
+            : demoCode ? <Alert kind="info">Demo code: <b className="font-mono tracking-widest">{demoCode}</b>.</Alert> : null}
         </ErrorSlot>
         {!state?.email && (
           <IconInput id="ve-email" error={fields.email} icon={MailIcon} type="email" required autoComplete="email" placeholder="Email address" aria-label="Email address"

@@ -12,7 +12,7 @@ const WEB = import.meta.env.VITE_WEB_RUNTIME === '1'
 const blank = { display_name: '', email: '', handle: '' }
 
 // Pydantic's own wording for a malformed address is long; say it plainly.
-const plainEmailError = (msg) => /not a valid email address/i.test(msg || '') ? 'Enter a valid email address, like name@gmail.com.' : msg
+const plainEmailError = (msg) => /not a valid email address/i.test(msg || '') ? 'Enter a valid email address.' : msg
 
 function InviteStatus({ inv }) {
   if (!inv) return null
@@ -35,7 +35,7 @@ function FixEmail({ b, onSaved }) {
   }
   return (
     <form onSubmit={save} className="mt-3 rounded-xl border border-rose-600/30 bg-rose-100 p-3 text-sm">
-      <p className="text-rose-600">The invitation to <b>{b.email}</b> bounced. This email address doesn't exist or can't receive mail. Correct it and we'll send a new invitation.</p>
+      <p className="text-rose-600">The invitation to <b>{b.email}</b> bounced.</p>
       <div className="mt-2 flex gap-2">
         <input className="input py-1.5 text-sm" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         <button className="btn-primary btn-sm" disabled={busy || email.trim().toLowerCase() === b.email}>{busy ? 'Sending…' : 'Save and resend'}</button>
@@ -105,7 +105,7 @@ export default function Beneficiaries() {
         {!adding && <Alert onClose={() => setError('')}>{error}</Alert>}
         {invite && (invite.emailed ? (
           <Alert kind="success" onClose={() => setInvite(null)}>
-            Invitation sent to <b>{invite.email}</b>. {invite.name} can activate their account from the link in the email.
+            Invitation sent to <b>{invite.email}</b>.
             {invite.link && !WEB && (
               <button type="button" className="btn-secondary btn-sm mt-2"
                 onClick={() => navigator.clipboard?.writeText(invite.link).catch(() => {})}>Copy invite link</button>
@@ -113,12 +113,11 @@ export default function Beneficiaries() {
           </Alert>
         ) : (
           <Alert kind="warn" onClose={() => setInvite(null)}>
-            We couldn't email the invitation to <b>{invite.email}</b>. Send {invite.name} this code yourself:
+            Invitation not emailed to <b>{invite.email}</b>. Invite code:
             <code className="mx-1 rounded bg-white/70 px-2 py-0.5 font-mono text-base">{invite.code}</code>
-            It works once and is shown only now. They enter it at <b>/activate</b>.
             {invite.link && !WEB && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span>Or send this link:</span>
+                <span>Link:</span>
                 <code className="max-w-full truncate rounded bg-white/70 px-2 py-0.5 text-xs">{invite.link}</code>
                 <button type="button" className="btn-secondary btn-sm"
                   onClick={() => navigator.clipboard?.writeText(invite.link).catch(() => {})}>Copy link</button>

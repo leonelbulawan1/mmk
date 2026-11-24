@@ -54,7 +54,7 @@ function CaseView({ id, onChanged }) {
         <Pill status={d.status} />
       </div>
       {error && <div className="mt-3"><Alert>{error}</Alert></div>}
-      {d.activates_at && d.status === 'verified' && <p className="mt-3 text-sm">The legacy becomes active on <b>{when(d.activates_at)}</b> unless the owner cancels or a beneficiary disputes.</p>}
+      {d.activates_at && d.status === 'verified' && <p className="mt-3 text-sm">Activates <b>{when(d.activates_at)}</b></p>}
       {d.dispute_reason && <div className="mt-3 rounded-xl bg-rose-100 p-3 text-sm text-rose-600"><b>Dispute from {d.disputed_by}:</b> {d.dispute_reason}</div>}
       {d.decision_note && <p className="mt-3 text-sm text-ink-500">Decision note: {d.decision_note}</p>}
 
@@ -66,8 +66,7 @@ function CaseView({ id, onChanged }) {
             <button className="btn-secondary btn-sm" onClick={() => open(ev)}>Open</button>
           </li>))}
         </ul>
-      ) : <p className="mt-2 text-sm text-ink-400">No documents yet. The executor is asked to upload one.</p>}
-      <p className="mt-2 text-xs text-ink-400">Check the document yourself (name, date, issuing office). An uploaded file is not proof by itself.</p>
+      ) : <p className="mt-2 text-sm text-ink-400">No documents.</p>}
 
       <div className="mt-5 flex flex-wrap gap-2">
         {['reported', 'disputed'].includes(d.status) && <button className="btn-primary" disabled={busy} onClick={() => act('start')}>Start review</button>}
@@ -90,10 +89,10 @@ function CaseView({ id, onChanged }) {
         </>}>
         <div className="space-y-3 text-sm">
           {dialog === 'approve'
-            ? <p>The waiting period starts now. When it ends, unless {d.owner_name} cancels or a beneficiary disputes, the vault is sealed and the legacy instructions take effect. That cannot be undone.</p>
-            : <p>The report is closed and nothing is released. The executor can report again later.</p>}
+            ? <p>The waiting period starts now. When it ends, the vault is sealed. This can’t be undone.</p>
+            : <p>The report will be closed. Nothing is released.</p>}
           {error && <Alert>{error}</Alert>}
-          <Field label={dialog === 'approve' ? 'Note (optional): what you checked' : 'Why is it rejected?'}>
+          <Field label={dialog === 'approve' ? 'Note (optional)' : 'Reason'}>
             <textarea className="input min-h-20" maxLength={2000} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
           </Field>
           {dialog === 'approve' && <Field label="Your password"><PasswordInput autoComplete="current-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>}

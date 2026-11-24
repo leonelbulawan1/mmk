@@ -43,7 +43,7 @@ export default function Settings() {
       const r = await api('/api/auth/change-password', { method: 'POST', body: { current_password: pw.current_password, new_password: pw.new_password } })
       tokenStore.set(r.token, tokenStore.remembered())  // stay signed in here; other devices are signed out
       setPw({ current_password: '', new_password: '' })
-    }, 'Password changed. You were signed out on your other devices.')
+    }, 'Password changed.')
   }
   const trigger = (e) => {
     e.preventDefault()
@@ -54,10 +54,10 @@ export default function Settings() {
       .then((r) => {
         setUser({ ...user, death_triggered_at: r.death_triggered_at })
         const n = r.notices.length
-        const emails = n === 0 ? 'No beneficiary had anything released, so no emails were needed.'
+        const emails = n === 0 ? 'No emails needed.'
           : r.emails_sent === n ? `${n} beneficiar${n === 1 ? 'y was' : 'ies were'} emailed.`
           : `${r.emails_sent} of ${n} email notice${n === 1 ? '' : 's'} sent; see the list below.`
-        setMsg({ key: 'death', kind: n === 0 || r.emails_sent === n ? 'success' : 'warn', text: `The vault is sealed and the policy is frozen. After-death releases are now active. ${emails}` })
+        setMsg({ key: 'death', kind: n === 0 || r.emails_sent === n ? 'success' : 'warn', text: `Vault sealed. ${emails}` })
       })
       .catch((e) => setMsg({ key: 'death', kind: 'error', text: e.message }))
       .finally(() => setBusy(''))
@@ -100,15 +100,14 @@ export default function Settings() {
               <label className="flex items-start gap-3 text-sm">
                 <input type="checkbox" className="checkbox mt-0.5" checked={profile.email_letters}
                   onChange={(e) => setProfile({ ...profile, email_letters: e.target.checked })} />
-                <span>Email me when a letter opens for me
-                  <span className="block text-xs text-ink-400">The letter appears on your MMK home page either way.</span></span>
+                <span>Email me when a letter opens for me</span>
               </label>
             )}
             <div className="flex justify-end border-t border-cream-300/80 pt-4"><button className="btn-primary" disabled={busy === 'profile'}>{busy === 'profile' ? 'Saving…' : 'Save profile'}</button></div>
           </form>
         </Section>
 
-        <Section id="password" title="Password" description="Changing it signs out your other devices">
+        <Section id="password" title="Password">
           {note('pw')}
           <form onSubmit={changePw} noValidate className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -117,7 +116,7 @@ export default function Settings() {
             </div>
             <div className="flex justify-end border-t border-cream-300/80 pt-4"><button className="btn-primary" disabled={busy === 'pw'}>{busy === 'pw' ? 'Changing password…' : 'Change password'}</button></div>
           </form>
-          {!s.data?.prolog_available && <div className="mt-4"><Alert kind="warn">SWI-Prolog is not available on the server, so nothing can be shared (the system fails closed).</Alert></div>}
+          {!s.data?.prolog_available && <div className="mt-4"><Alert kind="warn">Access engine unavailable. Nothing is shared.</Alert></div>}
         </Section>
 
         {isOwner && <ExecutorSettings />}
@@ -126,22 +125,16 @@ export default function Settings() {
 
         {isOwner && (
           <Section id="seal" className="border-rose-600/30" title={<h2 id="seal-h" className="text-lg font-semibold text-rose-600">Seal vault (death trigger)</h2>}
-            description="Permanent. Use only if you want to seal your diary now.">
+            description="Permanent.">
             {note('death')}
             {user.death_triggered_at ? (
               <>
-                <p className="text-sm">Activated on {fmtDate(user.death_triggered_at)}. The vault is sealed, the legacy policy is frozen, and “after death” releases are in effect.</p>
+                <p className="text-sm">Sealed on {fmtDate(user.death_triggered_at)}</p>
                 <EmailNotices />
               </>
             ) : (
               <>
-                <p className="max-w-3xl text-sm text-ink-500">
-                  Activating this is permanent. It seals your vault so no entry can be added or revised, freezes your legacy policy
-                  exactly as it is now, and opens everything you marked for release “after death”. Each beneficiary who then has
-                  something to read is automatically emailed a short notice with a sign-in link (never any diary content).
-                  Use this yourself if you want to seal your diary now. After your passing, your executor (above) starts it instead, without your password.
-                </p>
-                <form onSubmit={trigger} noValidate className="mt-5 grid gap-4 border-t border-cream-300/80 pt-5 sm:grid-cols-3 sm:items-end">
+                <form onSubmit={trigger} noValidate className="grid gap-4 sm:grid-cols-3 sm:items-end">
                   <Field label="Your password"><PasswordInput required value={death.password} error={fields.password} onChange={(e) => { setFields({}); setDeath({ ...death, password: e.target.value }) }} /></Field>
                   <Field label={<>Type <b>{phrase}</b></>} error={fields.confirmation}><input className={`input font-mono ${fields.confirmation ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.confirmation} value={death.confirmation} onChange={(e) => { setFields({}); setDeath({ ...death, confirmation: e.target.value }) }} /></Field>
                   <button className="btn-danger" disabled={busy === 'death'}>{busy === 'death' ? 'Sealing vault…' : 'Seal vault permanently'}</button>
@@ -169,12 +162,8 @@ function YourData({ isOwner }) {
   }
   return (
     <Section id="data" title="Your data">
-      <p className="max-w-3xl text-sm text-ink-500">
-        {isOwner
-          ? 'One file (JSON) with your profile, every entry and letter with all its revisions, your beneficiaries, every version of your legacy policy, your drafts and your activity log.'
-          : 'One file (JSON) with your profile and the questions you asked.'}
-      </p>
-      <div className="mt-4 flex justify-end border-t border-cream-300/80 pt-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-ink-500">All data · JSON</span>
         <button type="button" className="btn-secondary" disabled={busy} onClick={get}>{busy ? 'Preparing your file…' : 'Download my data'}</button>
       </div>
     </Section>
@@ -205,14 +194,9 @@ function DeleteAccount() {
   }
   return (
     <Section id="delete" className="border-rose-600/30" title={<h2 id="delete-h" className="text-lg font-semibold text-rose-600">Delete account</h2>}
-      description="Permanent. Erases your diary and everything in it.">
-      <p className="max-w-3xl text-sm text-ink-500">
-        This erases your account and your whole diary: every entry and letter (including letters not yet delivered), your legacy policy,
-        your drafts, your activity log, and your beneficiaries' accounts. It can't be undone, and nothing will be released after your passing.
-        Download your data first if you want a copy.
-      </p>
-      {error && <div className="mt-4"><Alert onClose={() => setError('')}>{error}</Alert></div>}
-      <form onSubmit={submit} noValidate className="mt-5 grid gap-4 border-t border-cream-300/80 pt-5 sm:grid-cols-3 sm:items-end">
+      description="Permanent.">
+      {error && <div className="mb-4"><Alert onClose={() => setError('')}>{error}</Alert></div>}
+      <form onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-3 sm:items-end">
         <Field label="Your password"><PasswordInput autoComplete="current-password" value={form.password} error={fields.password} onChange={(e) => { setFields({}); setForm({ ...form, password: e.target.value }) }} /></Field>
         <Field label={<>Type <b>{DELETE_PHRASE}</b></>} error={fields.confirmation}>
           <input className={`input font-mono ${fields.confirmation ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} aria-invalid={!!fields.confirmation}

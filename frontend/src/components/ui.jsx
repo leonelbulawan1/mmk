@@ -84,7 +84,7 @@ export function Spinner({ label = 'Loading' }) {
         <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-gold-500 border-t-transparent" />
         <span className="text-sm">{label}…</span>
       </div>
-      {slow && <p className="pl-7 text-xs">This is taking longer than usual. The server may be starting up; it can take up to a minute.</p>}
+      {slow && <p className="pl-7 text-xs">Still loading…</p>}
     </div>
   )
 }

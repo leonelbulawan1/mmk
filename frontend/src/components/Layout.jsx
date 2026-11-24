@@ -110,15 +110,14 @@ export default function Layout() {
       )}
 
       <ConfirmDialog open={confirmOut} title="Sign out?" confirmLabel="Sign out" onConfirm={signOut} onCancel={() => setConfirmOut(false)}>
-        You will need your email and password to sign in again. Your drafts are saved to your account and will be here when you sign in again.
       </ConfirmDialog>
       <main id="main" className="min-w-0 flex-1">
         <PendingReportBanner />
         {sealed && (
           <div className="border-b border-gold-500/30 bg-[#FBF0D9] px-6 py-2 text-center text-sm text-bark-600">
             {user?.role === 'owner'
-              ? 'This vault is sealed. Entries and the legacy policy can no longer change.'
-              : 'This diary has been sealed and its legacy releases are now active.'}
+              ? 'Vault sealed.'
+              : 'This diary is sealed.'}
           </div>
         )}
         <div className="px-3 pb-6 pt-3 sm:px-4 lg:px-5"><Suspense fallback={<Spinner />}><Outlet /></Suspense></div>

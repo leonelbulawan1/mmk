@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, fmtDate } from '../api'
 import { useAuth } from '../auth'
-import { Alert, Card, LevelBadge, PageHeader, Section, useAsync } from '../components/ui'
+import { Alert, Card, LevelBadge, PageHeader, useAsync } from '../components/ui'
 
 const suggestionsFor = (first, isOwner) => [`What did ${first} love?`, 'Tell me about family trips.',
   isOwner ? 'What did I write about this person?' : 'What did the letters to me say?', `What was ${first} proud of?`]
@@ -74,7 +74,7 @@ export default function Assistant() {
     <>
       <PageHeader title={isOwner ? 'AI assistant preview' : 'MMK AI Legacy Assistant'} />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div>
         <div className="min-w-0">
           <Card className="flex min-h-[560px] flex-col p-0">
             {isOwner && (
@@ -84,7 +84,6 @@ export default function Assistant() {
                   <option value="">Choose a beneficiary…</option>
                   {(bens.data || []).filter((b) => b.active).map((b) => <option key={b.handle} value={b.handle}>{b.display_name}</option>)}
                 </select>
-                <span className="text-xs text-ink-400">Answers use only what your policy lets this person see.</span>
               </div>
             )}
             <div className="flex-1 space-y-5 overflow-y-auto p-6" aria-live="polite">
@@ -120,22 +119,14 @@ export default function Assistant() {
             </form>
           </Card>
           {error && <div className="mt-3"><Alert onClose={() => setError('')}>{error}</Alert></div>}
-        </div>
-
-        <Section className="lg:sticky lg:top-8" title="How answers work" bodyClassName="space-y-3 p-5 text-sm">
-          <p className="text-ink-500">1. The access rules decide, before anything is read, which entries may be used and at what level.</p>
-          <p className="text-ink-500">2. The assistant can search and read only those entries, through its tools.</p>
-          <p className="text-ink-500">3. Every statement cites the date of the entry it came from.</p>
-          <p className="text-ink-500">4. Letters addressed to you are shown in full once they are released; before that, it tells you when they open.</p>
-          <p className="text-ink-500">5. If nothing may be shared, it says so plainly, without hinting at what is hidden.</p>
-          <p className="text-ink-500">6. It speaks about the diary owner and quotes their real words. It never pretends to be them.</p>
           {info.data && (
-            <p className="border-t border-cream-300 pt-3 text-xs text-ink-400">
-              Model: {info.data.provider === 'offline' ? 'built-in extractive model (no external AI)' : `${info.data.provider} · ${info.data.model}`}
+            <p className="mt-3 px-1 text-xs text-ink-400">
+              {info.data.provider === 'offline' ? 'Built-in model' : `${info.data.provider} · ${info.data.model}`}
               {!info.data.configured && <span className="block text-rose-600">{info.data.error}</span>}
             </p>
           )}
-        </Section>
+        </div>
+
       </div>
     </>
   )
