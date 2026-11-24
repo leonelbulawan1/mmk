@@ -46,7 +46,7 @@ function Row({ to, lead, title, snippet, meta, menu, stack, linkState, onOpen })
 function KindTabs({ value, onChange }) {
   const tabs = [['all', 'All'], ['text', 'Diary'], ['letter', 'Letters'], ['draft', 'Drafts']]
   return (
-    <div role="tablist" aria-label="Show" className="flex h-[42px] min-w-0 flex-1 overflow-x-auto rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
+    <div role="tablist" aria-label="Show" className="flex h-[38px] min-w-0 flex-1 overflow-x-auto rounded-xl border border-cream-300 bg-cream-50 p-1 sm:flex-none">
       {tabs.map(([v, label]) => {
         const on = value === v
         return (
@@ -64,7 +64,7 @@ function KindTabs({ value, onChange }) {
 function ReviewFilter({ on, onChange }) {
   return (
     <button type="button" aria-pressed={on} onClick={() => onChange(!on)}
-      className={`flex h-[42px] shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-3 text-sm font-medium transition-colors ${on ? 'border-gold-500 bg-[#FBF0D9] text-bark-600' : 'border-cream-300 bg-cream-50 text-bark-600 hover:bg-[#FBF0D9]'}`}>
+      className={`flex h-[38px] shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-3 text-sm font-medium transition-colors ${on ? 'border-gold-500 bg-[#FBF0D9] text-bark-600' : 'border-cream-300 bg-cream-50 text-bark-600 hover:bg-[#FBF0D9]'}`}>
       <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gold-500" />
       <span className="sm:hidden">Review</span><span className="hidden sm:inline">Needs review</span>
     </button>
@@ -370,7 +370,7 @@ export default function Entries() {
             onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); p.delete('status'); if (v !== 'all') p.set('kind', v); setParams(p, { replace: true }) }} />
           {(kind === 'text' || kind === 'all') && !reviewOnly && years.length > 1 && !state.loading && (
             <select aria-label="Jump to year" value="" onChange={(e) => jump(e.target.value)}
-              className="input hidden h-[42px] w-auto shrink-0 cursor-pointer py-0 pr-8 text-sm font-medium text-ink-600 sm:block">
+              className="input hidden h-[38px] w-auto shrink-0 cursor-pointer py-0 pr-8 text-sm font-medium text-ink-600 sm:block">
               <option value="">Year</option>
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>

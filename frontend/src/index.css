@@ -22,30 +22,31 @@
 }
 
 @layer components {
-  .card { @apply bg-cream-50 rounded-2xl border border-cream-300/70 shadow-paper; }
-  /* One button system: same height as inputs (42px), one radius, one font size. Sizes: .btn-sm, .btn-lg, .btn-icon. */
-  .btn { @apply inline-flex h-[42px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-medium transition duration-200 disabled:cursor-not-allowed disabled:opacity-50; }
-  .btn-sm { @apply h-8 gap-1.5 rounded-lg px-3 text-xs; }
-  .btn-lg { @apply h-12 px-5; }
-  .btn-icon { @apply w-[42px] px-0; }
-  .link { @apply text-sm font-medium text-bark-500 hover:underline; }
-  .btn-primary { @apply btn bg-ink-700 text-cream-50 hover:bg-ink-600 active:scale-[.98]; }
+  /* Bootstrap 5 look in MMK colours: .card = card, .btn* = buttons, .input = form-control, .checkbox = form-check-input. */
+  .card { @apply bg-cream-50 rounded-lg border border-cream-300 shadow-paper; }
+  /* Buttons and inputs are 38px high (Bootstrap's default); one radius, one font size. Sizes: .btn-sm, .btn-lg, .btn-icon. */
+  .btn { @apply inline-flex h-[38px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-transparent px-3 text-base font-normal leading-6 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-65; }
+  .btn-sm { @apply h-[31px] gap-1.5 rounded px-2 text-sm; }
+  .btn-lg { @apply h-12 rounded-3xl px-4 text-xl; }
+  .btn-icon { @apply w-[38px] px-0; }
+  .link { @apply text-sm font-medium text-bark-500 underline-offset-2 hover:underline; }
+  .btn-primary { @apply btn border-ink-700 bg-ink-700 text-cream-50 hover:border-ink-600 hover:bg-ink-600 focus-visible:ring-ink-700/25 active:bg-ink-800; }
   /* Dismiss actions (Close, Cancel, Discard, Keep editing) all use .btn-secondary. */
-  .btn-secondary { @apply btn border border-cream-300 bg-cream-200 text-ink-700 hover:bg-cream-300; }
-  .btn-ghost { @apply btn text-ink-600 hover:bg-cream-200; }
-  .btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-600/90; }
+  .btn-secondary { @apply btn border-cream-300 bg-cream-200 text-ink-700 hover:border-bark-300 hover:bg-cream-300 focus-visible:ring-gold-400/30; }
+  .btn-ghost { @apply btn text-ink-600 hover:bg-cream-200 focus-visible:ring-gold-400/30; }
+  .btn-danger { @apply btn border-rose-600 bg-rose-600 text-white hover:bg-rose-600/90 focus-visible:ring-rose-600/25; }
   /* Destructive action that opens a confirmation (Delete): outlined; the final confirm is .btn-danger. */
-  .btn-danger-outline { @apply btn border border-rose-600/30 bg-white/80 text-rose-600 hover:border-rose-600/50 hover:bg-rose-100; }
-  .input { @apply w-full rounded-xl border border-cream-300 bg-white/80 px-3.5 py-2 text-ink-700 placeholder:text-ink-400/60 focus:border-gold-500 focus:ring-2 focus:ring-gold-400/30 outline-none transition; }
-  /* Same border, background and focus ring as .input; checked state fills with the primary ink colour. */
+  .btn-danger-outline { @apply btn border-rose-600 bg-transparent text-rose-600 hover:bg-rose-600 hover:text-white focus-visible:ring-rose-600/25; }
+  .input { @apply block w-full rounded-lg border border-cream-300 bg-white px-3 py-1.5 text-base leading-6 text-ink-700 placeholder:text-ink-400/60 outline-none transition-shadow focus:border-gold-400 focus:ring-4 focus:ring-gold-400/25 disabled:bg-cream-200 disabled:opacity-100; }
+  /* Same border and focus ring as .input; checked state fills with the primary ink colour. */
   .checkbox {
-    @apply h-4 w-4 shrink-0 cursor-pointer appearance-none rounded border border-cream-300 bg-white/80 outline-none transition
-      focus-visible:border-gold-500 focus-visible:ring-2 focus-visible:ring-gold-400/30
+    @apply h-4 w-4 shrink-0 cursor-pointer appearance-none rounded border border-cream-300 bg-white outline-none transition-shadow
+      focus-visible:border-gold-400 focus-visible:ring-4 focus-visible:ring-gold-400/25
       checked:border-ink-700 checked:bg-ink-700;
     background-position: center; background-repeat: no-repeat; background-size: 75%;
   }
   .checkbox:checked {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='none' stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3E%3C/svg%3E");
   }
   .label { @apply block text-sm font-medium text-ink-600 mb-1.5; }
   .paper-lines {

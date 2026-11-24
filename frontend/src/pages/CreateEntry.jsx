@@ -338,7 +338,7 @@ export default function CreateEntry({ modal = false }) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               {isLetter ? <span /> : <div className="flex flex-wrap items-center gap-2">
                 <span id="mode-label" className="sr-only">Writing mode</span>
-                <div role="radiogroup" aria-labelledby="mode-label" className="inline-flex h-[42px] rounded-xl border border-cream-300 bg-cream-100 p-1">
+                <div role="radiogroup" aria-labelledby="mode-label" className="inline-flex h-[38px] rounded-xl border border-cream-300 bg-cream-100 p-1">
                   {MODES.map((m) => (
                     <button key={m.key} type="button" role="radio" aria-checked={mode === m.key} onClick={() => setMode(m.key)} title={m.short}
                       className={`rounded-lg px-3 text-sm font-medium transition ${mode === m.key ? 'bg-ink-700 text-cream-50' : 'text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>

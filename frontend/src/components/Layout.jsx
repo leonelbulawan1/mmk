@@ -42,7 +42,7 @@ export default function Layout() {
 
   const link = (small) => ([to, label, icon]) => (
     <NavLink key={to} to={to} onClick={() => setOpen(false)} title={small ? label : undefined}
-      className={({ isActive }) => `group relative flex min-h-[42px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${small ? 'justify-center' : ''} ${isActive ? 'bg-ink-700 text-cream-50 shadow-paper' : 'text-ink-600 hover:bg-cream-200 hover:text-ink-700'}`}>
+      className={({ isActive }) => `group relative flex min-h-[38px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${small ? 'justify-center' : ''} ${isActive ? 'bg-ink-700 text-cream-50 shadow-paper' : 'text-ink-600 hover:bg-cream-200 hover:text-ink-700'}`}>
       {({ isActive }) => <>
         <NavIcon name={icon} />
         <span className={small ? 'sr-only' : ''}>{label}</span>

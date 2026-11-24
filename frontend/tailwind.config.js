@@ -15,7 +15,9 @@ export default {
         // One plain typeface across the whole system.
         sans: ['Inter', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
-      boxShadow: { paper: '0 1px 2px rgba(31,42,68,.06), 0 8px 24px -12px rgba(31,42,68,.18)' },
+      // Bootstrap 5 metrics: radius .375rem (sm .25rem, lg .5rem); .shadow-sm for cards, .shadow for menus and windows.
+      borderRadius: { sm: '.25rem', DEFAULT: '.25rem', md: '.375rem', lg: '.375rem', xl: '.375rem', '2xl': '.375rem', '3xl': '.5rem' },
+      boxShadow: { paper: '0 .125rem .25rem rgba(31,42,68,.075)', pop: '0 .5rem 1rem rgba(31,42,68,.15)' },
     },
   },
   plugins: [],

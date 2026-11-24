@@ -20,13 +20,13 @@ export function PageHeader({ eyebrow, title, subtitle, actions, meta }) {
 }
 
 // A titled card: heading row (title, short description, actions) above the content.
-export function Section({ title, description, actions, children, className = '', bodyClassName = 'p-5 sm:p-6', id }) {
+export function Section({ title, description, actions, children, className = '', bodyClassName = 'p-4', id }) {
   return (
     <section id={id} className={`card scroll-mt-8 p-0 fade-in ${className}`} aria-labelledby={id && `${id}-h`}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-cream-300/80 px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-lg border-b border-cream-300 bg-cream-100/60 px-4 py-3">
           <div className="min-w-0">
-            {title && (typeof title === 'string' ? <h2 id={id && `${id}-h`} className="text-lg font-semibold">{title}</h2> : title)}
+            {title && (typeof title === 'string' ? <h2 id={id && `${id}-h`} className="text-lg font-medium">{title}</h2> : title)}
             {description && <p className="mt-0.5 text-sm text-ink-400">{description}</p>}
           </div>
           {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
@@ -38,7 +38,7 @@ export function Section({ title, description, actions, children, className = '',
 }
 
 export function Card({ className = '', children, ...rest }) {
-  return <div className={`card p-6 fade-in ${className}`} {...rest}>{children}</div>
+  return <div className={`card p-4 fade-in ${className}`} {...rest}>{children}</div>
 }
 
 export function Field({ label, hint, error, children }) {
@@ -65,7 +65,7 @@ export function Alert({ kind = 'error', children, onClose }) {
     warn: 'bg-[#FBF0D9] text-bark-600 border-gold-500/30',
   }
   return (
-    <div role={kind === 'error' ? 'alert' : 'status'} className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${styles[kind]}`}>
+    <div role={kind === 'error' ? 'alert' : 'status'} className={`flex items-start justify-between gap-3 rounded-lg border p-4 text-sm ${styles[kind]}`}>
       <div className="flex items-start gap-2.5"><AlertIcon kind={kind} /><div>{children}</div></div>
       {onClose && <button onClick={onClose} className="mt-0.5 opacity-60 hover:opacity-100" aria-label="Dismiss"><Icon name="close" size={14} /></button>}
     </div>
@@ -105,7 +105,7 @@ export function ToastProvider({ children }) {
       {children}
       <div className="pointer-events-none fixed inset-x-3 bottom-3 z-[60] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:items-end" aria-live="polite" role="status">
         {items.map((t) => (
-          <div key={t.id} className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-cream-50 px-4 py-3 text-sm font-medium shadow-paper fade-in ${tone[t.kind] || tone.info}`}>
+          <div key={t.id} className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-cream-50 px-3 py-2.5 text-sm font-medium shadow-pop fade-in ${tone[t.kind] || tone.info}`}>
             <Icon name={t.kind === 'error' ? 'error' : 'check-circle'} size={18} className="mt-px" />
             <span className="flex-1 text-ink-700">{t.text}</span>
             <button type="button" onClick={() => remove(t.id)} aria-label="Dismiss" className="-mr-1 mt-0.5 text-ink-400 hover:text-ink-700"><Icon name="close" size={14} /></button>
@@ -220,20 +220,20 @@ export function Dialog({ open, title, onClose, children, footer, wide = false, e
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-700/40 p-0 sm:items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-800/50 p-0 sm:items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabIndex={-1}
-        className={`flex max-h-[92vh] w-full flex-col rounded-t-2xl shadow-paper sm:rounded-2xl ${icon ? 'bg-cream-100' : 'bg-cream-50'} ${size === 'xl' ? 'sm:max-w-5xl' : wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}>
+        className={`flex max-h-[92vh] w-full flex-col rounded-t-3xl border border-cream-300 shadow-pop sm:rounded-3xl ${icon ? 'bg-cream-100' : 'bg-cream-50'} ${size === 'xl' ? 'sm:max-w-5xl' : wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}>
         {icon ? (
           /* Same header as the writing window (New diary / New letter). */
-          <div className="flex items-center gap-2.5 border-b border-cream-300 px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-2.5 border-b border-cream-300 p-4">
             <span className="text-bark-500">{icon}</span>
-            <h2 id="dialog-title" className="text-lg font-semibold">{title}</h2>
+            <h2 id="dialog-title" className="text-xl font-medium">{title}</h2>
           </div>
         ) : eyebrow || meta || closeButton ? (
-          <div className="flex items-start justify-between gap-4 border-b border-cream-300 px-6 pb-4 pt-5 sm:px-8 sm:pt-6">
+          <div className="flex items-start justify-between gap-4 border-b border-cream-300 p-4 sm:px-6">
             <div className="min-w-0">
               {eyebrow && <p className="text-xs font-semibold uppercase tracking-[0.08em] text-bark-500">{eyebrow}</p>}
-              <h2 id="dialog-title" className="mt-1.5 text-2xl font-semibold leading-tight">{title}</h2>
+              <h2 id="dialog-title" className="mt-1 text-xl font-medium leading-tight">{title}</h2>
               {meta && <div className="mt-2 text-sm text-ink-400">{meta}</div>}
             </div>
             {closeButton && onClose && (
@@ -242,9 +242,9 @@ export function Dialog({ open, title, onClose, children, footer, wide = false, e
               </button>
             )}
           </div>
-        ) : <h2 id="dialog-title" className="px-6 pt-5 text-lg font-semibold">{title}</h2>}
-        <div className={`min-h-0 flex-1 overflow-y-auto ${icon ? 'p-3 sm:p-5' : eyebrow || meta ? 'px-6 py-6 sm:px-8' : 'px-6 py-4'}`}>{children}</div>
-        {footer && <div className={`flex flex-wrap justify-end gap-2 border-t border-cream-300 py-4 ${eyebrow || meta ? 'bg-cream-100/60 px-6 sm:rounded-b-2xl sm:px-8' : 'px-6'}`}>{footer}</div>}
+        ) : <h2 id="dialog-title" className="border-b border-cream-300 p-4 text-xl font-medium">{title}</h2>}
+        <div className={`min-h-0 flex-1 overflow-y-auto ${icon ? 'p-3 sm:p-4' : eyebrow || meta ? 'p-4 sm:px-6' : 'p-4'}`}>{children}</div>
+        {footer && <div className={`flex flex-wrap justify-end gap-2 border-t border-cream-300 p-3 ${eyebrow || meta ? 'bg-cream-100/60 sm:rounded-b-3xl sm:px-6' : ''}`}>{footer}</div>}
       </div>
     </div>
   )

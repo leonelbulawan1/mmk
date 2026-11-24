@@ -63,7 +63,7 @@ export default function EntryDetail() {
       : fmtDate(e.release_on)
     return (
       <>
-        <div className="flex h-[42px] items-center justify-between gap-3">
+        <div className="flex h-[38px] items-center justify-between gap-3">
           <Link to="/entries?kind=letter" className="inline-flex items-center gap-2 text-sm font-medium text-ink-500 hover:text-ink-700">
             <Icon name="chevron-left" size={14} />
             Letters
@@ -141,7 +141,7 @@ export default function EntryDetail() {
           <article className="card flex flex-col overflow-hidden p-0 lg:min-h-[calc(100vh-13rem)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cream-300 px-5 py-3 sm:px-6">
               {e.revision_history.length > 0 && !editing ? (
-                <div className="inline-flex h-[42px] rounded-xl border border-cream-300 bg-cream-100 p-1 text-sm font-medium" role="tablist">
+                <div className="inline-flex h-[38px] rounded-xl border border-cream-300 bg-cream-100 p-1 text-sm font-medium" role="tablist">
                   {[['current', 'Current text'], ['original', 'Original'], ['history', `Revisions (${e.revision_history.length})`]].map(([k, l]) => (
                     <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
                       className={`rounded-lg px-3 transition ${view === k ? 'bg-ink-700 text-cream-50' : 'text-ink-500 hover:bg-cream-200'}`}>{l}</button>
