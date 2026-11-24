@@ -3,7 +3,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { api, drafts, fmtDate } from '../api'
 import { useAuth } from '../auth'
 import { Alert, ConfirmDialog, Empty, Spinner, Tag, useToast } from '../components/ui'
-import { DraftModal, EntryModal } from '../components/EntryModal'
+import { DraftModal, EntryModal, LetterModal } from '../components/EntryModal'
 import NavIcon from '../components/NavIcon'
 
 function GroupHeader({ id, title, count, note, sub }) {
@@ -87,9 +87,11 @@ function DateLead({ iso, month }) {
 const titleOf = (e) => e.title?.trim() || (e.snippet || '').split(/\s+/).slice(0, 7).join(' ') + ((e.snippet || '').split(/\s+/).length > 7 ? '…' : '') || 'Untitled'
 
 // A light divider inside a card: month or recipient, with a count.
-function Divider({ id, title }) {
+// Stays under the toolbar while its rows scroll past, so you always know which month you're in.
+function Divider({ id, title, top = 0 }) {
   return (
-    <li id={id} className="flex scroll-mt-36 items-center justify-between gap-3 border-b border-cream-300 bg-cream-100/80 px-4 py-2 sm:px-5">
+    <li id={id} style={{ top, scrollMarginTop: top + 8 }}
+      className="sticky z-10 flex items-center justify-between gap-3 border-b border-cream-300 bg-cream-100 px-4 py-2 first:rounded-t-2xl sm:px-5">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">{title}</h3>
     </li>
   )
@@ -102,12 +104,30 @@ const snippetOf = (e) => e.title?.trim() ? e.snippet : (e.snippet || '').split(/
 const timeOf = (iso) => (iso ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '')
 const Time = ({ iso, title }) => iso ? <time dateTime={iso} title={title || new Date(iso).toLocaleString()} className="whitespace-nowrap text-xs text-ink-400">{timeOf(iso)}</time> : null
 
+// Marks the words being searched for.
+function Mark({ text, q }) {
+  const words = (q || '').trim().split(/\s+/).filter((w) => w.length > 1).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  if (!words.length || !text) return text || null
+  const parts = String(text).split(new RegExp(`(${words.join('|')})`, 'gi'))
+  return parts.map((p, i) => (i % 2 ? <mark key={i} className="rounded bg-[#FBF0D9] px-0.5 text-inherit">{p}</mark> : p))
+}
+
 const PAGE = 30  // entries shown at a time; "Show more" adds the next batch
 
 export default function Entries() {
   const { user } = useAuth()
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState(params.get('q') || '')
+  // Height of the sticky toolbar, so the month dividers stick just below it.
+  const barRef = useRef(null)
+  const [barH, setBarH] = useState(0)
+  useEffect(() => {
+    const el = barRef.current
+    if (!el || !('ResizeObserver' in window)) return undefined
+    const ro = new ResizeObserver(() => setBarH(Math.round(el.getBoundingClientRect().height) - 12))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   const [state, setState] = useState({ loading: true, data: [], error: '' })
   const topic = params.get('topic') || ''
   const reviewOnly = params.get('review') === '1'
@@ -123,6 +143,7 @@ export default function Entries() {
   const [toDelete, setToDelete] = useState(null)
   const [openEntry, setOpenEntry] = useState(null)   // diary entry shown in the modal
   const [openDraft, setOpenDraft] = useState(null)   // draft shown in the modal
+  const [openLetter, setOpenLetter] = useState(null) // letter shown in the modal
   // A line under the sticky toolbar once the list has scrolled beneath it.
   const stickyTop = useRef(null)
   const [stuck, setStuck] = useState(false)
@@ -189,17 +210,17 @@ export default function Entries() {
       <div className="min-w-0">
         {heading && <ColumnHead label="Diary entries" />}
         {!list.length ? <Blank text="No diary entries here" to="/entries/new" action="Write an entry" /> : (
-          <div className="card mb-6 overflow-hidden p-0">
+          <div className="card mb-6 p-0">
             <ol>
               {ms.map((ym) => {
                 const y = ym.slice(0, 4)
                 const first = !seenYear.has(y); seenYear.add(y)
                 return [
-                  <Divider key={`d-${ym}`} id={first ? `year-${y}` : undefined} title={monthName(ym)} />,
+                  <Divider key={`d-${ym}`} id={first ? `year-${y}` : undefined} title={monthName(ym)} top={barH} />,
                   ...groups[ym].map((e) => (
                     <Row key={e.id} onOpen={() => setOpenEntry(e)} lead={<DateLead iso={e.entry_date} />}
-                      title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{titleOf(e)}</>}
-                      snippet={snippetOf(e)}
+                      title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span><Mark text={titleOf(e)} q={ql} /></>}
+                      snippet={<Mark text={snippetOf(e)} q={ql} />}
                       meta={<>
                         {e.pending_review && <Pill tone="gold">Needs review</Pill>}
                         <Time iso={e.created_at} />
@@ -222,16 +243,16 @@ export default function Entries() {
       <div className="min-w-0">
         {heading && <ColumnHead label="Letters" />}
         {!list.length ? <Blank text="No letters here" to="/entries/new?kind=letter" action="Write a letter" /> : (
-          <div className={`card mb-6 overflow-hidden p-0 `}>
+          <div className="card mb-6 p-0">
             <ol>
               {people.map((who) => [
-                <Divider key={`p-${who}`} title={`To ${who}`} />,
+                <Divider key={`p-${who}`} title={`To ${who}`} top={barH} />,
                 ...groups[who].map((e) => {
                   const st = letterStatus(e)
                   return (
-                    <Row key={e.id} to={`/entries/${e.id}`} lead={<DateLead iso={e.entry_date} month />}
-                      title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span>{titleOf(e)}</>}
-                      snippet={snippetOf(e)}
+                    <Row key={e.id} onOpen={() => setOpenLetter(e)} lead={<DateLead iso={e.entry_date} />}
+                      title={<><span className="sr-only">{fmtDate(e.entry_date)}: </span><Mark text={titleOf(e)} q={ql} /></>}
+                      snippet={<Mark text={snippetOf(e)} q={ql} />}
                       meta={<>
                         {e.pending_review && <Pill tone="gold">Needs review</Pill>}
                         <Pill tone={st.tone}>{st.label}</Pill>
@@ -252,18 +273,39 @@ export default function Entries() {
   if (!oldest) years.reverse()
   const jump = (y) => document.getElementById(`year-${y}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
+  // Drafts as a list (the Drafts tab, and matching drafts in All while searching).
+  const draftCard = (list) => (
+          <div className="card mb-6 overflow-hidden p-0">
+            <ol>
+              {list.map((d) => {
+                const letter = d.form.kind === 'letter'
+                const saved = d.saved_at ? new Date(d.saved_at) : null
+                return (
+                  <Row key={d.id} onOpen={() => setOpenDraft(d)}
+                    lead={<span className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-cream-300 text-ink-400"><NavIcon name={letter ? 'letters' : 'write'} size={18} /></span>}
+                    title={<Mark text={d.form.title?.trim() || 'Untitled'} q={ql} />} snippet={<Mark text={d.form.text?.trim() || '…'} q={ql} />}
+                    meta={<>
+                      <Pill>{letter ? 'Letter' : 'Diary'}</Pill>
+                      {saved && <span className="whitespace-nowrap text-xs text-ink-400">{saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
+                    </>} />
+                )
+              })}
+            </ol>
+          </div>
+  )
+
   return (
     <>
       <h1 className="sr-only">Entry</h1>
       {/* Tabs, search and filters stay at the top while the list scrolls under them. */}
       <div ref={stickyTop} aria-hidden className="h-px" />
-      <div className={`sticky top-0 z-30 -mx-3 -mt-3 mb-3 bg-cream-100/95 px-3 pt-3 backdrop-blur transition-shadow sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
+      <div ref={barRef} className={`sticky top-0 z-30 -mx-3 -mt-3 mb-3 bg-cream-100/95 px-3 pt-3 backdrop-blur transition-shadow sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5 ${stuck ? 'border-b border-cream-300 shadow-[0_6px_16px_-12px_rgba(31,42,68,0.35)]' : ''}`}>
       <div className="flex flex-col gap-2 border-b border-cream-300 pb-3 sm:flex-row sm:gap-3">
         <div className="flex flex-1 gap-2">
           <form role="search" className="relative flex-1" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
               className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-            <input className="input pl-10 pr-10" type="search" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entries" />
+            <input className="input pl-10 pr-10" type="search" placeholder="Search entries and letters" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search entries and letters" />
             {q && (
               <button type="button" onClick={() => { setQ(''); update('q', '') }} aria-label="Clear search"
                 className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-400 hover:bg-cream-200 hover:text-ink-600">
@@ -294,23 +336,7 @@ export default function Entries() {
         !draftShown.length ? (
           <Empty title={ql ? 'No matches' : 'No drafts'}>{ql ? '' : 'When you close something you are writing, it waits here so you can finish it later, on any device.'}</Empty>
         ) : (
-          <div className="card overflow-hidden p-0">
-            <ol>
-              {draftShown.map((d) => {
-                const letter = d.form.kind === 'letter'
-                const saved = d.saved_at ? new Date(d.saved_at) : null
-                return (
-                  <Row key={d.id} onOpen={() => setOpenDraft(d)}
-                    lead={<span className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-cream-300 text-ink-400"><NavIcon name={letter ? 'letters' : 'write'} size={18} /></span>}
-                    title={d.form.title?.trim() || 'Untitled'} snippet={d.form.text?.trim() || '…'}
-                    meta={<>
-                      <Pill>{letter ? 'Letter' : 'Diary'}</Pill>
-                      {saved && <span className="whitespace-nowrap text-xs text-ink-400">{saved.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
-                    </>} />
-                )
-              })}
-            </ol>
-          </div>
+          draftCard(draftShown)
         )
       ) : state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner label={kind === 'letter' ? 'Loading letters' : 'Loading entries'} /> : shown.length === 0 ? (
         <Empty title={params.get('q') || topic || reviewOnly ? 'No matches' : kind === 'letter' ? 'No letters yet' : kind === 'all' ? 'Nothing written yet' : 'No diary entries yet'}
@@ -327,13 +353,15 @@ export default function Entries() {
           </nav>
         )}
         <div>
-          {(both || kind === 'text') && (!reviewOnly || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: both })}
-          {(both || kind === 'letter') && (!reviewOnly || shown.some(isLetter)) && LetterColumn({ list: shown.filter(isLetter), heading: both })}
+          {kind === 'all' && ql && draftShown.length > 0 && <><ColumnHead label="Drafts" />{draftCard(draftShown)}</>}
+          {(both || kind === 'text') && (!(reviewOnly || ql) || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: both })}
+          {(both || kind === 'letter') && (!(reviewOnly || ql) || shown.some(isLetter)) && LetterColumn({ list: shown.filter(isLetter), heading: both })}
         </div>
         </>
       )}
       <EntryModal entry={openEntry} onClose={() => setOpenEntry(null)}
         onDeleted={(id) => { setState((st) => ({ ...st, data: st.data.filter((x) => x.id !== id) })); setOpenEntry(null) }} />
+      <LetterModal letter={openLetter} onClose={() => setOpenLetter(null)} />
       <DraftModal draft={toDelete ? null : openDraft} onClose={() => setOpenDraft(null)} onDelete={() => setToDelete(openDraft)} />
       <ConfirmDialog open={!!toDelete} danger title="Delete this draft?" confirmLabel="Delete" cancelLabel="Keep it"
         onConfirm={deleteDraft} onCancel={() => setToDelete(null)}>

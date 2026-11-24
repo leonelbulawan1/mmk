@@ -5,13 +5,11 @@ import { useAuth } from '../auth'
 import { Alert, Empty, PageHeader, Section, Spinner, Tag, useAsync } from '../components/ui'
 import NavIcon from '../components/NavIcon'
 import NewMenu from '../components/NewMenu'
-import { EntryModal } from '../components/EntryModal'
+import { EntryModal, LetterModal } from '../components/EntryModal'
 
-// A recent item: a diary entry opens in a modal, a letter on its own page.
-function Row({ e, onOpen, className, children }) {
-  return e.kind === 'letter'
-    ? <Link to={`/entries/${e.id}`} className={className}>{children}</Link>
-    : <button type="button" onClick={onOpen} className={className}>{children}</button>
+// A recent item opens in a window: a diary entry with Edit and Delete, a letter read-only.
+function Row({ onOpen, className, children }) {
+  return <button type="button" onClick={onOpen} className={className}>{children}</button>
 }
 
 // One column of the summary strip: label over a number (not a link).
@@ -29,6 +27,7 @@ export default function Dashboard() {
   const location = useLocation()
   const { data, error, loading, reload } = useAsync(() => api('/api/dashboard'))
   const [openEntry, setOpenEntry] = useState(null)
+  const [openLetter, setOpenLetter] = useState(null)
   const [draftList, setDraftList] = useState(() => drafts.list(user.id))
   useEffect(() => { if (!user.death_triggered_at) drafts.sync(user.id).then(setDraftList) }, [user.id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (loading) return <Spinner label="Loading your dashboard" />
@@ -89,7 +88,7 @@ export default function Dashboard() {
                 const d = new Date(e.entry_date + 'T00:00')
                 return (
                   <li key={e.id}>
-                    <Row e={e} onOpen={() => setOpenEntry(e)} className="group flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-cream-100/60 sm:px-6">
+                    <Row onOpen={() => (e.kind === 'letter' ? setOpenLetter(e) : setOpenEntry(e))} className="group flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-cream-100/60 sm:px-6">
                       <div className="w-14 shrink-0 whitespace-nowrap text-center" aria-hidden>
                         <p className="text-2xl font-semibold leading-none text-ink-700">{d.getDate()}</p>
                         <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-bark-500">{d.toLocaleString('en', { month: 'short' })} {String(d.getFullYear()).slice(2)}</p>
@@ -111,6 +110,7 @@ export default function Dashboard() {
         </Section>
 
       </div>
+      <LetterModal letter={openLetter} onClose={() => setOpenLetter(null)} />
       <EntryModal entry={openEntry} onClose={() => setOpenEntry(null)} onDeleted={() => { setOpenEntry(null); reload() }} />
     </div>
   )

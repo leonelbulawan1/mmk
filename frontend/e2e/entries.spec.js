@@ -31,9 +31,26 @@ test('deleting a diary entry removes it and the vault still verifies', async ({ 
   await expect(page.getByText('Verified: every record matches its hash')).toBeVisible()
 })
 
-test('a letter has no Edit button', async ({ page }) => {
+test('a letter opens read-only in a window', async ({ page }) => {
   await page.getByRole('tab', { name: /^Letters/ }).click()
-  await page.locator('li a').first().click()
-  await expect(page.getByText("Letters can't be edited once they are sent.")).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Edit' })).toHaveCount(0)
+  await page.locator('li button').first().click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByText('Letter', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('Delivery')).toBeVisible()
+  await expect(dialog.getByText("Letters can't be edited once they are sent.")).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Edit' })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: 'Delete' })).toHaveCount(0)
+})
+
+test('search highlights the words and month headings stay in view', async ({ page }) => {
+  await page.getByLabel('Search entries and letters').fill('hospital')
+  await expect(page.locator('mark').first()).toBeVisible()
+  await page.getByLabel('Clear search').click()
+  await page.getByRole('tab', { name: /^Diary/ }).click()
+  const first = page.locator('li.sticky').first()
+  await page.mouse.wheel(0, 600)
+  await page.waitForTimeout(300)
+  const box = await first.boundingBox()
+  const bar = await page.locator('form[role=search]').boundingBox()
+  expect(box.y).toBeGreaterThan(bar.y)   // a month heading is pinned under the toolbar, not scrolled away
 })

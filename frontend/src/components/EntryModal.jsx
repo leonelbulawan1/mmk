@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { fmtDate } from '../api'
 import { Alert, ConfirmDialog, Dialog, Spinner, Tag, useAsync, useToast } from './ui'
 import NavIcon from './NavIcon'
 
@@ -82,6 +83,47 @@ export function DraftModal({ draft, onClose, onDelete }) {
       meta={saved && <>Last saved {saved.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · {time(draft.saved_at)}</>}
       footer={<Actions onClose={onClose} onDelete={onDelete} onEdit={edit} editLabel="Continue writing" />}>
       <div className="max-w-2xl whitespace-pre-wrap text-lg leading-[1.8] text-ink-600">{draft.form.text?.trim() || <span className="text-ink-400">Nothing written yet.</span>}</div>
+    </Dialog>
+  )
+}
+
+// A letter, read-only (letters can't be edited or deleted once sent): who it is for, when it is
+// delivered and where it stands, then the letter itself. Same card as the letter page.
+export function LetterModal({ letter, onClose }) {
+  const full = useAsync(() => (letter ? api(`/api/entries/${letter.id}`) : Promise.resolve(null)), [letter?.id])
+  if (!letter) return null
+  const e = full.data || letter
+  const d = e.delivery
+  const status = d?.status === 'delivered' ? { label: 'Delivered', cls: 'bg-sage-100 text-sage-600' }
+    : d?.after_death || e.release_on_death ? { label: 'Waiting', cls: 'bg-[#FBF0D9] text-bark-600' }
+    : { label: 'Scheduled', cls: 'bg-[#FBF0D9] text-bark-600' }
+  const delivery = e.release_on_death
+    ? (e.release_days_after_death ? `${e.release_days_after_death} days after your passing` : 'After your passing')
+    : e.release_on ? fmtDate(e.release_on) : ''
+  return (
+    <Dialog open wide closeButton onClose={onClose} eyebrow="Letter" title={entryTitle(e)}
+      meta={<span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span>{day(e.entry_date)}</span><span aria-hidden>·</span><span>{time(e.created_at)}</span></span>}
+      footer={<>
+        <p className="mr-auto self-center text-xs text-ink-400">Letters can't be edited once they are sent.</p>
+        <button type="button" data-autofocus className="btn-secondary" onClick={onClose}>Close</button>
+      </>}>
+      {full.loading ? <Spinner label="Loading letter" /> : full.error ? <Alert>{full.error}</Alert> : (
+        <>
+          <div className="mb-6 grid grid-cols-2 gap-4 rounded-xl border border-cream-300 bg-cream-100/60 px-4 py-3 text-sm">
+            <div>
+              <p className="text-ink-400">To</p>
+              <p className="mt-0.5 font-semibold text-ink-700">{e.recipient_name || e.recipient}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-ink-400">Delivery</p>
+              <p className="mt-0.5 inline-flex flex-wrap items-center justify-end gap-2 font-semibold text-ink-700">
+                {delivery}<span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${status.cls}`}>{status.label}</span>
+              </p>
+            </div>
+          </div>
+          <div className="max-w-2xl whitespace-pre-wrap text-lg leading-[1.8] text-ink-600">{e.current_text}</div>
+        </>
+      )}
     </Dialog>
   )
 }
