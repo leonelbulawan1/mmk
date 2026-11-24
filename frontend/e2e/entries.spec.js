@@ -83,3 +83,22 @@ test('diary is grouped by year; needs review is a filter, not a tab', async ({ p
     await expect(page).toHaveURL(/review=1/)
   }
 })
+
+test('letters come first in All, and filter by status', async ({ page }) => {
+  const heads = page.locator('main h2')
+  await expect(heads.first()).toHaveText('Letters')
+  await page.getByRole('tab', { name: 'Letters' }).click()
+  await page.getByRole('button', { name: 'After passing', exact: true }).click()
+  await expect(page).toHaveURL(/status=after/)
+  await expect(page.locator('li button').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Scheduled', exact: true }).click()
+  await expect(page.getByText('No matches')).toBeVisible()
+})
+
+test('year picker jumps to a year, and "/" focuses search', async ({ page }) => {
+  await page.getByLabel('Jump to year').selectOption('2012')
+  await expect(page.locator('#year-2012')).toBeInViewport()
+  await page.locator('main').click({ position: { x: 5, y: 5 } })
+  await page.keyboard.press('/')
+  await expect(page.getByLabel('Search entries and letters')).toBeFocused()
+})

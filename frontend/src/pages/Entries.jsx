@@ -73,6 +73,13 @@ function ReviewFilter({ on, onChange }) {
 
 const shortDate = (iso) => new Date(iso + 'T00:00').toLocaleDateString('en', { month: 'short', day: 'numeric', ...(iso.slice(0, 4) !== String(new Date().getFullYear()) && { year: 'numeric' }) })
 
+// Letter status groups for the Letters filter.
+const LETTER_FILTERS = [['', 'All'], ['scheduled', 'Scheduled'], ['sent', 'Sent'], ['after', 'After passing']]
+function letterGroup(e) {
+  if (e.deliver_while_alive && e.release_on) return e.release_on <= new Date().toLocaleDateString('en-CA') ? 'sent' : 'scheduled'
+  return 'after'
+}
+
 // Where a letter stands: already on the recipient's home page, waiting for a date, or after passing.
 function letterStatus(e) {
   const today = new Date().toLocaleDateString('en-CA')
@@ -125,7 +132,7 @@ function Mark({ text, q }) {
   return parts.map((p, i) => (i % 2 ? <mark key={i} className="rounded bg-[#FBF0D9] px-0.5 text-inherit">{p}</mark> : p))
 }
 
-const PAGE = 30  // entries shown at a time; "Show more" adds the next batch
+const PAGE = 30  // entries per batch; the next batch loads when the end of the list is reached
 
 export default function Entries() {
   const { user } = useAuth()
@@ -136,6 +143,17 @@ export default function Entries() {
   const searchRef = useRef(null)
   const clearSearch = () => { setQ(''); update('q', ''); searchRef.current?.focus() }
   const [barH, setBarH] = useState(0)
+  // "/" anywhere on the page puts the cursor in the search box.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
+      const t = e.target
+      if (t.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return
+      e.preventDefault(); searchRef.current?.focus()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
   useEffect(() => {
     const el = barRef.current
     if (!el || !('ResizeObserver' in window)) return undefined
@@ -150,6 +168,7 @@ export default function Entries() {
   const kind = reviewOnly ? '' : ['text', 'letter', 'draft'].includes(params.get('kind')) ? params.get('kind') : 'all'
   const both = kind === 'all' || reviewOnly
   const oldest = params.get('sort') === 'oldest'
+  const status = kind === 'letter' && ['scheduled', 'sent', 'after'].includes(params.get('status')) ? params.get('status') : ''
   const [limit, setLimit] = useState(PAGE)
   // Unfinished writing (see api.js drafts): on this device and on the server.
   const location = useLocation()
@@ -175,6 +194,15 @@ export default function Entries() {
   const toast = useToast()
   const deleteDraft = () => { drafts.remove(user.id, toDelete.id); setDraftList(drafts.list(user.id)); setToDelete(null); setOpenDraft(null); toast('Draft deleted.') }
   useEffect(() => setLimit(PAGE), [params])
+  // Year picker: once that year's rows are on the page, scroll to it.
+  const [jumpTo, setJumpTo] = useState('')
+  useEffect(() => {
+    if (!jumpTo) return
+    document.getElementById(`year-${jumpTo}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setJumpTo('')
+  }, [jumpTo, limit])
+  // Load the next batch when the end of the list comes into view.
+  const moreRef = useRef(null)
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -196,11 +224,24 @@ export default function Entries() {
 
   const needReview = state.data.filter((e) => e.pending_review).length
   const isLetter = (e) => e.kind === 'letter'
-  const filtered = kind === 'draft' ? [] : state.data.filter((e) => (both || (isLetter(e) ? 'letter' : 'text') === kind) && (!reviewOnly || e.pending_review))
+  const filtered = kind === 'draft' ? [] : state.data.filter((e) => (both || (isLetter(e) ? 'letter' : 'text') === kind) && (!reviewOnly || e.pending_review) && (!status || letterGroup(e) === status))
   const ql = (params.get('q') || '').toLowerCase()
   const draftShown = draftList.filter((d) => !ql || `${d.form.title || ''} ${d.form.text || ''}`.toLowerCase().includes(ql))
   const sorted = oldest ? [...filtered].reverse() : filtered  // the API returns newest first
-  const shown = sorted.slice(0, limit)
+  // Letters are few and always listed in full beside the diary; the diary (or the Letters tab) loads in batches.
+  const letterAll = sorted.filter(isLetter)
+  const diaryAll = sorted.filter((e) => !isLetter(e))
+  const letterList = kind === 'letter' ? letterAll.slice(0, limit) : letterAll
+  const diaryList = diaryAll.slice(0, limit)
+  const hasMore = (kind === 'letter' ? letterAll.length : diaryAll.length) > limit
+  const shown = [...letterList, ...diaryList]
+  useEffect(() => {
+    const el = moreRef.current
+    if (!el || !('IntersectionObserver' in window)) return undefined
+    const io = new IntersectionObserver(([en]) => { if (en.isIntersecting) setLimit((n) => n + PAGE) }, { rootMargin: '400px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, limit, state.loading])
 
   const canWrite = !user.death_triggered_at
   const ColumnHead = ({ label }) => (
@@ -266,7 +307,7 @@ export default function Entries() {
                         {e.pending_review && <Pill tone="gold">Needs review</Pill>}
                         <Pill tone={st.tone}>{st.label}</Pill>
                         {sameDay(e.created_at, e.entry_date) && <Time iso={e.created_at} />}
-                      </>} stack={heading} />
+                      </>} />
                   )
                 }),
               ])}
@@ -278,9 +319,9 @@ export default function Entries() {
   }
 
   // Years with diary entries, for the "Jump to" bar.
-  const years = [...new Set(shown.filter((e) => !isLetter(e)).map((e) => e.entry_date.slice(0, 4)))].sort()
+  const years = [...new Set(filtered.filter((e) => !isLetter(e)).map((e) => e.entry_date.slice(0, 4)))].sort()
   if (!oldest) years.reverse()
-  const jump = (y) => document.getElementById(`year-${y}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const jump = (y) => { if (!y) return; setLimit(Math.max(limit, diaryAll.length)); setJumpTo(y) }
 
   // Drafts as a list (the Drafts tab, and matching drafts in All while searching).
   const draftCard = (list) => (
@@ -314,8 +355,9 @@ export default function Entries() {
           <form role="search" className="relative flex-1" onSubmit={(e) => { e.preventDefault(); update('q', q.trim()) }}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"
               className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-            <input ref={searchRef} className="input pl-10 pr-10" type="search" placeholder="Search entries and letters" value={q} onChange={(e) => setQ(e.target.value)}
+            <input ref={searchRef} aria-keyshortcuts="/" className="input pl-10 pr-10" type="search" placeholder="Search entries and letters" value={q} onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Escape' && q) { e.preventDefault(); clearSearch() } }} aria-label="Search entries and letters" />
+            {!q && <kbd aria-hidden className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-cream-300 bg-cream-100 px-1.5 font-sans text-xs text-ink-400 sm:block">/</kbd>}
             {q && (
               <button type="button" onClick={clearSearch} aria-label="Clear search" title="Clear search"
                 className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-400 hover:bg-cream-200 hover:text-ink-600">
@@ -326,7 +368,14 @@ export default function Entries() {
         </div>
         <div className="flex gap-2 sm:gap-3">
           <KindTabs value={reviewOnly ? '' : kind}
-            onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); if (v !== 'all') p.set('kind', v); setParams(p, { replace: true }) }} />
+            onChange={(v) => { const p = new URLSearchParams(params); p.delete('kind'); p.delete('review'); p.delete('status'); if (v !== 'all') p.set('kind', v); setParams(p, { replace: true }) }} />
+          {(kind === 'text' || kind === 'all') && !reviewOnly && years.length > 1 && !state.loading && (
+            <select aria-label="Jump to year" value="" onChange={(e) => jump(e.target.value)}
+              className="input hidden h-[42px] w-auto shrink-0 cursor-pointer py-0 pr-8 text-sm font-medium text-ink-600 sm:block">
+              <option value="">Year</option>
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          )}
           {(needReview > 0 || reviewOnly) && <ReviewFilter on={reviewOnly} onChange={(on) => update('review', on ? '1' : '')} />}
         </div>
       </div>
@@ -342,6 +391,14 @@ export default function Entries() {
           <button type="button" className="text-xs font-medium text-bark-500 hover:underline" onClick={() => update('topic', '')}>clear</button></span>}
       </div>
 
+      {kind === 'letter' && (
+        <div role="group" aria-label="Letter status" className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1 text-sm">
+          {LETTER_FILTERS.map(([v, label]) => (
+            <button key={v || 'all'} type="button" aria-pressed={status === v} onClick={() => update('status', v)}
+              className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 font-medium transition-colors ${status === v ? 'border-ink-700 bg-ink-700 text-cream-50' : 'border-cream-300 bg-cream-50 text-ink-500 hover:bg-cream-200 hover:text-ink-700'}`}>{label}</button>
+          ))}
+        </div>
+      )}
       <Alert>{state.error}</Alert>
       {kind === 'draft' ? (
         !draftShown.length ? (
@@ -351,23 +408,14 @@ export default function Entries() {
           draftCard(draftShown)
         )
       ) : state.error ? <Alert>{state.error}</Alert> : state.loading ? <Spinner label={kind === 'letter' ? 'Loading letters' : 'Loading entries'} /> : shown.length === 0 ? (
-        <Empty title={params.get('q') || topic || reviewOnly ? 'No matches' : kind === 'letter' ? 'No letters yet' : kind === 'all' ? 'Nothing written yet' : 'No diary entries yet'}
-          action={!user.death_triggered_at && !(params.get('q') || topic || reviewOnly) && <Link to={kind === 'letter' ? '/entries/new?kind=letter' : '/entries/new'} state={{ background: location }} className="btn-primary">{kind === 'letter' ? 'Write a letter' : 'Write an entry'}</Link>} />
+        <Empty title={params.get('q') || topic || reviewOnly || status ? 'No matches' : kind === 'letter' ? 'No letters yet' : kind === 'all' ? 'Nothing written yet' : 'No diary entries yet'}
+          action={!user.death_triggered_at && !(params.get('q') || topic || reviewOnly || status) && <Link to={kind === 'letter' ? '/entries/new?kind=letter' : '/entries/new'} state={{ background: location }} className="btn-primary">{kind === 'letter' ? 'Write a letter' : 'Write an entry'}</Link>} />
       ) : (
         <>
-        {(kind === 'text' || kind === 'all') && years.length > 1 && (
-          <nav aria-label="Jump to year" className="-mx-1 mb-3 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap px-1 pb-1 text-sm sm:flex-wrap">
-            <span className="mr-1 shrink-0 text-xs font-medium uppercase tracking-wider text-ink-400">Jump to</span>
-            {years.map((y) => (
-              <button key={y} type="button" onClick={() => jump(y)}
-                className="rounded-lg border border-transparent px-2.5 py-1 font-medium text-ink-500 hover:border-cream-300 hover:bg-cream-50 hover:text-ink-700">{y}</button>
-            ))}
-          </nav>
-        )}
         <div>
           {kind === 'all' && ql && draftShown.length > 0 && <><ColumnHead label="Drafts" />{draftCard(draftShown)}</>}
-          {(both || kind === 'text') && (!(reviewOnly || ql) || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: shown.filter((e) => !isLetter(e)), heading: both })}
-          {(both || kind === 'letter') && (!(reviewOnly || ql) || shown.some(isLetter)) && LetterColumn({ list: shown.filter(isLetter), heading: both })}
+          {(both || kind === 'letter') && (!(reviewOnly || ql) || shown.some(isLetter)) && LetterColumn({ list: letterList, heading: both })}
+          {(both || kind === 'text') && (!(reviewOnly || ql) || shown.some((e) => !isLetter(e))) && DiaryColumn({ list: diaryList, heading: both })}
         </div>
         </>
       )}
@@ -379,11 +427,10 @@ export default function Entries() {
         onConfirm={deleteDraft} onCancel={() => setToDelete(null)}>
         “{toDelete?.form.title?.trim() || 'Untitled'}” will be deleted. This can’t be undone.
       </ConfirmDialog>
-      {!state.loading && filtered.length > shown.length && (
-        <div className="text-center">
-          <button type="button" className="btn-secondary" onClick={() => setLimit((n) => n + PAGE)}>
-            Show more ({filtered.length - shown.length} more)
-          </button>
+      {!state.loading && kind !== 'draft' && hasMore && (
+        <div ref={moreRef} className="py-4">
+          {'IntersectionObserver' in window ? <Spinner label="Loading more" />
+            : <div className="text-center"><button type="button" className="btn-secondary" onClick={() => setLimit((n) => n + PAGE)}>Load more</button></div>}
         </div>
       )}
     </>
