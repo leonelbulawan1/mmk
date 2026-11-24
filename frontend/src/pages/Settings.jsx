@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { api, download, fmtDate, tokenStore } from '../api'
 import { useAuth } from '../auth'
 import PasswordInput from '../components/PasswordInput'
@@ -174,7 +174,6 @@ function YourData({ isOwner }) {
         {isOwner
           ? 'One file (JSON) with your profile, every entry and letter with all its revisions, your beneficiaries, every version of your legacy policy, your drafts and your activity log.'
           : 'One file (JSON) with your profile and the questions you asked.'}
-        {' '}Read how MMK handles your data in the <Link to="/privacy" className="link">privacy notice</Link>.
       </p>
       <div className="mt-4 flex justify-end border-t border-cream-300/80 pt-4">
         <button type="button" className="btn-secondary" disabled={busy} onClick={get}>{busy ? 'Preparing your file…' : 'Download my data'}</button>

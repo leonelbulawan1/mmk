@@ -24,10 +24,3 @@ test('the owner signs in and lands on the dashboard', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: OWNER.name })).toBeVisible()
   await expect(page.getByText('Recent entries')).toBeVisible()
 })
-
-test('the privacy notice is reachable from the sign-in page', async ({ page }) => {
-  await page.goto('/login')
-  await page.getByRole('link', { name: 'Privacy notice' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'Privacy notice' })).toBeVisible()
-  await expect(page.getByText('Data Privacy Act of 2012')).toBeVisible()
-})

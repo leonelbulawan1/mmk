@@ -24,7 +24,6 @@ export function AuthShell({ title, subtitle, children, footer }) {
           </header>
           <div className="flex flex-1 flex-col justify-center py-6 sm:py-7 [@media(max-height:620px)]:py-4">{children}</div>
           {footer && <div className="border-t border-cream-300 pt-5 text-center text-sm text-ink-400 [@media(max-height:620px)]:pt-3">{footer}</div>}
-          <p className="mt-4 text-center text-xs text-ink-400"><Link to="/privacy" className="hover:text-ink-600 hover:underline">Privacy notice</Link></p>
         </div>
     </div>
   )

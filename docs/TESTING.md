@@ -103,7 +103,7 @@ They start the API on a fresh SQLite database with the fictional demo data and o
 
 | File | Flow |
 |---|---|
-| `e2e/auth.spec.js` | Sign-in validation, wrong password, sign in to the dashboard, privacy notice |
+| `e2e/auth.spec.js` | Sign-in validation, wrong password, sign in to the dashboard |
 | `e2e/writing.spec.js` | Write and save a diary entry; Discard keeps a draft that appears on a second device and can be deleted; a letter needs a recipient |
 | `e2e/entries.spec.js` | Tabs; diary entry window with Edit; deleting an entry keeps the vault verified; letters have no Edit |
 | `e2e/settings.spec.js` | Add beneficiary validation; Download my data |
