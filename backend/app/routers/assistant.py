@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..ai.providers import LLMError, make_provider
 from ..config import settings, today
 from ..db import get_db
-from ..models import QAMessage, User
+from ..models import QAMessage, User, first_name_of
 from ..prolog.engine import PrologError
 from ..security import current_user, require_beneficiary
 from ..services import audit, policy_service, qa_service, vault_service
@@ -106,6 +106,7 @@ def overview(user: User = Depends(require_beneficiary), db: Session = Depends(ge
     visible = [d for d in decisions.values() if d.level != "none"]
     return {
         "owner": owner.display_name,
+        "owner_first_name": first_name_of(owner),
         "death_triggered": bool(owner.death_triggered_at),
         "shared_entries": sum(1 for d in visible if kinds.get(d.entry_id) == "text"),
         "released_letters": sum(1 for d in visible if kinds.get(d.entry_id) == "letter"),

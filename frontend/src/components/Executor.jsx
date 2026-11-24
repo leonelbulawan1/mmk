@@ -116,7 +116,7 @@ export function ExecutorPanel() {
   const left = useCountdown(rep?.activates_at)
   const phrase = user.confirm_phrase || 'REPORT PASSING'
   const ownerName = user.owner?.display_name || 'the diary owner'
-  const first = ownerName.split(' ')[0]
+  const first = user.owner?.first_name || ownerName
 
   if (!user.is_executor || user.owner?.death_triggered) return null
   const call = async (path, body) => {
@@ -188,7 +188,7 @@ export function DisputePanel() {
   const [busy, setBusy] = useState(false)
   const rep = user?.open_report
   if (!rep || user.owner?.death_triggered || (user.is_executor && user.report)) return null  // the reporter withdraws instead
-  const first = (user.owner?.display_name || 'the diary owner').split(' ')[0]
+  const first = user.owner?.first_name || user.owner?.display_name || 'the diary owner'
   const send = async (e) => {
     e.preventDefault()
     setBusy(true); setError('')

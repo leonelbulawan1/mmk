@@ -92,7 +92,7 @@ export default function Assistant() {
                   <p className="text-xl font-medium text-bark-500">What would you like to remember?</p>
                   {(!isOwner || asHandle) && (
                     <div className="mt-6 flex flex-wrap justify-center gap-2">
-                      {suggestionsFor((ownerName || 'they').split(' ')[0], isOwner).map((s) => <button key={s} className="btn-secondary btn-sm" onClick={() => ask(s)}>{s}</button>)}
+                      {suggestionsFor((isOwner ? user.first_name : user.owner?.first_name) || ownerName || 'they', isOwner).map((s) => <button key={s} className="btn-secondary btn-sm" onClick={() => ask(s)}>{s}</button>)}
                     </div>
                   )}
                 </div>

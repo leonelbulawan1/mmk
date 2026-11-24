@@ -12,7 +12,7 @@ export default function Settings() {
   const { user, setUser } = useAuth()
   const s = useAsync(() => api('/api/settings'))
   const isOwner = user.role === 'owner'
-  const [profile, setProfile] = useState({ display_name: user.display_name, default_writing_mode: user.default_writing_mode,
+  const [profile, setProfile] = useState({ first_name: user.first_name || '', last_name: user.last_name || '', default_writing_mode: user.default_writing_mode,
     allow_ai_answers: user.allow_ai_answers !== false, email_letters: user.email_letters !== false })
   const [pw, setPw] = useState({ current_password: '', new_password: '' })
   const [death, setDeath] = useState({ password: '', confirmation: '' })
@@ -29,11 +29,11 @@ export default function Settings() {
 
   const saveProfile = (e) => {
     e.preventDefault()
-    const bad = check(profile, { display_name: rules.required('your name') })
-    setFields(bad); if (bad.display_name) return
+    const bad = check(profile, { first_name: rules.required('your first name') })
+    setFields(bad); if (bad.first_name) return
     run('profile', async () => setUser(await api('/api/settings', { method: 'PUT', body: isOwner
-    ? { display_name: profile.display_name, default_writing_mode: profile.default_writing_mode, ...(user.death_triggered_at ? {} : { allow_ai_answers: profile.allow_ai_answers }) }
-    : { display_name: profile.display_name, email_letters: profile.email_letters } })), 'Profile saved.')
+    ? { first_name: profile.first_name, last_name: profile.last_name, default_writing_mode: profile.default_writing_mode, ...(user.death_triggered_at ? {} : { allow_ai_answers: profile.allow_ai_answers }) }
+    : { first_name: profile.first_name, last_name: profile.last_name, email_letters: profile.email_letters } })), 'Profile saved.')
   }
   const changePw = (e) => {
     e.preventDefault()
@@ -81,7 +81,10 @@ export default function Settings() {
         <Section id="profile" title="Profile">
           {note('profile')}
           <form onSubmit={saveProfile} noValidate className="space-y-4">
-            <Field label="Display name" error={fields.display_name}><input className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={profile.display_name} onChange={(e) => { setFields({}); setProfile({ ...profile, display_name: e.target.value }) }} /></Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="First name" error={fields.first_name}><input className={`input ${fields.first_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required autoComplete="given-name" aria-invalid={!!fields.first_name} value={profile.first_name} onChange={(e) => { setFields({}); setProfile({ ...profile, first_name: e.target.value }) }} /></Field>
+              <Field label="Last name"><input className="input" autoComplete="family-name" value={profile.last_name} onChange={(e) => setProfile({ ...profile, last_name: e.target.value })} /></Field>
+            </div>
             <Field label="Email"><input className="input" value={user.email} disabled /></Field>
             {isOwner && (
               <Field label="Default writing mode">

@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from ..models import EmailNotice, User
+from ..models import EmailNotice, User, first_name_of
 from . import audit, notify
 
 CODE_TTL = timedelta(minutes=15)
@@ -81,7 +81,7 @@ def send_code(db: Session, user: User, purpose: Purpose = VERIFY) -> dict:
     _set(user, purpose, "expires_at", (_now() + CODE_TTL).isoformat())
     _set(user, purpose, "sent_at", _now().isoformat())
     _set(user, purpose, "attempts", 0)
-    body = "\n".join([f"Hi {user.display_name.split()[0]},", "", purpose.intro, "", f"    {code}", "",
+    body = "\n".join([f"Hi {first_name_of(user)},", "", purpose.intro, "", f"    {code}", "",
                       f"The code expires in 15 minutes. {purpose.outro}", "", "MMK"])
     notice = EmailNotice(owner_id=user.owner_id or user.id, beneficiary_id=user.id, to_email=user.email,
                          subject=purpose.subject.format(code=code), body=body, kind=f"{purpose.key}_email",

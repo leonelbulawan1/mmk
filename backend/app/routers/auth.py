@@ -11,7 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import User, now_iso
+from ..models import User, first_name_of, now_iso
+from ..names import NameIn, name_out
 from ..services import attempts
 from ..services.email_check import InvalidEmail, check_address
 from ..security import create_token, current_user, hash_password, verify_password
@@ -20,9 +21,8 @@ from ..services import audit, verification
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-class RegisterIn(BaseModel):
+class RegisterIn(NameIn):
     email: EmailStr
-    display_name: str = Field(min_length=1, max_length=120)
     password: str = Field(min_length=8, max_length=200)
 
 
@@ -54,7 +54,7 @@ class ChangePasswordIn(BaseModel):
 
 
 def user_out(u: User, db: Session | None = None) -> dict:
-    out = {"id": u.id, "email": u.email, "display_name": u.display_name, "role": u.role,
+    out = {"id": u.id, "email": u.email, **name_out(u), "role": u.role,
            "death_triggered_at": u.death_triggered_at, "default_writing_mode": u.default_writing_mode,
            "email_letters": u.email_letters is not False, "allow_ai_answers": u.allow_ai_answers is not False}
     if u.role == "beneficiary":
@@ -63,7 +63,7 @@ def user_out(u: User, db: Session | None = None) -> dict:
             from ..services import death
 
             owner = db.get(User, u.owner_id)
-            out["owner"] = {"display_name": owner.display_name, "death_triggered": bool(owner.death_triggered_at),
+            out["owner"] = {"display_name": owner.display_name, "first_name": first_name_of(owner), "death_triggered": bool(owner.death_triggered_at),
                             "allow_ai_answers": owner.allow_ai_answers is not False}
             out["is_executor"] = owner.executor_id == u.id
             from ..services.death import pending_report as _open, review_required as _reviewed
@@ -122,13 +122,14 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
     if user is not None and not (user.role == "owner" and user.email_verified_at is None):
         raise HTTPException(409, "An account with this email already exists.")
     if user is None:
-        user = User(role="owner", email=email, display_name=body.display_name.strip(),
-                    password_hash=hash_password(body.password))
+        user = User(role="owner", email=email, display_name="", password_hash=hash_password(body.password))
+        body.apply_to(user)
         db.add(user)
         db.flush()
         audit.record(db, user.id, user, "auth.register", {}, commit=False)
     else:  # an unfinished sign-up with this email: start it again
-        user.display_name, user.password_hash = body.display_name.strip(), hash_password(body.password)
+        body.apply_to(user)
+        user.password_hash = hash_password(body.password)
         user.verify_sent_at = None
         audit.record(db, user.id, user, "auth.register_again", {}, commit=False)
     db.commit()

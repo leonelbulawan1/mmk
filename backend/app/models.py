@@ -24,7 +24,9 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     role: Mapped[str] = mapped_column(String(20))  # owner | beneficiary
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    display_name: Mapped[str] = mapped_column(String(120))
+    display_name: Mapped[str] = mapped_column(String(120))  # full name, "First Last"
+    first_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     handle: Mapped[str | None] = mapped_column(String(40), nullable=True)
@@ -53,6 +55,33 @@ class User(Base):
     # Owner's consent: may the AI assistant answer beneficiaries' questions from the entries the policy allows?
     allow_ai_answers: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+def split_name(full: str) -> tuple[str, str]:
+    """For accounts saved before first and last names were separate: the last word is the last name,
+    the rest the first name ("Kean Jayvee Gito" -> "Kean Jayvee", "Gito")."""
+    words = (full or "").split()
+    if len(words) < 2:
+        return (words[0] if words else ""), ""
+    return " ".join(words[:-1]), words[-1]
+
+
+def first_name_of(u: "User | None") -> str:
+    if u is None:
+        return ""
+    return (getattr(u, "first_name", None) or "").strip() or split_name(u.display_name)[0]
+
+
+def last_name_of(u: "User | None") -> str:
+    if u is None:
+        return ""
+    if (getattr(u, "first_name", None) or "").strip():
+        return (getattr(u, "last_name", None) or "").strip()
+    return split_name(u.display_name)[1]
+
+
+def full_name(first: str, last: str) -> str:
+    return " ".join(p for p in ((first or "").strip(), (last or "").strip()) if p)
 
 
 class EntryRow(Base):

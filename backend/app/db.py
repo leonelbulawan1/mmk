@@ -112,6 +112,8 @@ LATER_COLUMNS = (
     ("death_reports", "decision_note", "TEXT", None),
     ("death_reports", "disputed_by", "INTEGER", None),
     ("death_reports", "dispute_reason", "TEXT", None),
+    ("users", "first_name", "VARCHAR(80)", None),
+    ("users", "last_name", "VARCHAR(80)", None),
 )
 
 

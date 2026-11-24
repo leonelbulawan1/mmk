@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import User
+from ..names import NameIn
 from ..prolog.engine import swipl_available
 from ..security import current_user, require_living_owner, require_owner, verify_password
 from ..services import audit, death, notify, policy_service
@@ -19,8 +20,7 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 CONFIRM_PHRASE = "SEAL MY VAULT"
 
 
-class SettingsIn(BaseModel):
-    display_name: str | None = Field(default=None, min_length=1, max_length=120)
+class SettingsIn(NameIn):
     default_writing_mode: Literal["verbatim", "light_fix", "review"] | None = None
     email_letters: bool | None = None        # beneficiary
     allow_ai_answers: bool | None = None     # owner (consent; recorded in the audit log)
@@ -42,8 +42,8 @@ def get_settings(user: User = Depends(current_user), db: Session = Depends(get_d
 
 @router.put("")
 def update(body: SettingsIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
-    if body.display_name is not None:
-        user.display_name = body.display_name.strip()
+    if body.has_name():
+        body.apply_to(user)
     if body.default_writing_mode is not None:
         if user.role != "owner":
             raise HTTPException(403, "Only diary owners have a writing mode.")

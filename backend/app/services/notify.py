@@ -23,7 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import settings, today
-from ..models import EmailNotice, User, now_iso
+from ..models import EmailNotice, User, now_iso, first_name_of
 from . import audit, policy_service, vault_service
 
 
@@ -92,7 +92,7 @@ def activation_link(email: str, code: str) -> str:
 
 
 def _compose(owner: User, ben: User, letters: int, entries: int, invite_code: str | None) -> tuple[str, str]:
-    first = ben.display_name.split()[0] if ben.display_name else "there"
+    first = first_name_of(ben) or "there"
     parts = []
     if letters:
         parts.append(f"{letters} letter{'s' if letters != 1 else ''} written for you")
@@ -327,7 +327,7 @@ def notify_owner_of_report(db: Session, owner: User, executor: User, rep) -> Ema
         deadline = "If this is not true, sign in before " + \
             datetime.fromisoformat(rep.activates_at).strftime("%B %d, %Y at %H:%M UTC")
     body = "\n".join([
-        f"Dear {owner.display_name.split()[0]},",
+        f"Dear {first_name_of(owner)},",
         "",
         f"{executor.display_name}, the executor you chose on MMK, has reported that you have passed away.",
         "",
@@ -382,7 +382,7 @@ def notify_owner_of_verification(db: Session, owner: User, rep) -> EmailNotice:
     url = settings.app_url.rstrip("/")
     when = datetime.fromisoformat(rep.activates_at).strftime("%B %d, %Y at %H:%M UTC")
     body = "\n".join([
-        f"Dear {owner.display_name.split()[0]},", "",
+        f"Dear {first_name_of(owner)},", "",
         "An MMK reviewer has checked the report of your passing and the documents sent with it.", "",
         f"If this is not true, sign in before {when} and press \"I'm still here\" to cancel it:", "",
         f"    {url}/login", "",
@@ -413,7 +413,7 @@ def list_notices(db: Session, owner: User) -> list[dict]:
 
 # ---- invitations ----------------------------------------------------------------------------
 def _compose_invitation(owner: User, ben: User, code: str) -> tuple[str, str]:
-    first = ben.display_name.split()[0] if ben.display_name else "there"
+    first = first_name_of(ben) or "there"
     url = settings.app_url.rstrip("/")
     lines = [
         f"Hi {first},",
@@ -428,7 +428,7 @@ def _compose_invitation(owner: User, ben: User, code: str) -> tuple[str, str]:
         "",
         f"    {code}",
         "",
-        f"Nothing in {owner.display_name.split()[0]}'s diary is shared with you while they are alive.",
+        f"Nothing in {first_name_of(owner)}'s diary is shared with you while they are alive.",
         "",
         "MMK",
     ]
@@ -450,7 +450,7 @@ def send_invitation(db: Session, owner: User, ben: User, code: str) -> EmailNoti
 
 # ---- letters, once they are released ---------------------------------------------------------
 def _compose_letter_released(owner: User, ben: User, title: str, invite_code: str | None) -> tuple[str, str]:
-    first = ben.display_name.split()[0] if ben.display_name else "there"
+    first = first_name_of(ben) or "there"
     url = settings.app_url.rstrip("/")
     lines = [f"Dear {first},", "",
              f"A letter {owner.display_name} wrote for you, \"{title}\", is now open for you on MMK.", ""]

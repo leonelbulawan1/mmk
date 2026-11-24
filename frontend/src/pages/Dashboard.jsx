@@ -42,7 +42,7 @@ export default function Dashboard() {
     // (Window height minus the page padding, and on small screens the top bar.)
     <div className="flex h-[calc(100dvh-103px)] min-h-[520px] flex-col lg:h-[calc(100dvh-36px)]">
       <div className="shrink-0">
-      <PageHeader eyebrow={`${greeting},`} title={data.owner}
+      <PageHeader eyebrow={`${greeting},`} title={data.owner_first_name || data.owner}
         subtitle={sealed ? 'Vault sealed.' : 'What would you like to remember today?'}
         actions={!sealed && <NewMenu label="Write" icon="write" />} />
 

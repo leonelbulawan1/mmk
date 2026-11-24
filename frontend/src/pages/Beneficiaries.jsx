@@ -9,7 +9,7 @@ import NavIcon from '../components/NavIcon'
 // In the browser edition links cannot open a specific page, so only the code is shown there.
 const WEB = import.meta.env.VITE_WEB_RUNTIME === '1'
 
-const blank = { display_name: '', email: '', handle: '' }
+const blank = { first_name: '', last_name: '', email: '', handle: '' }
 
 // Pydantic's own wording for a malformed address is long; say it plainly.
 const plainEmailError = (msg) => /not a valid email address/i.test(msg || '') ? 'Enter a valid email address.' : msg
@@ -61,14 +61,14 @@ export default function Beneficiaries() {
     const v = e.target.value
     setFields((f) => ({ ...f, [k]: '' }))
     if (k === 'email') setEmailError('')
-    setForm((f) => ({ ...f, [k]: v, ...(k === 'display_name' && !f._handleTouched ? { handle: v.split(' ')[0].toLowerCase().replace(/[^a-z0-9_]/g, '') } : {}), ...(k === 'handle' ? { _handleTouched: true } : {}) }))
+    setForm((f) => ({ ...f, [k]: v, ...(k === 'first_name' && !f._handleTouched ? { handle: v.trim().split(' ')[0].toLowerCase().replace(/[^a-z0-9_]/g, '') } : {}), ...(k === 'handle' ? { _handleTouched: true } : {}) }))
   }
 
   const create = async (e) => {
     e.preventDefault()
-    const bad = check(form, { display_name: rules.required('their full name'), email: rules.otherEmail, handle: rules.handle })
+    const bad = check(form, { first_name: rules.required('their first name'), last_name: rules.required('their last name'), email: rules.otherEmail, handle: rules.handle })
     setFields(bad)
-    if (Object.keys(bad).length) { focusFirst(bad, { display_name: 'ben-name', email: 'ben-email', handle: 'ben-handle' }); return }
+    if (Object.keys(bad).length) { focusFirst(bad, { first_name: 'ben-first', last_name: 'ben-last', email: 'ben-email', handle: 'ben-handle' }); return }
     setBusy(true); setError(''); setEmailError('')
     try {
       const { _handleTouched, ...body } = form
@@ -155,7 +155,7 @@ export default function Beneficiaries() {
                     </div>
                     {!sealed && (
                       <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-                        <Link className="btn-secondary btn-sm" to={`/assistant?as=${b.handle}`}>Preview as {b.display_name.split(' ')[0]}</Link>
+                        <Link className="btn-secondary btn-sm" to={`/assistant?as=${b.handle}`}>Preview as {b.first_name || b.display_name}</Link>
                         {!b.activated && <button className="btn-secondary btn-sm" onClick={() => reissue(b)}>Send invite again</button>}
                         <button className="btn-ghost btn-sm" onClick={() => toggle(b)}>{b.active ? 'Deactivate' : 'Reactivate'}</button>
                       </div>
@@ -176,11 +176,10 @@ export default function Beneficiaries() {
           <div className="flex-1 space-y-5 px-5 py-6 sm:px-6">
             <Alert onClose={() => setError('')}>{error}</Alert>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Full name" error={fields.display_name}><input id="ben-name" data-autofocus className={`input ${fields.display_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required aria-invalid={!!fields.display_name} value={form.display_name} onChange={set('display_name')} /></Field>
+              <Field label="First name" error={fields.first_name}><input id="ben-first" data-autofocus className={`input ${fields.first_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required autoComplete="off" aria-invalid={!!fields.first_name} value={form.first_name} onChange={set('first_name')} /></Field>
+              <Field label="Last name" error={fields.last_name}><input id="ben-last" className={`input ${fields.last_name ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required autoComplete="off" aria-invalid={!!fields.last_name} value={form.last_name} onChange={set('last_name')} /></Field>
               <Field label="Email" error={fields.email || emailError}>
                 <input id="ben-email" className={`input ${fields.email || emailError ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} type="email" required value={form.email} onChange={set('email')} aria-invalid={!!(fields.email || emailError)} /></Field>
-            </div>
-            <div className="sm:w-1/2 sm:pr-2.5">
               <Field label="Policy handle" error={fields.handle}>
                 <input id="ben-handle" className={`input font-mono ${fields.handle ? 'border-rose-600 focus:border-rose-600 focus:ring-rose-600/20' : ''}`} required placeholder="maria" aria-invalid={!!fields.handle} value={form.handle} onChange={set('handle')} /></Field>
             </div>

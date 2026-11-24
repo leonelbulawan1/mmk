@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from ..config import today
 from ..db import get_db
 from ..domain import Entry, LetterEntry, VaultSealedError
-from ..models import User
+from ..models import User, first_name_of
 from ..processing.pure import correct, diff, normalize
 from ..security import require_living_owner, require_owner
 from ..services import vault_service
@@ -237,6 +237,7 @@ def dashboard(owner: User = Depends(require_owner), db: Session = Depends(get_db
     names = recipient_names(db, owner)
     return {
         "owner": owner.display_name,
+        "owner_first_name": first_name_of(owner),
         "entry_count": sum(1 for e in entries if e.kind == "text"),
         "letter_count": sum(1 for e in entries if e.kind == "letter"),
         "entries_this_year": sum(1 for e in entries if e.entry_date.year == this_year),

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import User
+from ..names import NameIn, name_out
 from ..policy_lang.lexer import KEYWORDS
 from ..security import require_living_owner, require_owner
 from ..services import audit
@@ -20,8 +21,7 @@ router = APIRouter(prefix="/api/beneficiaries", tags=["beneficiaries"])
 HANDLE_RE = re.compile(r"^[a-z][a-z0-9_]{1,31}$")
 
 
-class BeneficiaryIn(BaseModel):
-    display_name: str = Field(min_length=1, max_length=120)
+class BeneficiaryIn(NameIn):
     email: EmailStr
     handle: str = Field(min_length=2, max_length=32)
     relationship: str = Field(default="", max_length=80)
@@ -55,7 +55,7 @@ def _invitation_out(db: Session, b: User) -> dict | None:
 
 
 def out(b: User, invitation: dict | None = None) -> dict:
-    return {"id": b.id, "display_name": b.display_name, "email": b.email, "handle": b.handle,
+    return {"id": b.id, **name_out(b), "email": b.email, "handle": b.handle,
             "relationship": b.relationship, "active": b.active, "activated": b.password_hash is not None,
             "created_at": b.created_at, "invitation": invitation}
 
@@ -93,8 +93,9 @@ def create(body: BeneficiaryIn, owner: User = Depends(require_living_owner), db:
     if db.scalars(select(User).where(User.owner_id == owner.id, User.handle == handle)).first():
         raise HTTPException(409, "That handle is already in use. Choose another.")
     code = _invite()
-    b = User(role="beneficiary", email=email, display_name=body.display_name.strip(), owner_id=owner.id,
+    b = User(role="beneficiary", email=email, display_name="", owner_id=owner.id,
              handle=handle, relationship=body.relationship.strip(), invite_code_hash=hash_invite(code))
+    body.apply_to(b)
     db.add(b)
     db.flush()
     audit.record(db, owner.id, owner, "beneficiary.create", {"handle": handle}, commit=False)

@@ -21,6 +21,6 @@ test('a wrong password shows a clear error', async ({ page }) => {
 
 test('the owner signs in and lands on the dashboard', async ({ page }) => {
   await signIn(page)
-  await expect(page.getByRole('heading', { level: 1, name: OWNER.name })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: OWNER.name.split(' ')[0], exact: true })).toBeVisible()  // first name only
   await expect(page.getByText('Recent entries')).toBeVisible()
 })

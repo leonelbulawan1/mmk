@@ -10,7 +10,7 @@ export default function BeneficiaryHome() {
   if (o.loading) return <Spinner label="Loading" />
   if (o.error) return <Alert>{o.error}</Alert>
   const d = o.data
-  const first = d.owner.split(' ')[0]
+  const first = d.owner_first_name || d.owner
 
   if (!d.death_triggered) {
     // The diary opens only after the owner's passing.
